@@ -1,6 +1,5 @@
 ﻿using Core.DTOs.AuthDTOs;
 using Core.Interfaces;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Client_API.Controllers
@@ -27,12 +26,18 @@ namespace Client_API.Controllers
         [HttpPost("register")]
         public async Task<IActionResult> RegisterAsync(RegisterUserDTO request)
         {
-            var result = await authService.RegisterUserAsync(request);
-            if (result.IsAuthenticated)
+            if (request is null)
+                return BadRequest("بيانات المستخدم غير صحيحة");
+            try
             {
+                var result = await authService.RegisterUserAsync(request);
                 return Ok(result);
+
             }
-            return BadRequest(result);
+            catch(Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
         [HttpGet("users")]
         public async Task<IActionResult> GetAllUsersAsync()

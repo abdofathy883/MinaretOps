@@ -23,13 +23,13 @@ namespace Infrastructure.Services.Services
         public async Task<ServiceDTO> AddServiceAsync(CreateServiceDTO newService)
         {
             if (newService is null)
-                throw new InvalidObjectException("New service cannot be null");
+                throw new InvalidObjectException("بيانات الخدمة غير صحيحة");
 
             var existingService = await dbContext.Services
                 .AnyAsync(s => s.Title == newService.Title);
 
             if (existingService)
-                throw new InvalidObjectException("this service already exists");
+                throw new AlreadyExistObjectException("لا يمكن اضافة خدمة موجودة بالفعل");
 
             using var dbTransaction = await dbContext.Database.BeginTransactionAsync();
             try
@@ -63,7 +63,7 @@ namespace Infrastructure.Services.Services
         public async Task<List<ServiceDTO>> GetAllServicesAsync()
         {
             var services = await dbContext.Services.ToListAsync()
-                ?? throw new InvalidObjectException("No services found");
+                ?? throw new InvalidObjectException("لا يوجد خدمات");
 
             return mapper.Map<List<ServiceDTO>>(services);
         }
@@ -77,7 +77,8 @@ namespace Infrastructure.Services.Services
 
         public async Task<ServiceDTO> ToggleVisibilityAsync(int serviceId)
         {
-            var service = await GetServiceOrThrow(serviceId);
+            var service = await dbContext.Services.FirstOrDefaultAsync(s => s.Id == serviceId)
+                ?? throw new InvalidObjectException("بيانات الخدمة غير صحيحة");
 
             service.IsDeleted = !service.IsDeleted;
             dbContext.Services.Update(service);
@@ -103,8 +104,9 @@ namespace Infrastructure.Services.Services
         {
             var service = await dbContext.Services
                 .Include(s => s.ClientServices)
+                    .ThenInclude(c => c.Client)
                 .FirstOrDefaultAsync(s => s.Id == serviceId)
-                 ?? throw new InvalidObjectException("Service not found");
+                 ?? throw new InvalidObjectException("بيانات الخدمة غير صحيحة");
             return service;
         }
     }

@@ -9,17 +9,14 @@ namespace Infrastructure.Data
     {
         public MinaretOpsDbContext(DbContextOptions<MinaretOpsDbContext> options) : base(options)
         { }
-
-
         public DbSet<ApplicationUser> ApplicationUsers { get; set; }
         public DbSet<Client> Clients { get; set; }
         public DbSet<Service> Services { get; set; }
         public DbSet<ClientService> ClientServices { get; set; }
         public DbSet<TaskItem> Tasks { get; set; }
         public DbSet<TaskGroup> TaskGroups { get; set; }
-
-        //Google
-
+        public DbSet<InternalTask> InternalTasks { get; set; }
+        public DbSet<InternalTaskAssignment> InternalTaskAssignments { get; set; }
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
@@ -30,6 +27,8 @@ namespace Infrastructure.Data
             builder.ApplyConfiguration(new ClientServiceConfig());
             builder.ApplyConfiguration(new TaskConfig());
             builder.ApplyConfiguration(new TaskGroupConfig());
+            builder.ApplyConfiguration(new InternalTaskConfig());
+            builder.ApplyConfiguration(new InternalTaskAssignmentConfig());
         }
     }
 }

@@ -4,7 +4,8 @@ using Core.Settings;
 using Infrastructure.Data;
 using Infrastructure.MappingProfiles;
 using Infrastructure.Services.Auth;
-using Infrastructure.Services.Clients;
+using Infrastructure.Services.Email;
+using Infrastructure.Services.InternalTasks;
 using Infrastructure.Services.NewFolder;
 using Infrastructure.Services.Services;
 using Microsoft.AspNetCore.Identity;
@@ -30,6 +31,7 @@ namespace Client_API
             JWTSettings jwtOptions = builder.Configuration.GetSection("JWT").Get<JWTSettings>()
                 ?? throw new Exception("Error in JWT Settings");
 
+            builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSetting"));
 
 
             builder.Services.AddSingleton<JWTSettings>(jwtOptions);
@@ -40,6 +42,8 @@ namespace Client_API
             builder.Services.AddScoped<IClientServices, ClientService>();
             builder.Services.AddScoped<IServiceService, ServiceService>();
             builder.Services.AddScoped<ITaskService, TaskService>();
+            builder.Services.AddScoped<IInternalTaskService, InternalTaskService>();
+            builder.Services.AddScoped<IEmailService, EmailService>();
 
             builder.Services.AddAutoMapper(cfg =>
             {
@@ -48,6 +52,8 @@ namespace Client_API
                 cfg.AddProfile<ClientServiceProfile>();
                 cfg.AddProfile<TaskGroupProfile>();
                 cfg.AddProfile<TaskItemProfile>();
+                cfg.AddProfile<InternalTaskProfile>();
+                cfg.AddProfile<InternalTaskAssignmentProfile>();
             });
 
             builder.Services.AddControllers();

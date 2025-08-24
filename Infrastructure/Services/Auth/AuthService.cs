@@ -1,17 +1,10 @@
-﻿using AutoMapper;
-using Core.DTOs.AuthDTOs;
-using Core.Enums;
+﻿using Core.DTOs.AuthDTOs;
 using Core.Interfaces;
 using Core.Models;
 using Infrastructure.Data;
 using Infrastructure.Exceptions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Infrastructure.Services.Auth
 {
@@ -164,9 +157,9 @@ namespace Infrastructure.Services.Auth
 
                 Dictionary<string, string> replacements = new Dictionary<string, string>
                 {
-                    {"Name", $"{user.FirstName} {user.LastName}" },
-                    {"Email", $"{user.Email}" },
-                    {"Role", $"{userManager.GetRolesAsync(user)}" }
+                    {"EmpName", $"{user.FirstName} {user.LastName}" },
+                    {"EmpEmail", $"{user.Email}" },
+                    {"EmpRole", string.Join(", ", await userManager.GetRolesAsync(user)) }
 
                 };
 
@@ -188,7 +181,7 @@ namespace Infrastructure.Services.Auth
             var result = await userManager.UpdateAsync(user);
             if (!result.Succeeded)
             {
-                throw new InvalidObjectException("فشل في تحديث حالة المستخدم");
+                throw new NotImplementedOperationException("فشل في تحديث حالة المستخدم");
             }
             return user.IsDeleted;
         }
@@ -256,29 +249,35 @@ namespace Infrastructure.Services.Auth
         public async Task<AuthResponseDTO> UpdateUserAsync(UpdateUserDTO updatedUser)
         {
             if (updatedUser is null)
-                throw new Exception();
+                throw new InvalidObjectException("بيانات الحساب غير مكتملة");
             var user = await GetUserOrThrow(updatedUser.Id);
 
-            if (!string.IsNullOrWhiteSpace(updatedUser.FirstName)) 
+            if (user.FirstName != updatedUser.FirstName && !string.IsNullOrWhiteSpace(updatedUser.FirstName)) 
                 user.FirstName = updatedUser.FirstName.Trim();
-            if (!string.IsNullOrWhiteSpace(updatedUser.LastName))
+            if (user.LastName != updatedUser.LastName && !string.IsNullOrWhiteSpace(updatedUser.LastName))
                 user.LastName = updatedUser.LastName.Trim();
-            if (!string.IsNullOrWhiteSpace(updatedUser.City))
+            if (user.City != updatedUser.City && !string.IsNullOrWhiteSpace(updatedUser.City))
                 user.City = updatedUser.City.Trim();
-            if (!string.IsNullOrWhiteSpace(updatedUser.Street))
+            if (user.Street != updatedUser.Street && !string.IsNullOrWhiteSpace(updatedUser.Street))
                 user.Street = updatedUser.Street.Trim();
-            if (!string.IsNullOrWhiteSpace(updatedUser.PaymentNumber))
+            if (user.PaymentNumber != updatedUser.PaymentNumber && !string.IsNullOrWhiteSpace(updatedUser.PaymentNumber))
                 user.PaymentNumber = updatedUser.PaymentNumber.Trim();
-            if (!string.IsNullOrWhiteSpace(updatedUser.Email))
+            if (user.Email != updatedUser.Email && !string.IsNullOrWhiteSpace(updatedUser.Email))
             {
                 user.Email = updatedUser.Email.Trim();
                 user.NormalizedEmail = userManager.NormalizeEmail(updatedUser.Email);
                 user.EmailConfirmed = true;
             }
-            if (!string.IsNullOrWhiteSpace(updatedUser.PhoneNumber))
+            if (user.PhoneNumber != updatedUser.PhoneNumber && !string.IsNullOrWhiteSpace(updatedUser.PhoneNumber))
             {
                 user.PhoneNumber = updatedUser.PhoneNumber.Trim();
                 user.PhoneNumberConfirmed = true;
+            }
+            var userRoles = await userManager.GetRolesAsync(user);
+            if (!string.IsNullOrWhiteSpace(updatedUser.Role) && userRoles != updatedUser.Role.ToList())
+            {
+                await userManager.RemoveFromRolesAsync(user, userRoles);
+                await userManager.AddToRoleAsync(user, updatedUser.Role.ToString());
             }
             var result = await userManager.UpdateAsync(user);
             if (!result.Succeeded)
@@ -289,7 +288,17 @@ namespace Infrastructure.Services.Auth
                     Message = string.Join(", ", result.Errors.Select(e => e.Description))
                 };
             }
-            
+
+            Dictionary<string, string> replacements = new Dictionary<string, string>
+            {
+                {"EmpFullName", $"{user.FirstName} {user.LastName}" },
+                {"EmpEmail", $"{user.Email}" },
+                {"TimeStamp", $"{DateTime.UtcNow}" }
+            };
+
+            await emailService.SendEmailWithTemplateAsync(user.Email, "Change Password Confirmation", "ChangePasswordConfirmation", replacements);
+
+
             return new AuthResponseDTO
             {
                 Id = user.Id,
@@ -329,6 +338,15 @@ namespace Infrastructure.Services.Auth
                     Message = "تعذر تحديث الرقم السري"
                 };
             }
+
+            Dictionary<string, string> replacements = new Dictionary<string, string>
+            {
+                {"FullName", $"{user.FirstName} {user.LastName}" },
+                {"Email", $"{user.Email}" },
+                {"TimeStamp", $"{DateTime.UtcNow}" }
+            };
+
+            await emailService.SendEmailWithTemplateAsync(user.Email, "Change Password Confirmation", "ChangePasswordConfirmation", replacements);
 
             return new AuthResponseDTO
             {

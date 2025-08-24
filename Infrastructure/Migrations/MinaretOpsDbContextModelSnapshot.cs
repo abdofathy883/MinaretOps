@@ -209,6 +209,73 @@ namespace Infrastructure.Migrations
                     b.ToTable("ClientServices");
                 });
 
+            modelBuilder.Entity("Core.Models.InternalTask", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("Deadline")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("Priority")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("InternalTasks");
+                });
+
+            modelBuilder.Entity("Core.Models.InternalTaskAssignment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("InternalTaskId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsLeader")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InternalTaskId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("InternalTaskAssignments");
+                });
+
             modelBuilder.Entity("Core.Models.Service", b =>
                 {
                     b.Property<int>("Id")
@@ -524,6 +591,25 @@ namespace Infrastructure.Migrations
                     b.Navigation("Service");
                 });
 
+            modelBuilder.Entity("Core.Models.InternalTaskAssignment", b =>
+                {
+                    b.HasOne("Core.Models.InternalTask", "Task")
+                        .WithMany("Assignments")
+                        .HasForeignKey("InternalTaskId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Core.Models.ApplicationUser", "User")
+                        .WithMany("InternalTaskAssignments")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Task");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Core.Models.TaskGroup", b =>
                 {
                     b.HasOne("Core.Models.ClientService", "ClientService")
@@ -615,6 +701,8 @@ namespace Infrastructure.Migrations
 
             modelBuilder.Entity("Core.Models.ApplicationUser", b =>
                 {
+                    b.Navigation("InternalTaskAssignments");
+
                     b.Navigation("TaskItems");
                 });
 
@@ -626,6 +714,11 @@ namespace Infrastructure.Migrations
             modelBuilder.Entity("Core.Models.ClientService", b =>
                 {
                     b.Navigation("TaskGroups");
+                });
+
+            modelBuilder.Entity("Core.Models.InternalTask", b =>
+                {
+                    b.Navigation("Assignments");
                 });
 
             modelBuilder.Entity("Core.Models.Service", b =>

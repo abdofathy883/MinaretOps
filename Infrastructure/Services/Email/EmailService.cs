@@ -13,31 +13,6 @@ namespace Infrastructure.Services.Email
         {
             emailSettings = options;
         }
-
-        //public async Task SendEmailAsync(string email, string subject, string htmlMessage)
-        //{
-        //    var mailMessage = new MailMessage
-        //    {
-        //        From = new MailAddress(emailSettings.Value.AppEmail
-        //        , emailSettings.Value.AppEmail),
-        //        Subject = subject,
-        //        Body = htmlMessage,
-        //        IsBodyHtml = true,
-        //    };
-        //    mailMessage.To.Add(email);
-
-        //    // Configure the SmtpClient
-        //    using var smtpClient = new System.Net.Mail.SmtpClient(emailSettings.Value.SmtpServer, emailSettings.Value.SmtpPort)
-        //    {
-        //        // Set credentials and enable SSL
-        //        Credentials = new NetworkCredential(emailSettings.Value.AppEmail, emailSettings.Value.AppPassword),
-        //        EnableSsl = true,
-        //    };
-
-        //    // Send the email
-        //    await smtpClient.SendMailAsync(mailMessage);
-        //}
-
         public async Task SendEmailWithTemplateAsync(string to, string subject, string templateName, Dictionary<string, string> replacements)
         {
             var fromEmail = emailSettings.Value.FromEmail;
@@ -45,11 +20,29 @@ namespace Infrastructure.Services.Email
             var SMTPPort = emailSettings.Value.PORT;
             var emailPassword = emailSettings.Value.AppPassword;
 
-            var templatePath = Path.Combine(Directory.GetCurrentDirectory(), "EmailTemplates", $"{templateName}.html");
+            var templatePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "EmailTemplates", $"{templateName}.html");
+
+            // Fallback: if not found in base directory, try to find it relative to the executing assembly
+            if (!File.Exists(templatePath))
+            {
+                var assemblyLocation = System.Reflection.Assembly.GetExecutingAssembly().Location;
+                var assemblyDirectory = Path.GetDirectoryName(assemblyLocation);
+                templatePath = Path.Combine(assemblyDirectory!, "EmailTemplates", $"{templateName}.html");
+            }
+
+            if (!File.Exists(templatePath))
+            {
+                throw new FileNotFoundException($"Email template '{templateName}.html' not found. Searched in: {templatePath}");
+            }
+            //var templatePath = Path.Combine(Directory.GetCurrentDirectory(), "EmailTemplates", $"{templateName}.html");
             var htmlbody = await File.ReadAllTextAsync(templatePath);
 
+            // Handle both formats: {{Key}} and Key
             foreach (var pair in replacements)
             {
+                // Replace {{Key}} format
+                htmlbody = htmlbody.Replace($"{{{{{pair.Key}}}}}", pair.Value);
+                // Replace Key format (without braces) as fallback
                 htmlbody = htmlbody.Replace(pair.Key, pair.Value);
             }
 

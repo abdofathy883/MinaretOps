@@ -1,16 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Core.Enums
+﻿namespace Core.Enums
 {
     public enum CustomTaskStatus
     {
-        NotStarted = 0,
-        Delivered = 1,
+        Open = 0,
+        Acknowledged = 1,
         InProgress = 2,
-        Completed = 3
+        UnderReview = 3,
+        NeedsEdits = 4,
+        Completed = 5
     }
 }

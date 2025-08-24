@@ -6,11 +6,6 @@ using Infrastructure.Data;
 using Infrastructure.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Infrastructure.Services.Clients
 {
@@ -19,15 +14,18 @@ namespace Infrastructure.Services.Clients
         private readonly MinaretOpsDbContext dbContext;
         private readonly IMapper mapper;
         private readonly ILogger<ClientService> logger;
+        private readonly IEmailService emailService;
         public ClientService(
             MinaretOpsDbContext minaret,
             IMapper _mapper,
-            ILogger<ClientService> _logger
+            ILogger<ClientService> _logger,
+            IEmailService email
             )
         {
             dbContext = minaret;
             mapper = _mapper;
             logger = _logger;
+            emailService = email;
         }
         public async Task<List<LightWieghtClientDTO>> GetAllClientsAsync()
         {
@@ -64,55 +62,9 @@ namespace Infrastructure.Services.Clients
                 .AnyAsync(c => c.Name == clientDTO.Name);
 
             if (existingClient)
-                throw new Exception();
+                throw new AlreadyExistObjectException("لا يمكن اضافة عميل موجود بالفعل");
 
             using var dbTransaction = await dbContext.Database.BeginTransactionAsync();
-            #region
-            //try
-            //{
-            //    var newClient = new Client
-            //    {
-            //        Name = clientDTO.Name,
-            //        CompanyName = clientDTO.CompanyName,
-            //        PersonalPhoneNumber = clientDTO.PersonalPhoneNumber,
-            //        CompanyNumber = clientDTO.CompanyNumber,
-            //        BusinessDescription = clientDTO.BusinessDescription,
-            //        DriveLink = clientDTO.DriveLink,
-            //        ClientServices = clientDTO.ClientServices.Select(cs => new Core.Models.ClientService
-            //        {
-            //            ServiceId = cs.ServiceId,
-            //            TaskGroups = cs.TaskGroups.Select(tg => new TaskGroup
-            //            {
-            //                Month = DateTime.Now.Month,
-            //                Year = DateTime.Now.Year,
-            //                MonthLabel = $"{DateTime.Now.ToString("MMMM")} {DateTime.Now.ToString("yyyy")}",
-            //                Tasks = tg.Tasks.Select(t => new TaskItem
-            //                {
-            //                    Title = t.Title,
-            //                    Description = t.Description,
-            //                    Deadline = t.Deadline,
-            //                    Priority = t.Priority,
-            //                    Refrence = t.Refrence,
-            //                    EmployeeId = t.EmployeeId
-            //                }).ToList()
-            //            }).ToList()
-            //        }).ToList(),
-            //    };
-
-            //    await dbContext.AddAsync(newClient);
-            //    await dbContext.SaveChangesAsync();
-            //    await dbTransaction.CommitAsync();
-            //    return mapper.Map<ClientDTO>(newClient);
-            //}
-            //catch (Exception ex)
-            //{
-            //    await dbTransaction.RollbackAsync();
-            //    logger.LogError($"Error adding new client: {ex}");
-            //    throw new NotImplementedOperationException("خطأ في اضافة العميل, حاول مرة اخرى");
-            //}
-
-            #endregion
-
             try
             {
                 var newClient = new Client
@@ -174,6 +126,24 @@ namespace Infrastructure.Services.Clients
                             };
 
                             await dbContext.AddAsync(task);
+
+                            // Get employee information from the database to avoid null reference
+                            var employee = await dbContext.Users.FirstOrDefaultAsync(u => u.Id == taskDto.EmployeeId);
+                            if (employee == null)
+                            {
+                                throw new InvalidObjectException($"Employee with ID {taskDto.EmployeeId} not found");
+                            }
+
+                            Dictionary<string, string> replacements = new Dictionary<string, string>
+                            {
+                                {"FullName", $"{task.Employee.FirstName} {task.Employee.LastName}" },
+                                {"Email", $"{task.Employee.Email}" },
+                                {"TaskTitle", $"{task.Title}" },
+                                {"ClientName", $"{task.ClientService.Client.Name}" },
+                                {"TimeStamp", $"{DateTime.UtcNow}" }
+                            };
+
+                            await emailService.SendEmailWithTemplateAsync(task.Employee.Email, "New Client Assigned To You", "NewClientAssignment", replacements);
                         }
                     }
                 }
@@ -190,7 +160,6 @@ namespace Infrastructure.Services.Clients
                 logger.LogError($"Error adding new client: {ex}");
                 throw new NotImplementedOperationException("خطأ في اضافة العميل, حاول مرة اخرى");
             }
-
         }
 
         public async Task<bool> DeleteClientAsync(int clientId)
@@ -203,10 +172,10 @@ namespace Infrastructure.Services.Clients
         public async Task<ClientDTO> UpdateClientAsync(int clientId, UpdateClientDTO updateClientDTO)
         {
             if (clientId == 0 || updateClientDTO is null)
-                throw new Exception();
+                throw new InvalidObjectException("لا يوجد عميل بهذه البيانات");
 
             var client = await dbContext.Clients.FirstOrDefaultAsync(c => c.Id == clientId)
-                ?? throw new Exception();
+                ?? throw new InvalidObjectException("لا يوجد عميل بهذه البيانات");
 
             client.Name = updateClientDTO.Name ?? client.Name;
             client.PersonalPhoneNumber = updateClientDTO.PersonalPhoneNumber ?? client.PersonalPhoneNumber;
@@ -220,21 +189,19 @@ namespace Infrastructure.Services.Clients
             dbContext.Update(client);
             await dbContext.SaveChangesAsync();
             return mapper.Map<ClientDTO>(client);
-
-
         }
 
         private async Task<Client> GetClientOrThrow(int clientId)
         {
             var client = await dbContext.Clients
-        .Include(c => c.ClientServices)
-            .ThenInclude(cs => cs.Service)  // Include the Service entity
-        .Include(c => c.ClientServices)
-            .ThenInclude(cs => cs.TaskGroups)  // Include TaskGroups from ClientService
-                .ThenInclude(tg => tg.Tasks)   // Include Tasks from TaskGroup
-                    .ThenInclude(t => t.Employee)  // Include Employee from Task
-        .FirstOrDefaultAsync(c => c.Id == clientId)
-        ?? throw new Exception();
+            .Include(c => c.ClientServices)
+                .ThenInclude(cs => cs.Service)  // Include the Service entity
+            .Include(c => c.ClientServices)
+                .ThenInclude(cs => cs.TaskGroups)  // Include TaskGroups from ClientService
+                    .ThenInclude(tg => tg.Tasks)   // Include Tasks from TaskGroup
+                        .ThenInclude(t => t.Employee)  // Include Employee from Task
+            .FirstOrDefaultAsync(c => c.Id == clientId)
+                ?? throw new InvalidObjectException("لا يوجد عميل بهذه البيانات");
 
             return client;
         }

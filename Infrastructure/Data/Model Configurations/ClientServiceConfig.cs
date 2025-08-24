@@ -13,12 +13,6 @@ namespace Infrastructure.Data.Model_Configurations
             builder.Property(cs => cs.Id)
                 .UseIdentityColumn(1, 1);
 
-            // Configure properties
-            //builder.Property(cs => cs.StartDate)
-            //    .IsRequired();
-
-            //builder.Property(cs => cs.EndDate);
-
             // Relationship with Client
             builder.HasOne(cs => cs.Client)
                 .WithMany(c => c.ClientServices)

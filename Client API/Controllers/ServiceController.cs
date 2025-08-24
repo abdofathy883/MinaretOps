@@ -55,7 +55,7 @@ namespace Client_API.Controllers
             return Ok(result);
         }
 
-        [HttpPatch("toggle-visibility")]
+        [HttpPatch("toggle-visibility/{serviceId}")]
         public async Task<IActionResult> ToggleVisibilityAsync(int serviceId)
         {
             if (serviceId == 0)

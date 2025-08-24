@@ -1,11 +1,6 @@
 ﻿using AutoMapper;
 using Core.DTOs.Tasks;
 using Core.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Infrastructure.MappingProfiles
 {
@@ -23,7 +18,6 @@ namespace Infrastructure.MappingProfiles
                 .ForMember(dest => dest.Priority, opt => opt.MapFrom(src => src.Priority))
                 .ForMember(dest => dest.Refrence, opt => opt.MapFrom(src => src.Refrence))
                 .ForMember(dest => dest.EmployeeId, opt => opt.MapFrom(src => src.EmployeeId))
-                //.ForMember(dest => dest.EmployeeName, opt => opt.MapFrom(src => $"{src.Employee.FirstName} {src.Employee.LastName}"))
                 .ForMember(dest => dest.CompletedAt, opt => opt.MapFrom(src => src.CompletedAt))
                 .ForMember(dest => dest.IsCompletedOnDeadline, opt => opt.MapFrom(src => src.IsCompletedOnDeadline))
                 .ForMember(dest => dest.EmployeeName, opt =>

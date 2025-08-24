@@ -1,9 +1,4 @@
 ﻿using Core.Enums;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Core.Models
 {
@@ -12,7 +7,7 @@ namespace Core.Models
         public int Id { get; set; }
         public required string Title { get; set; }
         public string? Description { get; set; }
-        public CustomTaskStatus Status { get; set; } = CustomTaskStatus.NotStarted;
+        public CustomTaskStatus Status { get; set; } = CustomTaskStatus.Open;
         public int ClientServiceId { get; set; }
         public ClientService ClientService { get; set; } = default!;
 

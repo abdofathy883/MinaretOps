@@ -1,5 +1,4 @@
 ﻿using Core.Enums;
-using Core.Models;
 
 namespace Core.DTOs.Tasks
 {
@@ -8,7 +7,7 @@ namespace Core.DTOs.Tasks
         public int Id { get; set; }
         public required string Title { get; set; }
         public string? Description { get; set; }
-        public CustomTaskStatus Status { get; set; } = CustomTaskStatus.NotStarted;
+        public CustomTaskStatus Status { get; set; } = CustomTaskStatus.Open;
         public int ClientServiceId { get; set; }
         public DateTime Deadline { get; set; }
         public string Priority { get; set; } = "عادي"; // Default priority

@@ -1,0 +1,73 @@
+﻿<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Task Update Notification</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4; }
+        .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; }
+        .header { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); padding: 30px; text-align: center; }
+        .logo { color: #ffffff; font-size: 28px; font-weight: bold; margin-bottom: 10px; }
+        .subtitle { color: #ffffff; font-size: 16px; opacity: 0.9; }
+        .content { padding: 40px 30px; }
+        .update-icon { font-size: 48px; text-align: center; margin-bottom: 20px; }
+        .update-title { font-size: 24px; color: #333; margin-bottom: 20px; text-align: center; }
+        .update-details { background-color: #f8f9fa; padding: 25px; border-radius: 8px; margin: 25px 0; }
+        .detail-row { display: flex; justify-content: space-between; margin-bottom: 15px; }
+        .detail-label { font-weight: 600; color: #555; }
+        .detail-value { color: #333; }
+        .footer { background-color: #f8f9fa; padding: 25px; text-align: center; color: #666; font-size: 14px; }
+        .cta-button { display: inline-block; background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white; padding: 12px 30px; text-decoration: none; border-radius: 25px; margin: 20px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">The Minaret Agency</div>
+            <div class="subtitle">Task Update Notification</div>
+        </div>
+        
+        <div class="content">
+            <div class="update-icon">📝</div>
+            <div class="update-title">Task Has Been Updated</div>
+            
+            <p style="text-align: center; color: #666; line-height: 1.6;">
+                A task has been updated with new information. Please review the changes and take any necessary action.
+            </p>
+            
+            <div class="update-details">
+                <div class="detail-row">
+                    <span class="detail-label">Task Title:</span>
+                    <span class="detail-value">{{TaskTitle}}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Updated By:</span>
+                    <span class="detail-value">{{UpdatedBy}}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Update Date:</span>
+                    <span class="detail-value">{{TimeStamp}}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Change Type:</span>
+                    <span class="detail-value">{{ChangeType}}</span>
+                </div>
+            </div>
+            
+            <p style="text-align: center; color: #666; line-height: 1.6;">
+                Please log into your account to view the complete task details and any additional information about this update.
+            </p>
+            
+            <div style="text-align: center;">
+                <a href="#" class="cta-button">View Task Details</a>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>This is an automated message from The Minaret Agency</p>
+            <p>If you have any questions about this task update, please contact your supervisor</p>
+        </div>
+    </div>
+</body>
+</html>

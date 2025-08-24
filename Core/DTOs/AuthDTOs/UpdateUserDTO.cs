@@ -10,5 +10,6 @@
         public string? City { get; set; }
         public string? Street { get; set; }
         public string? PaymentNumber { get; set; }
+        public string? Role { get; set; }
     }
 }

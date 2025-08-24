@@ -4,13 +4,9 @@ using Core.Enums;
 using Core.Interfaces;
 using Core.Models;
 using Infrastructure.Data;
+using Infrastructure.Exceptions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Infrastructure.Services.NewFolder
 {
@@ -19,23 +15,40 @@ namespace Infrastructure.Services.NewFolder
         private readonly MinaretOpsDbContext context;
         private readonly IMapper mapper;
         private readonly UserManager<ApplicationUser> userManager;
+        private readonly IEmailService emailService;
         public TaskService(
             MinaretOpsDbContext minaret,
             IMapper _mapper,
-            UserManager<ApplicationUser> manager
+            UserManager<ApplicationUser> manager,
+            IEmailService email
             )
         {
             context = minaret;
             mapper = _mapper;
             userManager = manager;
+            emailService = email;
         }
         public async Task<bool> ChangeTaskStatusAsync(int taskId, CustomTaskStatus status)
         {
             var task = await GetTaskOrThrow(taskId);
 
-            task.Status = status;
+            Dictionary<string, string> replacements = new Dictionary<string, string>
+            {
+                {"FullName", $"{task.Employee.FirstName} {task.Employee.LastName}" },
+                {"Email", $"{task.Employee.Email}" },
+                {"TaskTitle", $"{task.Title}" },
+                {"OldStatus", $"{task.Status}" },
+                {"NewStatus", $"{status}" },
+                {"TimeStamp", $"{DateTime.UtcNow}" }
+            };
 
+            task.Status = status;
+            if (status == CustomTaskStatus.Completed)
+            {
+                task.CompletedAt = DateTime.UtcNow;
+            }
             context.Update(task);
+            await emailService.SendEmailWithTemplateAsync(task.Employee.Email, "Task Updates", "ChangeTaskStatus", replacements);
             return await context.SaveChangesAsync() > 0;
         }
 
@@ -108,7 +121,16 @@ namespace Infrastructure.Services.NewFolder
                 task.EmployeeId = user.Id;
             }
 
+            Dictionary<string, string> replacements = new Dictionary<string, string>
+            {
+                {"FullName", $"{task.Employee.FirstName} {task.Employee.LastName}" },
+                {"Email", $"{task.Employee.Email}" },
+                {"TaskTitle", $"{task.Title}" },
+                {"TimeStamp", $"{DateTime.UtcNow}" }
+            };
+
             context.Update(task);
+            await emailService.SendEmailWithTemplateAsync(task.Employee.Email, "Task Has Been Updated", "TaskUpdates", replacements);
             return await context.SaveChangesAsync() > 0;
         }
 
@@ -117,16 +139,16 @@ namespace Infrastructure.Services.NewFolder
             // Validate that the task group exists
             var taskGroup = await context.TaskGroups
                 .FirstOrDefaultAsync(tg => tg.Id == createTask.TaskGroupId)
-                ?? throw new Exception("Task group not found");
+                ?? throw new InvalidObjectException("لم نتمكن من العثور على مجموعة التاسكات");
 
             // Validate that the client service exists
             var clientService = await context.ClientServices
                 .FirstOrDefaultAsync(cs => cs.Id == createTask.ClientServiceId)
-                ?? throw new Exception("Client service not found");
+                ?? throw new InvalidObjectException("العميل غير مشترك في هذه الخدمة");
 
             // Validate that the employee exists
             var employee = await userManager.FindByIdAsync(createTask.EmployeeId)
-                ?? throw new Exception("Employee not found");
+                ?? throw new InvalidObjectException("لم نتمكن من العثور على الموظف");
 
             var task = new TaskItem
             {
@@ -143,6 +165,16 @@ namespace Infrastructure.Services.NewFolder
 
             context.Tasks.Add(task);
             await context.SaveChangesAsync();
+
+            Dictionary<string, string> replacements = new Dictionary<string, string>
+            {
+                {"FullName", $"{task.Employee.FirstName} {task.Employee.LastName}" },
+                {"Email", $"{task.Employee.Email}" },
+                {"TaskTitle", $"{task.Title}" },
+                {"TimeStamp", $"{DateTime.UtcNow}" }
+            };
+
+            await emailService.SendEmailWithTemplateAsync(task.Employee.Email, "New Task Has Been Assigned To You", "NewTaskAssignment", replacements);
 
             // Return the created task with all related data
             var createdTask = await context.Tasks
@@ -162,23 +194,21 @@ namespace Infrastructure.Services.NewFolder
             // Validate that the client service exists
             var clientService = await context.ClientServices
                 .FirstOrDefaultAsync(cs => cs.Id == createTaskGroup.ClientServiceId)
-                ?? throw new Exception("Client service not found");
+                ?? throw new InvalidObjectException("العميل غير مشترك في هذه الخدمة");
 
             // Check if task group already exists for this month/year
             var existingGroup = await context.TaskGroups
-                .FirstOrDefaultAsync(tg => tg.ClientServiceId == createTaskGroup.ClientServiceId
-                                          && tg.Month == createTaskGroup.Month
-                                          && tg.Year == createTaskGroup.Year);
+                .FirstOrDefaultAsync(tg => tg.ClientServiceId == createTaskGroup.ClientServiceId);
 
             if (existingGroup != null)
-                throw new Exception("Task group already exists for this month and year");
+                throw new AlreadyExistObjectException("مجموعة التاسكات لهذا الشهر موجودة بالفعل");
 
             var taskGroup = new TaskGroup
             {
                 ClientServiceId = createTaskGroup.ClientServiceId,
-                Month = createTaskGroup.Month,
-                Year = createTaskGroup.Year,
-                MonthLabel = createTaskGroup.MonthLabel
+                Month = DateTime.Now.Month,
+                Year = DateTime.Now.Year,
+                MonthLabel = $"{DateTime.Now.ToString("MMMM")} {DateTime.Now.ToString("yyyy")}"
             };
 
             context.TaskGroups.Add(taskGroup);
@@ -190,7 +220,7 @@ namespace Infrastructure.Services.NewFolder
                 foreach (var taskDto in createTaskGroup.Tasks)
                 {
                     var employee = await userManager.FindByIdAsync(taskDto.EmployeeId)
-                        ?? throw new Exception($"Employee with ID {taskDto.EmployeeId} not found");
+                        ?? throw new InvalidObjectException($"Employee with ID {taskDto.EmployeeId} not found");
 
                     var task = new TaskItem
                     {
@@ -206,6 +236,17 @@ namespace Infrastructure.Services.NewFolder
                     };
 
                     context.Tasks.Add(task);
+
+                    Dictionary<string, string> replacements = new Dictionary<string, string>
+                    {
+                        {"FullName", $"{task.Employee.FirstName} {task.Employee.LastName}" },
+                        {"Email", $"{task.Employee.Email}" },
+                        {"TaskTitle", $"{task.Title}" },
+                        {"Client", $"{task.ClientService.Client.Name}" },
+                        {"TimeStamp", $"{DateTime.UtcNow}" }
+                    };
+
+                    await emailService.SendEmailWithTemplateAsync(task.Employee.Email, "New Task Has been Assigned To You", "NewTaskAssignment", replacements);
                 }
                 await context.SaveChangesAsync();
             }
@@ -246,8 +287,9 @@ namespace Infrastructure.Services.NewFolder
         private async Task<TaskItem> GetTaskOrThrow(int taskId)
         {
             var task = await context.Tasks
+                .Include(e => e.Employee)
                 .FirstOrDefaultAsync(t => t.Id == taskId)
-                ?? throw new Exception();
+                ?? throw new InvalidObjectException("لا يوجد تاسك بهذه البيانات");
 
             return task;
         }

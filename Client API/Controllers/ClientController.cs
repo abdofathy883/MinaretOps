@@ -1,6 +1,5 @@
 ﻿using Core.DTOs.Clients;
 using Core.Interfaces;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Client_API.Controllers
