@@ -94,7 +94,7 @@ namespace Client_API
                 await DbSeeder.SeedAsync(services);
             }
 
-            app.Run();
+            app.Run("http://0.0.0.0:5000");
         }
     }
 }
