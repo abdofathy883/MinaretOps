@@ -5,9 +5,9 @@ on:
     branches: [ main, master ]
 
 env:
-  PROJECT_ROOT: MinaretOps-Server
-  PUBLISH_DIR: MinaretOps-Server/publish
-  EFBUNDLE_PATH: MinaretOps-Server/efbundle
+  PROJECT_ROOT: minaretopsapi
+  PUBLISH_DIR: minaretopsapi/publish
+  EFBUNDLE_PATH: minaretopsapi/efbundle
   SERVER_APP_DIR: /var/www/minaretopsapi
   SERVER_BACKUP_DIR: /var/backups
   DB_BACKUP_NAME: MinaretOps_$(date +%Y%m%d-%H%M%S).bak
@@ -26,20 +26,20 @@ jobs:
           dotnet-version: '9.0.x'
 
       - name: Restore
-        working-directory: ./minaretopsapi
+        working-directory: ${{ env.PROJECT_ROOT }}
         run: dotnet restore MinaretOps.sln
 
       - name: Build
-        working-directory: ./minaretopsapi
+        working-directory: ${{ env.PROJECT_ROOT }}
         run: dotnet build MinaretOps.sln --configuration Release --no-restore
 
       - name: Test
-        working-directory: ./minaretopsapi
+        working-directory: ${{ env.PROJECT_ROOT }}
         run: dotnet test --configuration Release --no-build
 
       # 1) Publish the API
       - name: Publish
-        working-directory: ./minaretopsapi
+        working-directory: ${{ env.PROJECT_ROOT }}
         run: dotnet publish "Client API/Client API.csproj" --configuration Release --no-build --output ./publish
 
       # 2) Build EF migrations bundle (no SDK/tools needed on server)
