@@ -15,6 +15,6 @@ namespace Core.DTOs.Blog
         public required string FeaturedImage { get; set; }
         public string? ImageAltText { get; set; }
         public int CategoryId { get; set; }
-        public string CategoryName { get; set; }
+        public string? CategoryName { get; set; }
     }
 }

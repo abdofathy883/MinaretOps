@@ -35,7 +35,7 @@ jobs:
 
       - name: Test
         # working-directory: ${{ env.PROJECT_ROOT }}
-        run: dotnet test --configuration Release --no-build
+        run: dotnet test MinaretOps.sln --configuration Release --no-build
 
       # 1) Publish the API
       - name: Publish
