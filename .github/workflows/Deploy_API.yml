@@ -26,20 +26,20 @@ jobs:
           dotnet-version: '9.0.x'
 
       - name: Restore
-        working-directory: ${{ env.PROJECT_ROOT }}
+        # working-directory: ${{ env.PROJECT_ROOT }}
         run: dotnet restore MinaretOps.sln
 
       - name: Build
-        working-directory: ${{ env.PROJECT_ROOT }}
+        # working-directory: ${{ env.PROJECT_ROOT }}
         run: dotnet build MinaretOps.sln --configuration Release --no-restore
 
       - name: Test
-        working-directory: ${{ env.PROJECT_ROOT }}
+        # working-directory: ${{ env.PROJECT_ROOT }}
         run: dotnet test --configuration Release --no-build
 
       # 1) Publish the API
       - name: Publish
-        working-directory: ${{ env.PROJECT_ROOT }}
+        # working-directory: ${{ env.PROJECT_ROOT }}
         run: dotnet publish "Client API/Client API.csproj" --configuration Release --no-build --output ./publish
 
       # 2) Build EF migrations bundle (no SDK/tools needed on server)
@@ -51,7 +51,7 @@ jobs:
           DOTNET_NOLOGO: 1
 
       - name: Create EF Migrations Bundle
-        working-directory: ${{ env.PROJECT_ROOT }}
+        # working-directory: ${{ env.PROJECT_ROOT }}
         env:
           PATH: $HOME/.dotnet/tools:${PATH}
         run: |
