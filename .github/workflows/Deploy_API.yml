@@ -50,10 +50,13 @@ jobs:
           DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
           DOTNET_NOLOGO: 1
 
+      - name: Add .NET tools to PATH
+        run: echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
+
       - name: Create EF Migrations Bundle
         # working-directory: ${{ env.PROJECT_ROOT }}
-        env:
-          PATH: $HOME/.dotnet/tools:${PATH}
+        # env:
+        #   PATH: $HOME/.dotnet/tools:${PATH}
         run: |
           # If your migrations live in Infrastructure and the API is the startup project:
           dotnet ef migrations bundle \
