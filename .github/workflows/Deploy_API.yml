@@ -1,0 +1,144 @@
+name: Deploy .NET Backend with Safe Migrations
+
+on:
+  push:
+    branches: [ main, master ]
+
+env:
+  PROJECT_ROOT: MinaretOps-Server
+  PUBLISH_DIR: MinaretOps-Server/publish
+  EFBUNDLE_PATH: MinaretOps-Server/efbundle
+  SERVER_APP_DIR: /var/www/minaretopsapi
+  SERVER_BACKUP_DIR: /var/backups
+  DB_BACKUP_NAME: MinaretOps_$(date +%Y%m%d-%H%M%S).bak
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Restore
+        working-directory: ${{ env.PROJECT_ROOT }}
+        run: dotnet restore
+
+      - name: Build
+        working-directory: ${{ env.PROJECT_ROOT }}
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Test
+        working-directory: ${{ env.PROJECT_ROOT }}
+        run: dotnet test --configuration Release --no-build
+
+      # 1) Publish the API
+      - name: Publish
+        working-directory: ${{ env.PROJECT_ROOT }}
+        run: dotnet publish "Client API/Client API.csproj" -c Release -o ./publish
+
+      # 2) Build EF migrations bundle (no SDK/tools needed on server)
+      #    Adjust --project and --startup-project if your migrations are in a different csproj.
+      - name: Install EF Tools
+        run: dotnet tool install --global dotnet-ef
+        env:
+          DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
+          DOTNET_NOLOGO: 1
+
+      - name: Create EF Migrations Bundle
+        working-directory: ${{ env.PROJECT_ROOT }}
+        env:
+          PATH: $HOME/.dotnet/tools:${PATH}
+        run: |
+          # If your migrations live in Infrastructure and the API is the startup project:
+          dotnet ef migrations bundle \
+            --project "Infrastructure/Infrastructure.csproj" \
+            --startup-project "Client API/Client API.csproj" \
+            --output ./efbundle \
+            --self-contained \
+            --target-runtime linux-x64
+
+      # 3) Upload publish output and efbundle to VPS
+      - name: Upload published app
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          source: ${{ env.PUBLISH_DIR }}/*
+          target: ${{ env.SERVER_APP_DIR }}/published
+          strip_components: 2
+
+      - name: Upload EF bundle
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          source: ${{ env.EFBUNDLE_PATH }}
+          target: ${{ env.SERVER_APP_DIR }}
+
+      # 4) Backup DB, run migrations, rebuild & restart containers
+      - name: Run backup, migrate, and deploy
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          script_stop: true
+          script: |
+            set -euo pipefail
+            cd "${{ env.SERVER_APP_DIR }}"
+
+            # --- Sanity checks ---
+            if ! command -v docker &>/dev/null; then
+              echo "Docker not found on server"; exit 1
+            fi
+            if ! docker ps --format '{{.Names}}' | grep -q '^sqlserver$'; then
+              echo "SQL Server container 'sqlserver' not running. Starting docker compose..."
+              docker compose up -d db
+            fi
+
+            # --- DB Backup ---
+            BACKUP_DIR="${{ env.SERVER_BACKUP_DIR }}/db-$(date +%Y%m%d-%H%M%S)"
+            mkdir -p "$BACKUP_DIR"
+            echo "Backing up database to $BACKUP_DIR/${{ env.DB_BACKUP_NAME }}"
+
+            docker exec sqlserver /opt/mssql-tools/bin/sqlcmd \
+              -S localhost -U sa -P "${{ secrets.SA_PASSWORD }}" \
+              -Q "BACKUP DATABASE [MinaretOps] TO DISK = N'/var/opt/mssql/backup/${{ env.DB_BACKUP_NAME }}' WITH FORMAT, INIT, COMPRESSION"
+
+            # Copy backup to host backup dir
+            docker cp sqlserver:/var/opt/mssql/backup/${{ env.DB_BACKUP_NAME }} "$BACKUP_DIR"/
+
+            # --- Apply EF migration bundle ---
+            chmod +x ./efbundle
+            echo "Applying EF migrations bundle..."
+            # Host connects to the db container via published port 1433 -> localhost,1433
+            ./efbundle --connection "Server=localhost,1433;Database=MinaretOps;User Id=sa;Password=${{ secrets.SA_PASSWORD }};TrustServerCertificate=true"
+
+            echo "Migrations applied successfully."
+
+            # --- Deploy app containers ---
+            echo "Rebuilding and starting containers..."
+            docker compose down
+            docker compose up -d --build
+
+            echo "Waiting for app container..."
+            sleep 10
+
+            if ! docker ps --format '{{.Names}}' | grep -q 'minaretopsapi_clientapi_1'; then
+              echo "App container not running after deploy. Aborting."
+              exit 1
+            fi
+
+            docker image prune -f
+            echo "Deployment completed successfully."

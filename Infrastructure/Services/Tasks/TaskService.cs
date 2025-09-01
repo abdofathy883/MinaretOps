@@ -16,17 +16,20 @@ namespace Infrastructure.Services.NewFolder
         private readonly IMapper mapper;
         private readonly UserManager<ApplicationUser> userManager;
         private readonly IEmailService emailService;
+        private readonly INotificationService notificationService;
         public TaskService(
             MinaretOpsDbContext minaret,
             IMapper _mapper,
             UserManager<ApplicationUser> manager,
-            IEmailService email
+            IEmailService email,
+            INotificationService _notificationService
             )
         {
             context = minaret;
             mapper = _mapper;
             userManager = manager;
             emailService = email;
+            notificationService = _notificationService;
         }
         public async Task<bool> ChangeTaskStatusAsync(int taskId, CustomTaskStatus status)
         {
@@ -49,6 +52,13 @@ namespace Infrastructure.Services.NewFolder
             }
             context.Update(task);
             await emailService.SendEmailWithTemplateAsync(task.Employee.Email, "Task Updates", "ChangeTaskStatus", replacements);
+            await notificationService.CreateAsync(new Core.DTOs.Notifications.CreateNotificationDTO
+            {
+                UserId = task.EmployeeId,
+                Title = "Task Status Updated",
+                Body = $"The status of task '{task.Title}' has been changed to {status}.",
+                Url = $"https://internal.theminaretagency.com/tasks/{task.Id}"
+            });
             return await context.SaveChangesAsync() > 0;
         }
 

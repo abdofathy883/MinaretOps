@@ -7,7 +7,7 @@ services:
       - "60000:5000"
       - "60001:5001"
     environment:
-      - ConnectionStrings__DefaultConnection=Server=db;Database=MinaretOps;User Id=sa;Password=Minaret@2021;Encrypt=False;TrustServerCertificate=True
+      - ConnectionStrings__DefaultConnection=Server=localhost,1433;Database=MinaretOps;User Id=sa;Password=Minaret@2021;Encrypt=False;TrustServerCertificate=True
     depends_on:
       - db
 

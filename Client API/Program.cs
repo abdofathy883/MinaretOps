@@ -10,7 +10,12 @@ using Infrastructure.Services.NewFolder;
 using Infrastructure.Services.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.HttpOverrides;
 using ClientService = Infrastructure.Services.Clients.ClientService;
+using Infrastructure.Services.ContactForm;
+using Infrastructure.Services.MediaUploads;
+using Infrastructure.Services.Attendance;
+using Infrastructure.Services.Notifications;
 
 namespace Client_API
 {
@@ -21,6 +26,7 @@ namespace Client_API
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.
+            Console.WriteLine(builder.Configuration.GetConnectionString("DefaultConnection"));
             builder.Services.AddDbContext<MinaretOpsDbContext>(options =>
             options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
@@ -44,6 +50,12 @@ namespace Client_API
             builder.Services.AddScoped<ITaskService, TaskService>();
             builder.Services.AddScoped<IInternalTaskService, InternalTaskService>();
             builder.Services.AddScoped<IEmailService, EmailService>();
+            builder.Services.AddScoped<IContactFormService, ContactFormService>();
+            //builder.Services.AddScoped<IBlogService, BlogService>();
+            //builder.Services.AddScoped<IPortfolioService, PortfolioService>();
+            builder.Services.AddScoped<MediaUploadService>();
+            builder.Services.AddScoped<IAttendanceService, AttendanceService>();
+            builder.Services.AddScoped<INotificationService, NotificatonService>();
 
             builder.Services.AddAutoMapper(cfg =>
             {
@@ -54,6 +66,11 @@ namespace Client_API
                 cfg.AddProfile<TaskItemProfile>();
                 cfg.AddProfile<InternalTaskProfile>();
                 cfg.AddProfile<InternalTaskAssignmentProfile>();
+                cfg.AddProfile<ContactFormProfile>();
+                //cfg.AddProfile<ProjectProfile>();
+                cfg.AddProfile<PostProfile>();
+                cfg.AddProfile<AttendanceRecordProfile>();
+                cfg.AddProfile<LeaveRequestProfile>();
             });
 
             builder.Services.AddControllers();
@@ -62,9 +79,9 @@ namespace Client_API
 
             builder.Services.AddCors(options =>
             {
-                options.AddPolicy("AllowAll", policy =>
+                options.AddPolicy("FrontendOnly", policy =>
                 {
-                    policy.AllowAnyOrigin()
+                    policy.WithOrigins("https://internal.theminaretagency.com")
                     .AllowAnyMethod()
                     .AllowAnyHeader();
                 });
@@ -78,12 +95,19 @@ namespace Client_API
                 app.MapOpenApi();
             }
 
+            app.UseForwardedHeaders(new ForwardedHeadersOptions
+            {
+                ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedFor,
+                KnownProxies = { System.Net.IPAddress.Parse("127.0.0.1") }
+                
+            });
+
             app.UseHttpsRedirection();
 
             app.UseAuthentication();
             app.UseAuthorization();
 
-            app.UseCors("AllowAll");
+            app.UseCors("FrontendOnly");
 
 
             app.MapControllers();
@@ -94,7 +118,7 @@ namespace Client_API
                 await DbSeeder.SeedAsync(services);
             }
 
-            app.Run("http://0.0.0.0:5000");
+            app.Run("http://127.0.0.1:8080");
         }
     }
 }

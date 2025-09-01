@@ -1,0 +1,66 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <title>Attendance IP Alert</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            color: #222;
+        }
+
+        .card {
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #d32f2f;
+        }
+
+        .row {
+            margin: 6px 0;
+        }
+
+        .label {
+            font-weight: 600;
+        }
+
+        code {
+            background: #f6f8fa;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .warning {
+            background: #fff3e0;
+            border-left: 4px solid #ff9800;
+            padding: 8px;
+            margin: 8px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="title">⚠️ Multiple Employees Using Same IP</div>
+
+        <div class="warning">
+            <strong>Current Employee:</strong> {{CurrentEmpName}} (ID: {{CurrentEmpId}})
+        </div>
+
+        <div class="row"><span class="label">Email:</span> {{CurrentEmpEmail}}</div>
+        <div class="row"><span class="label">Check-in Time (UTC):</span> {{CheckInTime}}</div>
+        <div class="row"><span class="label">IP Address:</span> <code>{{SuspiciousIp}}</code></div>
+        <div class="row"><span class="label">Device ID:</span> <code>{{DeviceId}}</code></div>
+
+        <div class="row"><span class="label">Other employees using this IP today:</span> {{OtherEmployees}}</div>
+        <div class="row"><span class="label">Total employees on this IP:</span> {{TotalEmployeesOnIp}}</div>
+
+        <p><strong>Action Required:</strong> Investigate potential buddy-punching or shared device usage.</p>
+    </div>
+</body>
+</html>
