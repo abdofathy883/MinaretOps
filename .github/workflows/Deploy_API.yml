@@ -42,8 +42,11 @@ jobs:
         # working-directory: ${{ env.PROJECT_ROOT }}
         run: dotnet publish "Client API/Client API.csproj" --configuration Release --no-build --output ./publish
 
+      # Expose publish dir as env var
+      - name: Set PUBLISH_DIR
+        run: echo "PUBLISH_DIR=./publish" >> $GITHUB_ENV
+
       # 2) Build EF migrations bundle (no SDK/tools needed on server)
-      #    Adjust --project and --startup-project if your migrations are in a different csproj.
       - name: Install EF Tools
         run: dotnet tool install --global dotnet-ef
         env:
@@ -58,7 +61,6 @@ jobs:
         # env:
         #   PATH: $HOME/.dotnet/tools:${PATH}
         run: |
-          # If your migrations live in Infrastructure and the API is the startup project:
           dotnet ef migrations bundle \
             --project "Infrastructure/Infrastructure.csproj" \
             --startup-project "Client API/Client API.csproj" \
