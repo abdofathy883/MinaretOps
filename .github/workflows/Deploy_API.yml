@@ -65,6 +65,10 @@ jobs:
             --self-contained \
             --target-runtime linux-x64
 
+      - name: Debug SSH key
+        run: |
+            echo "${{ secrets.VPS_SSH_KEY }}" | head -n 5
+
       # 3) Upload publish output and efbundle to VPS
       - name: Upload published app
         uses: appleboy/scp-action@v0.1.7
