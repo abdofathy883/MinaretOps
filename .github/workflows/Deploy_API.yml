@@ -82,17 +82,49 @@ jobs:
           # Verbose ssh will show handshake details. This may help identify why the server rejects the key.
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -o IdentitiesOnly=yes -p "$PORT" "${{ secrets.VPS_USERNAME }}"@"${{ secrets.VPS_HOST }}" -vvv 'echo "SSH_OK"' || (echo "SSH test failed (see above logs)"; exit 1)
 
+
+             # ---- UPLOAD: use rsync (more robust + verbose) ----
+      - name: Prepare SSH key for transfer
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          PORT="${{ secrets.VPS_PORT }}"
+          PORT="${PORT:-22}"
+          echo "Using SSH port $PORT"
+
+      - name: Create remote publish directory
+        shell: bash
+        run: |
+          set -euo pipefail
+          PORT="${{ secrets.VPS_PORT }}"
+          PORT="${PORT:-22}"
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -p "$PORT" "${{ secrets.VPS_USERNAME }}"@"${{ secrets.VPS_HOST }}" "mkdir -p ${{ env.SERVER_APP_DIR }}/published && chown -R ${{ secrets.VPS_USERNAME }}: ${{ env.SERVER_APP_DIR }}/published" || (echo "Failed to create remote dir"; exit 1)
+
+      - name: Upload published app with rsync
+        shell: bash
+        run: |
+          set -euo pipefail
+          PORT="${{ secrets.VPS_PORT }}"
+          PORT="${PORT:-22}"
+          TARGET="${{ env.SERVER_APP_DIR }}/published/"
+          echo "Uploading ${PWD}/${{ env.PUBLISH_DIR }} to ${{ secrets.VPS_HOST }}:$TARGET using rsync"
+          # Ensure rsync is installed on runner (ubuntu-latest has it)
+          rsync -avz --delete -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -p $PORT -o IdentitiesOnly=yes" "${{ env.PUBLISH_DIR }}/" "${{ secrets.VPS_USERNAME }}"@"${{ secrets.VPS_HOST }}:$TARGET" || (echo "rsync upload failed"; exit 1)
+
       # 3) Upload publish output and efbundle to VPS
-      - name: Upload published app
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USERNAME }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          port: ${{ secrets.VPS_PORT }}
-          source: ${{ env.PUBLISH_DIR }}/*
-          target: ${{ env.SERVER_APP_DIR }}/published
-          strip_components: 2
+      # - name: Upload published app
+      #   uses: appleboy/scp-action@v0.1.7
+      #   with:
+      #     host: ${{ secrets.VPS_HOST }}
+      #     username: ${{ secrets.VPS_USERNAME }}
+      #     key: ${{ secrets.VPS_SSH_KEY }}
+      #     port: ${{ secrets.VPS_PORT }}
+      #     source: ${{ env.PUBLISH_DIR }}/*
+      #     target: ${{ env.SERVER_APP_DIR }}/published
+      #     strip_components: 2
 
       - name: Upload EF bundle
         uses: appleboy/scp-action@v0.1.7
