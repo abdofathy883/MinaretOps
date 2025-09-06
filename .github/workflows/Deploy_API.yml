@@ -150,15 +150,16 @@ jobs:
 
             # --- DB Backup ---
             BACKUP_DIR="${{ env.SERVER_BACKUP_DIR }}/db-$(date +%Y%m%d-%H%M%S)"
+            BACKUP_NAME="MinaretOps_$(date +%Y%m%d-%H%M%S).bak""
             mkdir -p "$BACKUP_DIR"
-            echo "Backing up database to $BACKUP_DIR/${{ env.DB_BACKUP_NAME }}"
+            echo "Backing up database to $BACKUP_DIR/$BACKUP_NAME"
 
             docker exec sqlserver /opt/mssql-tools/bin/sqlcmd \
               -S localhost -U sa -P "${{ secrets.SA_PASSWORD }}" \
-              -Q "BACKUP DATABASE [MinaretOps] TO DISK = N'/var/opt/mssql/backup/${{ env.DB_BACKUP_NAME }}' WITH FORMAT, INIT, COMPRESSION"
+              -Q "BACKUP DATABASE [MinaretOps] TO DISK = N'/var/opt/mssql/backup/$BACKUP_NAME' WITH FORMAT, INIT, COMPRESSION"
 
             # Copy backup to host backup dir
-            docker cp sqlserver:/var/opt/mssql/backup/${{ env.DB_BACKUP_NAME }} "$BACKUP_DIR"/
+            docker cp sqlserver:/var/opt/mssql/backup/$BACKUP_NAME "$BACKUP_DIR"/
 
             # --- Apply EF migration bundle ---
             chmod +x ./efbundle
