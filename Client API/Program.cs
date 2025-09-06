@@ -118,7 +118,7 @@ namespace Client_API
                 await DbSeeder.SeedAsync(services);
             }
 
-            app.Run("http://127.0.0.1:8080");
+            app.Run();
         }
     }
 }
