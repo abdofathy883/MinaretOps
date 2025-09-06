@@ -13,7 +13,7 @@ namespace Infrastructure.Data
 
             IConfigurationRoot configuration = new ConfigurationBuilder()
                 .SetBasePath(basePath)
-                .AddJsonFile("appsettings.json", optional: false)
+                .AddJsonFile("appsettings.json", optional: true)
                 .AddJsonFile($"appsettings.{environment}.json", optional: true)
                 .AddEnvironmentVariables()
                 .Build();
