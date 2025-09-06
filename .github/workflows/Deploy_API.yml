@@ -51,6 +51,7 @@ jobs:
 
       - name: Add .NET tools to PATH
         run: echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
+        
 
       - name: Create EF Migrations Bundle
         run: |
@@ -61,17 +62,26 @@ jobs:
             --self-contained \
             --target-runtime linux-x64
 
-      - name: Verify EF Bundle Creation
+      - name: Verify EF Bundle Created
         run: |
-           if [ ! -f ./efbundle ]; then
-            echo "Error:- EF bundle not found at ./efbundle"
-            ls -la ./
-            fi
+          echo "Current working directory: $(pwd)"
+          echo "Contents of current directory:"
+          ls -la
+          echo "Looking for efbundle file..."
+          if [ -f "./efbundle" ]; then
+            echo "EF bundle found at ./efbundle"
+            ls -la ./efbundle
+            file ./efbundle
+          elif [ -f "efbundle" ]; then
+            echo "EF bundle found at efbundle (no ./ prefix)"
+            ls -la efbundle
+            file efbundle
+          else
+            echo "ERROR: EF bundle file not found"
+            echo "Searching for any files with 'efbundle' in the name:"
+            find . -name "*efbundle*" -type f
             exit 1
-           fi
-           echo "EF bundle created successfully"
-           ls -la ./efbundle
-           file ./efbundle
+          fi
 
 
              # ---- DEBUG STEP: Validate SSH key + connectivity from the runner ----
