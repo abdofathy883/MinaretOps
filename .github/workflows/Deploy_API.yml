@@ -71,8 +71,9 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT }}
           source: ${{ env.PUBLISH_DIR }}/*
-          target: ${{ env.SERVER_APP_DIR }}/published
-          strip_components: 2
+          target: ${{ env.SERVER_APP_DIR }}
+          # target: ${{ env.SERVER_APP_DIR }}/published
+          strip_components: 1
 
       - name: Upload EF bundle
         uses: appleboy/scp-action@v0.1.7
@@ -84,17 +85,6 @@ jobs:
           # source: ${{ env.EFBUNDLE_PATH }}
           source: ./efbundle
           target: ${{ env.SERVER_APP_DIR }}
-          strip_components: 0
-
-      - name: Upload appsettings.json
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USERNAME }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          port: ${{ secrets.VPS_PORT }}
-          source: "Client API/appsettings.json"
-          target: ${{ env.SERVER_APP_DIR }}/appsettings.json
           strip_components: 0
 
       # 4) Backup DB, run migrations, rebuild & restart containers
