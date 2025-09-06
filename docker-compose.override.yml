@@ -4,7 +4,7 @@ services:
       context: .
       dockerfile: Client API/Dockerfile
     ports:
-      - "60000:5000"
+      - "60000:8080"
       - "60001:5001"
     environment:
       - ConnectionStrings__DefaultConnection=Server=localhost,1433;Database=MinaretOps;User Id=sa;Password=Minaret@2021;Encrypt=False;TrustServerCertificate=True
