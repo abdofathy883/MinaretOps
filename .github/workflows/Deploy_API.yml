@@ -61,46 +61,6 @@ jobs:
             --output ./efbundle \
             --self-contained \
             --target-runtime linux-x64
-
-      - name: Verify EF Bundle Created
-        run: |
-          echo "Current working directory: $(pwd)"
-          echo "Contents of current directory:"
-          ls -la
-          echo "Looking for efbundle file..."
-          if [ -f "./efbundle" ]; then
-            echo "EF bundle found at ./efbundle"
-            ls -la ./efbundle
-            file ./efbundle
-          elif [ -f "efbundle" ]; then
-            echo "EF bundle found at efbundle (no ./ prefix)"
-            ls -la efbundle
-            file efbundle
-          else
-            echo "ERROR: EF bundle file not found"
-            echo "Searching for any files with 'efbundle' in the name:"
-            find . -name "*efbundle*" -type f
-            exit 1
-          fi
-
-
-             # ---- DEBUG STEP: Validate SSH key + connectivity from the runner ----
-      - name: Debug SSH key and connectivity
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p ~/.ssh
-          # write key from secret (preserves newlines); do NOT print the key
-          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          # default to 22 if secret not set
-          PORT="${{ secrets.VPS_PORT }}"
-          PORT="${PORT:-22}"
-          echo "Testing SSH connectivity to ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }}:$PORT (verbose output follows)"
-          # Verbose ssh will show handshake details. This may help identify why the server rejects the key.
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -o IdentitiesOnly=yes -p "$PORT" "${{ secrets.VPS_USERNAME }}"@"${{ secrets.VPS_HOST }}" -vvv 'echo "SSH_OK"' || (echo "SSH test failed (see above logs)"; exit 1)
-
-
         
       # 3) Upload publish output and efbundle to VPS
       - name: Upload published app
@@ -123,6 +83,17 @@ jobs:
           port: ${{ secrets.VPS_PORT }}
           # source: ${{ env.EFBUNDLE_PATH }}
           source: ./efbundle
+          target: ${{ env.SERVER_APP_DIR }}
+          strip_components: 0
+
+      - name: Upload appsettings.json
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          source: "Client API/appsettings.json"
           target: ${{ env.SERVER_APP_DIR }}
           strip_components: 0
 
