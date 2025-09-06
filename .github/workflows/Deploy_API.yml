@@ -138,10 +138,11 @@ jobs:
             docker compose up -d --build
 
             echo "Waiting for app container..."
-            sleep 10
+            sleep 25
 
-            if ! docker ps --format '{{.Names}}' | grep -q 'minaretopsapi_clientapi_1'; then
+            if ! docker ps --format '{{.Names}}' | grep -q 'clientapi'; then
               echo "App container not running after deploy. Aborting."
+              docker ps -a
               exit 1
             fi
 
