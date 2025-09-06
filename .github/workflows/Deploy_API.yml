@@ -94,7 +94,7 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT }}
           source: "Client API/appsettings.json"
-          target: ${{ env.SERVER_APP_DIR }}
+          target: ${{ env.SERVER_APP_DIR }}/appsettings.json
           strip_components: 0
 
       # 4) Backup DB, run migrations, rebuild & restart containers
