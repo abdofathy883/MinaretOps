@@ -156,6 +156,7 @@ jobs:
 
             docker exec sqlserver /opt/mssql-tools18/bin/sqlcmd \
               -S localhost -U sa -P "${{ secrets.SA_PASSWORD }}" \
+              -C -N \
               -Q "BACKUP DATABASE [MinaretOps] TO DISK = N'/var/opt/mssql/backup/$BACKUP_NAME' WITH FORMAT, INIT, COMPRESSION"
 
             # Copy backup to host backup dir
