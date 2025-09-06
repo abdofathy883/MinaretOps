@@ -26,20 +26,16 @@ jobs:
           dotnet-version: '9.0.x'
 
       - name: Restore
-        # working-directory: ${{ env.PROJECT_ROOT }}
         run: dotnet restore MinaretOps.sln
 
       - name: Build
-        # working-directory: ${{ env.PROJECT_ROOT }}
         run: dotnet build MinaretOps.sln --configuration Release --no-restore
 
       - name: Test
-        # working-directory: ${{ env.PROJECT_ROOT }}
         run: dotnet test MinaretOps.sln --configuration Release --no-build
 
       # 1) Publish the API
       - name: Publish
-        # working-directory: ${{ env.PROJECT_ROOT }}
         run: dotnet publish "Client API/Client API.csproj" --configuration Release --no-build --output ./publish
 
       # Expose publish dir as env var
@@ -64,6 +60,18 @@ jobs:
             --output ./efbundle \
             --self-contained \
             --target-runtime linux-x64
+
+      - name: Verify EF Bundle Creation
+        run: |
+           if [ ! -f ./efbundle ]; then
+            echo "Error:- EF bundle not found at ./efbundle"
+            ls -la ./
+            fi
+            exit 1
+           fi
+           echo "EF bundle created successfully"
+           ls -la ./efbundle
+           file ./efbundle
 
 
              # ---- DEBUG STEP: Validate SSH key + connectivity from the runner ----
