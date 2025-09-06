@@ -21,7 +21,7 @@ namespace Infrastructure.Data
             var connectionString = configuration.GetConnectionString("DefaultConnection");
 
             if (string.IsNullOrEmpty(connectionString))
-                throw new InvalidOperationException("Connection string 'DefaultConnection' not found in appsettings.json.");
+                throw new InvalidOperationException("Connection string 'DefaultConnection' not found in configuration sources.");
 
             var builder = new DbContextOptionsBuilder<MinaretOpsDbContext>();
             builder.UseSqlServer(connectionString);

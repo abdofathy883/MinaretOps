@@ -127,7 +127,8 @@ jobs:
             chmod +x ./efbundle
             echo "Applying EF migrations bundle..."
             # Host connects to the db container via published port 1433 -> localhost,1433
-            ./efbundle --connection "Server=localhost,1433;Database=MinaretOps;User Id=sa;Password=${{ secrets.SA_PASSWORD }};TrustServerCertificate=true"
+            ConnectionStrings__DefaultConnection="Server=localhost,1433;Database=MinaretOps;User Id=sa;Password=${{ secrets.SA_PASSWORD }};TrustServerCertificate=true" ./efbundle
+
 
             echo "Migrations applied successfully."
 
