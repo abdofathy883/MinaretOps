@@ -138,7 +138,7 @@ jobs:
             docker compose up -d --build
 
             echo "Waiting for app container..."
-            sleep 25
+            sleep 50
 
             if ! docker ps --format '{{.Names}}' | grep -q 'clientapi'; then
               echo "App container not running after deploy. Aborting."
