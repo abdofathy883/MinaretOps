@@ -150,7 +150,7 @@ jobs:
 
             # --- DB Backup ---
             BACKUP_DIR="${{ env.SERVER_BACKUP_DIR }}/db-$(date +%Y%m%d-%H%M%S)"
-            BACKUP_NAME="MinaretOps_$(date +%Y%m%d-%H%M%S).bak""
+            BACKUP_NAME="MinaretOps_$(date +%Y%m%d-%H%M%S).bak"
             mkdir -p "$BACKUP_DIR"
             echo "Backing up database to $BACKUP_DIR/$BACKUP_NAME"
 
