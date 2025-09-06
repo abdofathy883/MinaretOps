@@ -121,8 +121,10 @@ jobs:
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT }}
-          source: ${{ env.EFBUNDLE_PATH }}
+          # source: ${{ env.EFBUNDLE_PATH }}
+          source: ./efbundle
           target: ${{ env.SERVER_APP_DIR }}
+          strip_components: 0
 
       # 4) Backup DB, run migrations, rebuild & restart containers
       - name: Run backup, migrate, and deploy
