@@ -73,7 +73,7 @@ jobs:
           source: ${{ env.PUBLISH_DIR }}/*
           target: ${{ env.SERVER_APP_DIR }}
           # target: ${{ env.SERVER_APP_DIR }}/published
-          strip_components: 1
+          strip_components: 2
 
       - name: Upload EF bundle
         uses: appleboy/scp-action@v0.1.7
