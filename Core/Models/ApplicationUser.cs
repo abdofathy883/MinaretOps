@@ -25,6 +25,8 @@ namespace Core.Models
         public virtual List<InternalTaskAssignment> InternalTaskAssignments { get; set; } = new();
         public List<LeaveRequest> LeaveRequests { get; set; } = new();
         public List<AttendanceRecord> AttendanceRecords { get; set; } = new();
+        public List<EmployeeAnnouncement> EmployeeAnnouncements { get; set; } = new();
+        public List<Complaint> Complaints { get; set; } = new();
         public DateOnly CreatedAt { get; set; } = DateOnly.FromDateTime(DateTime.Today);
         public DateOnly? UpdatedAt { get; set; }
         public bool IsDeleted { get; set; } = false;

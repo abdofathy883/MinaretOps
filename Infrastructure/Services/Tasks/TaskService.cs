@@ -5,6 +5,7 @@ using Core.Interfaces;
 using Core.Models;
 using Infrastructure.Data;
 using Infrastructure.Exceptions;
+using Infrastructure.Services.Discord;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,12 +18,14 @@ namespace Infrastructure.Services.NewFolder
         private readonly UserManager<ApplicationUser> userManager;
         private readonly IEmailService emailService;
         private readonly INotificationService notificationService;
+        private readonly DiscordService discordService;
         public TaskService(
             MinaretOpsDbContext minaret,
             IMapper _mapper,
             UserManager<ApplicationUser> manager,
             IEmailService email,
-            INotificationService _notificationService
+            INotificationService _notificationService,
+            DiscordService _discordService
             )
         {
             context = minaret;
@@ -30,6 +33,7 @@ namespace Infrastructure.Services.NewFolder
             userManager = manager;
             emailService = email;
             notificationService = _notificationService;
+            discordService = _discordService;
         }
         public async Task<bool> ChangeTaskStatusAsync(int taskId, CustomTaskStatus status)
         {
@@ -160,43 +164,54 @@ namespace Infrastructure.Services.NewFolder
             var employee = await userManager.FindByIdAsync(createTask.EmployeeId)
                 ?? throw new InvalidObjectException("لم نتمكن من العثور على الموظف");
 
-            var task = new TaskItem
+            using var transaction = await context.Database.BeginTransactionAsync();
+            try
             {
-                Title = createTask.Title,
-                Description = createTask.Description,
-                Status = createTask.Status,
-                ClientServiceId = createTask.ClientServiceId,
-                Deadline = createTask.Deadline,
-                Priority = createTask.Priority,
-                Refrence = createTask.Refrence,
-                EmployeeId = createTask.EmployeeId,
-                TaskGroupId = createTask.TaskGroupId
-            };
+                var task = new TaskItem
+                {
+                    Title = createTask.Title,
+                    Description = createTask.Description,
+                    Status = createTask.Status,
+                    ClientServiceId = createTask.ClientServiceId,
+                    Deadline = createTask.Deadline,
+                    Priority = createTask.Priority,
+                    Refrence = createTask.Refrence,
+                    EmployeeId = createTask.EmployeeId,
+                    TaskGroupId = createTask.TaskGroupId
+                };
 
-            context.Tasks.Add(task);
-            await context.SaveChangesAsync();
+                context.Tasks.Add(task);
+                await context.SaveChangesAsync();
 
-            Dictionary<string, string> replacements = new Dictionary<string, string>
+                Dictionary<string, string> replacements = new Dictionary<string, string>
+                {
+                    {"FullName", $"{task.Employee.FirstName} {task.Employee.LastName}" },
+                    {"Email", $"{task.Employee.Email}" },
+                    {"TaskTitle", $"{task.Title}" },
+                    {"TimeStamp", $"{DateTime.UtcNow}" }
+                };
+
+                await emailService.SendEmailWithTemplateAsync(task.Employee.Email, "New Task Has Been Assigned To You", "NewTaskAssignment", replacements);
+                await discordService.SendTaskToDiscord(mapper.Map<TaskDTO>(task));
+
+                // Return the created task with all related data
+                var createdTask = await context.Tasks
+                    .Include(t => t.ClientService)
+                        .ThenInclude(cs => cs.Service)
+                    .Include(t => t.ClientService)
+                        .ThenInclude(cs => cs.Client)
+                    .Include(t => t.Employee)
+                    .Include(t => t.TaskGroup)
+                    .FirstOrDefaultAsync(t => t.Id == task.Id);
+
+                return mapper.Map<TaskDTO>(createdTask);
+
+            }
+            catch(Exception ex)
             {
-                {"FullName", $"{task.Employee.FirstName} {task.Employee.LastName}" },
-                {"Email", $"{task.Employee.Email}" },
-                {"TaskTitle", $"{task.Title}" },
-                {"TimeStamp", $"{DateTime.UtcNow}" }
-            };
-
-            await emailService.SendEmailWithTemplateAsync(task.Employee.Email, "New Task Has Been Assigned To You", "NewTaskAssignment", replacements);
-
-            // Return the created task with all related data
-            var createdTask = await context.Tasks
-                .Include(t => t.ClientService)
-                    .ThenInclude(cs => cs.Service)
-                .Include(t => t.ClientService)
-                    .ThenInclude(cs => cs.Client)
-                .Include(t => t.Employee)
-                .Include(t => t.TaskGroup)
-                .FirstOrDefaultAsync(t => t.Id == task.Id);
-
-            return mapper.Map<TaskDTO>(createdTask);
+                await transaction.RollbackAsync();
+                throw new Exception(ex.Message);
+            }
         }
 
         public async Task<TaskGroupDTO> CreateTaskGroupAsync(CreateTaskGroupDTO createTaskGroup)

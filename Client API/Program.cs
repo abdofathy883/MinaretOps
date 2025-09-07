@@ -16,6 +16,8 @@ using Infrastructure.Services.ContactForm;
 using Infrastructure.Services.MediaUploads;
 using Infrastructure.Services.Attendance;
 using Infrastructure.Services.Notifications;
+using Infrastructure.Services.Announcements;
+using Infrastructure.Services.Discord;
 
 namespace Client_API
 {
@@ -26,7 +28,6 @@ namespace Client_API
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.
-            Console.WriteLine(builder.Configuration.GetConnectionString("DefaultConnection"));
             builder.Services.AddDbContext<MinaretOpsDbContext>(options =>
             options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
@@ -56,6 +57,8 @@ namespace Client_API
             builder.Services.AddScoped<MediaUploadService>();
             builder.Services.AddScoped<IAttendanceService, AttendanceService>();
             builder.Services.AddScoped<INotificationService, NotificatonService>();
+            builder.Services.AddScoped<IAnnouncementService, AnnouncementService>();
+            builder.Services.AddHttpClient<DiscordService>();
 
             builder.Services.AddAutoMapper(cfg =>
             {
@@ -71,6 +74,8 @@ namespace Client_API
                 cfg.AddProfile<PostProfile>();
                 cfg.AddProfile<AttendanceRecordProfile>();
                 cfg.AddProfile<LeaveRequestProfile>();
+                cfg.AddProfile<AnnouncementProfile>();
+                cfg.AddProfile<NotificationProfile>();
             });
 
             builder.Services.AddControllers();
@@ -81,9 +86,10 @@ namespace Client_API
             {
                 options.AddPolicy("FrontendOnly", policy =>
                 {
-                    policy.WithOrigins("https://internal.theminaretagency.com")
+                    policy.WithOrigins("https://internal.theminaretagency.com", "http://localhost:4200")
                     .AllowAnyMethod()
-                    .AllowAnyHeader();
+                    .AllowAnyHeader()
+                    .AllowCredentials();
                 });
             });
 
@@ -102,8 +108,9 @@ namespace Client_API
                 
             });
 
-            //app.UseHttpsRedirection();
+            app.UseHttpsRedirection();
             app.Urls.Add("http://0.0.0.0:8080");
+            app.Urls.Add("https://0.0.0.0:5001");
 
 
             app.UseAuthentication();

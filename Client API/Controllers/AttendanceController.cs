@@ -33,6 +33,15 @@ namespace Client_API.Controllers
             }
         }
 
+        [HttpGet("today-attendance/{employeeId}")]
+        public async Task<IActionResult> GetTodayAttendanceAsync(string employeeId)
+        {
+            if (string.IsNullOrEmpty(employeeId))
+                return BadRequest();
+            var attendances = await attendanceService.GetTodayAttendanceForEmployeeAsync(employeeId);
+            return Ok(attendances);
+        }
+
         [HttpGet("employee-attendance/{employeeId}")]
         public async Task<IActionResult> GetAttendanceRecordsByEmployeeAsync(string employeeId)
         {

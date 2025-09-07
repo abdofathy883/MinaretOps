@@ -52,6 +52,7 @@ namespace Infrastructure.Services.Attendance
                 throw new UnauthorizedAccessException("User is not authorized to perform this action.");
 
             var request = await context.LeaveRequests
+                .Include(r => r.Employee)
                 .FirstOrDefaultAsync(r => r.Id == requestId)
                 ?? throw new InvalidObjectException($"Leave request with Id {requestId} not found.");
 
@@ -59,7 +60,12 @@ namespace Infrastructure.Services.Attendance
             request.ActionDate = DateTime.UtcNow;
             context.Update(request);
             await context.SaveChangesAsync();
-            return mapper.Map<LeaveRequestDTO>(request);
+            //return mapper.Map<LeaveRequestDTO>(request);
+            var mappedResult = mapper.Map<LeaveRequestDTO>(request);
+            if (mappedResult == null)
+                throw new InvalidOperationException("Failed to map leave request to DTO");
+
+            return mappedResult;
         }
 
         public async Task<List<AttendanceRecordDTO>> GetAllAttendanceRecords()
@@ -98,6 +104,17 @@ namespace Infrastructure.Services.Attendance
                 .ToListAsync();
 
             return mapper.Map<List<LeaveRequestDTO>>(requests);
+        }
+
+        public async Task<AttendanceRecordDTO> GetTodayAttendanceForEmployeeAsync(string empId)
+        {
+            var emp = await GetUserOrThrow(empId);
+
+            var attendanceRecords = await context.AttendanceRecords
+                .Where(a => a.CheckInTime >= DateTime.UtcNow.Date && a.EmployeeId == empId)
+                .FirstOrDefaultAsync();
+
+            return mapper.Map<AttendanceRecordDTO>(attendanceRecords);
         }
 
         public async Task<AttendanceRecordDTO> NewAttendanceRecord(CreateAttendanceRecordDTO recordDTO)
