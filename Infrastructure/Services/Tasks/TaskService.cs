@@ -180,7 +180,7 @@ namespace Infrastructure.Services.NewFolder
                     TaskGroupId = createTask.TaskGroupId
                 };
 
-                context.Tasks.Add(task);
+                await context.Tasks.AddAsync(task);
                 await context.SaveChangesAsync();
 
                 Dictionary<string, string> replacements = new Dictionary<string, string>
@@ -192,7 +192,11 @@ namespace Infrastructure.Services.NewFolder
                 };
 
                 await emailService.SendEmailWithTemplateAsync(task.Employee.Email, "New Task Has Been Assigned To You", "NewTaskAssignment", replacements);
-                await discordService.SendTaskToDiscord(mapper.Map<TaskDTO>(task));
+                if (await userManager.IsInRoleAsync(employee, UserRoles.GraphicDesigner.ToString()) || 
+                    await userManager.IsInRoleAsync(employee, UserRoles.GraphicDesignerTeamLeader.ToString()))
+                {
+                    await discordService.SendTaskToDiscord(mapper.Map<TaskDTO>(task));
+                }
 
                 // Return the created task with all related data
                 var createdTask = await context.Tasks
@@ -203,6 +207,8 @@ namespace Infrastructure.Services.NewFolder
                     .Include(t => t.Employee)
                     .Include(t => t.TaskGroup)
                     .FirstOrDefaultAsync(t => t.Id == task.Id);
+
+                await transaction.CommitAsync();
 
                 return mapper.Map<TaskDTO>(createdTask);
 
@@ -218,77 +224,96 @@ namespace Infrastructure.Services.NewFolder
         {
             // Validate that the client service exists
             var clientService = await context.ClientServices
+                .Include(cs => cs.Client)
+                .Include(cs => cs.Service)
                 .FirstOrDefaultAsync(cs => cs.Id == createTaskGroup.ClientServiceId)
                 ?? throw new InvalidObjectException("العميل غير مشترك في هذه الخدمة");
 
             // Check if task group already exists for this month/year
             var existingGroup = await context.TaskGroups
-                .FirstOrDefaultAsync(tg => tg.ClientServiceId == createTaskGroup.ClientServiceId);
+                .FirstOrDefaultAsync(tg => tg.ClientServiceId == createTaskGroup.ClientServiceId 
+                && tg.Month == DateTime.Now.Month 
+                && tg.Year == DateTime.Now.Year);
 
             if (existingGroup != null)
                 throw new AlreadyExistObjectException("مجموعة التاسكات لهذا الشهر موجودة بالفعل");
 
-            var taskGroup = new TaskGroup
+            using var transaction = await context.Database.BeginTransactionAsync();
+            try
             {
-                ClientServiceId = createTaskGroup.ClientServiceId,
-                Month = DateTime.Now.Month,
-                Year = DateTime.Now.Year,
-                MonthLabel = $"{DateTime.Now.ToString("MMMM")} {DateTime.Now.ToString("yyyy")}"
-            };
-
-            context.TaskGroups.Add(taskGroup);
-            await context.SaveChangesAsync();
-
-            // Create tasks if provided
-            if (createTaskGroup.Tasks.Any())
-            {
-                foreach (var taskDto in createTaskGroup.Tasks)
+                var taskGroup = new TaskGroup
                 {
-                    var employee = await userManager.FindByIdAsync(taskDto.EmployeeId)
-                        ?? throw new InvalidObjectException($"Employee with ID {taskDto.EmployeeId} not found");
+                    ClientServiceId = createTaskGroup.ClientServiceId,
+                    Month = DateTime.Now.Month,
+                    Year = DateTime.Now.Year,
+                    MonthLabel = $"{DateTime.Now.ToString("MMMM")} {DateTime.Now.ToString("yyyy")}"
+                };
 
-                    var task = new TaskItem
-                    {
-                        Title = taskDto.Title,
-                        Description = taskDto.Description,
-                        Status = taskDto.Status,
-                        ClientServiceId = taskDto.ClientServiceId,
-                        Deadline = taskDto.Deadline,
-                        Priority = taskDto.Priority,
-                        Refrence = taskDto.Refrence,
-                        EmployeeId = taskDto.EmployeeId,
-                        TaskGroupId = taskGroup.Id
-                    };
-
-                    context.Tasks.Add(task);
-
-                    Dictionary<string, string> replacements = new Dictionary<string, string>
-                    {
-                        {"FullName", $"{task.Employee.FirstName} {task.Employee.LastName}" },
-                        {"Email", $"{task.Employee.Email}" },
-                        {"TaskTitle", $"{task.Title}" },
-                        {"Client", $"{task.ClientService.Client.Name}" },
-                        {"TimeStamp", $"{DateTime.UtcNow}" }
-                    };
-
-                    await emailService.SendEmailWithTemplateAsync(task.Employee.Email, "New Task Has been Assigned To You", "NewTaskAssignment", replacements);
-                }
+                context.TaskGroups.Add(taskGroup);
                 await context.SaveChangesAsync();
+
+                // Create tasks if provided
+                if (createTaskGroup.Tasks.Any())
+                {
+                    foreach (var taskDto in createTaskGroup.Tasks)
+                    {
+                        var employee = await userManager.FindByIdAsync(taskDto.EmployeeId)
+                            ?? throw new InvalidObjectException($"Employee with ID {taskDto.EmployeeId} not found");
+
+                        var task = new TaskItem
+                        {
+                            Title = taskDto.Title,
+                            Description = taskDto.Description,
+                            Status = taskDto.Status,
+                            ClientServiceId = createTaskGroup.ClientServiceId,
+                            Deadline = taskDto.Deadline,
+                            Priority = taskDto.Priority,
+                            Refrence = taskDto.Refrence,
+                            EmployeeId = taskDto.EmployeeId,
+                            TaskGroupId = taskGroup.Id
+                        };
+
+                        context.Tasks.Add(task);
+
+                        Dictionary<string, string> replacements = new Dictionary<string, string>
+                        {
+                            {"FullName", $"{task.Employee.FirstName} {task.Employee.LastName}" },
+                            {"Email", $"{task.Employee.Email}" },
+                            {"TaskTitle", $"{task.Title}" },
+                            {"Client", $"{task.ClientService.Client.Name}" },
+                            {"TimeStamp", $"{DateTime.UtcNow}" }
+                        };
+
+                        await emailService.SendEmailWithTemplateAsync(task.Employee.Email, "New Task Has been Assigned To You", "NewTaskAssignment", replacements);
+                        if (await userManager.IsInRoleAsync(employee, UserRoles.GraphicDesigner.ToString()) ||
+                            await userManager.IsInRoleAsync(employee, UserRoles.GraphicDesignerTeamLeader.ToString()))
+                        {
+                            await discordService.SendTaskToDiscord(mapper.Map<TaskDTO>(task));
+                        }
+                    }
+                    await context.SaveChangesAsync();
+                }
+
+                // Return the created task group with all related data
+                var createdTaskGroup = await context.TaskGroups
+                    .Include(tg => tg.Tasks)
+                        .ThenInclude(t => t.Employee)
+                    .Include(tg => tg.Tasks)
+                        .ThenInclude(t => t.ClientService)
+                            .ThenInclude(cs => cs.Service)
+                    .Include(tg => tg.Tasks)
+                        .ThenInclude(t => t.ClientService)
+                            .ThenInclude(cs => cs.Client)
+                    .FirstOrDefaultAsync(tg => tg.Id == taskGroup.Id);
+
+                await transaction.CommitAsync();
+                return mapper.Map<TaskGroupDTO>(createdTaskGroup);
             }
-
-            // Return the created task group with all related data
-            var createdTaskGroup = await context.TaskGroups
-                .Include(tg => tg.Tasks)
-                    .ThenInclude(t => t.Employee)
-                .Include(tg => tg.Tasks)
-                    .ThenInclude(t => t.ClientService)
-                        .ThenInclude(cs => cs.Service)
-                .Include(tg => tg.Tasks)
-                    .ThenInclude(t => t.ClientService)
-                        .ThenInclude(cs => cs.Client)
-                .FirstOrDefaultAsync(tg => tg.Id == taskGroup.Id);
-
-            return mapper.Map<TaskGroupDTO>(createdTaskGroup);
+            catch(Exception ex)
+            {
+                await transaction.RollbackAsync();
+                throw new Exception(ex.Message);
+            }
         }
 
         public async Task<List<TaskGroupDTO>> GetTaskGroupsByClientServiceAsync(int clientServiceId)

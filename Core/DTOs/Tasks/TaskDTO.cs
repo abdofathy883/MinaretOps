@@ -20,7 +20,6 @@ namespace Core.DTOs.Tasks
             CompletedAt.HasValue &&
             CompletedAt.Value.Date <= Deadline.Date;
         public int TaskGroupId { get; set; }
-
         public int ServiceId { get; set; }
         public string ServiceName { get; set; }
         public string ClientName { get; set; }

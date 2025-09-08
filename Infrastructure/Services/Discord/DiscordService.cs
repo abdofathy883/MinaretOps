@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace Infrastructure.Services.Discord
@@ -21,17 +22,31 @@ namespace Infrastructure.Services.Discord
         {
             var payload = new
             {
-                Title = task.Title,
-                Description = task.Description,
-                Color = 5814783, // Example color in decimal,
-                Fields = new[]
+                embeds = new[]
                 {
-                    new { name = "Assigned To", value = task.EmployeeName, inline = true },
-                    new { name = "Due Date", value = task.Deadline.ToString("yyyy-MM-dd"), inline = true },
+                    new
+                    {
+                        title = $"New Task: {task.Title}",
+                        description = task.Description,
+                        color = 5814783, // Blue color
+                        fields = new[]
+                        {
+                            new { name = "Assigned To", value = task.EmployeeName ?? "Unknown", inline = true },
+                            new { name = "Due Date", value = task.Deadline.ToString("yyyy-MM-dd"), inline = true },
+                            new { name = "Priority", value = task.Priority ?? "Normal", inline = true },
+                            new { name = "Status", value = task.Status.ToString(), inline = true }
+                        },
+                        timestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
+                        footer = new { text = "The Minaret Agency Task Management" }
+                    }
                 }
             };
 
-            var json = System.Text.Json.JsonSerializer.Serialize(payload);
+            var json = JsonSerializer.Serialize(payload, new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            });
+
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
             await httpClient.PostAsync(discordWebhookUrl, content);

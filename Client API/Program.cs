@@ -18,6 +18,7 @@ using Infrastructure.Services.Attendance;
 using Infrastructure.Services.Notifications;
 using Infrastructure.Services.Announcements;
 using Infrastructure.Services.Discord;
+using Infrastructure.Services.Complaints;
 
 namespace Client_API
 {
@@ -30,6 +31,8 @@ namespace Client_API
             // Add services to the container.
             builder.Services.AddDbContext<MinaretOpsDbContext>(options =>
             options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+            Console.WriteLine(builder.Configuration.GetConnectionString("DefaultConnection"));
 
             builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
                 .AddEntityFrameworkStores<MinaretOpsDbContext>()
@@ -58,6 +61,7 @@ namespace Client_API
             builder.Services.AddScoped<IAttendanceService, AttendanceService>();
             builder.Services.AddScoped<INotificationService, NotificatonService>();
             builder.Services.AddScoped<IAnnouncementService, AnnouncementService>();
+            builder.Services.AddScoped<IComplaintService, ComplaintService>();
             builder.Services.AddHttpClient<DiscordService>();
 
             builder.Services.AddAutoMapper(cfg =>
@@ -76,6 +80,7 @@ namespace Client_API
                 cfg.AddProfile<LeaveRequestProfile>();
                 cfg.AddProfile<AnnouncementProfile>();
                 cfg.AddProfile<NotificationProfile>();
+                cfg.AddProfile<ComplaintProfile>();
             });
 
             builder.Services.AddControllers();
@@ -123,7 +128,12 @@ namespace Client_API
 
             using (var scope = app.Services.CreateScope())
             {
+                //var services = scope.ServiceProvider;
+                //await DbSeeder.SeedAsync(services);
+
                 var services = scope.ServiceProvider;
+                var dbContext = services.GetRequiredService<MinaretOpsDbContext>();
+                await dbContext.Database.MigrateAsync();
                 await DbSeeder.SeedAsync(services);
             }
 
