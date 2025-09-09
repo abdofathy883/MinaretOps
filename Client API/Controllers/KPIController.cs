@@ -19,9 +19,8 @@ namespace Client_API.Controllers
         public async Task<IActionResult> NewKPIIncedint(CreateIncedintDTO dto)
         {
             if (!ModelState.IsValid)
-            {
                 return BadRequest();
-            }
+
             try
             {
                 var result = await kPIService.NewKPIIncedintAsync(dto);
