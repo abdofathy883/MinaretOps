@@ -19,6 +19,7 @@ using Infrastructure.Services.Notifications;
 using Infrastructure.Services.Announcements;
 using Infrastructure.Services.Discord;
 using Infrastructure.Services.Complaints;
+using Infrastructure.Services.KPI;
 
 namespace Client_API
 {
@@ -62,6 +63,7 @@ namespace Client_API
             builder.Services.AddScoped<INotificationService, NotificatonService>();
             builder.Services.AddScoped<IAnnouncementService, AnnouncementService>();
             builder.Services.AddScoped<IComplaintService, ComplaintService>();
+            builder.Services.AddScoped<IKPIService, KPIService>();
             builder.Services.AddHttpClient<DiscordService>();
 
             builder.Services.AddAutoMapper(cfg =>
@@ -81,6 +83,7 @@ namespace Client_API
                 cfg.AddProfile<AnnouncementProfile>();
                 cfg.AddProfile<NotificationProfile>();
                 cfg.AddProfile<ComplaintProfile>();
+                cfg.AddProfile<KPIIncedintProfile>();
             });
 
             builder.Services.AddControllers();
@@ -114,8 +117,8 @@ namespace Client_API
             });
 
             app.UseHttpsRedirection();
-            app.Urls.Add("http://0.0.0.0:8080");
-            app.Urls.Add("https://0.0.0.0:5001");
+            app.Urls.Add("http://localhost:8080");
+            app.Urls.Add("https://localhost:5001");
 
 
             app.UseAuthentication();
