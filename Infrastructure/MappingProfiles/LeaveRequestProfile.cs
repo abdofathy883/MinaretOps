@@ -17,7 +17,8 @@ namespace Infrastructure.MappingProfiles
                 .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id))
                 .ForMember(dest => dest.EmployeeId, opt => opt.MapFrom(src => src.EmployeeId))
                 .ForMember(dest => dest.EmployeeName, opt => opt.MapFrom(src => $"{src.Employee.FirstName} {src.Employee.LastName}"))
-                .ForMember(dest => dest.Date, opt => opt.MapFrom(src => src.Date))
+                .ForMember(dest => dest.FromDate, opt => opt.MapFrom(src => src.FromDate))
+                .ForMember(dest => dest.ToDate, opt => opt.MapFrom(src => src.ToDate))
                 .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status))
                 .ForMember(dest => dest.ActionDate, opt => opt.MapFrom(src => src.ActionDate));
         }

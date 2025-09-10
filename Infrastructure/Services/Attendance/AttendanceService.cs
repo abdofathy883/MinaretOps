@@ -73,6 +73,14 @@ namespace Infrastructure.Services.Attendance
             var records = await context.AttendanceRecords
                 .Include(r => r.Employee)
                 .ToListAsync();
+
+            var tz = TimeZoneInfo.FindSystemTimeZoneById("Egypt Standard Time");
+
+            foreach (var record in records)
+            {
+                record.CheckInTime = TimeZoneInfo.ConvertTimeFromUtc(record.CheckInTime, tz);
+            }
+
             return mapper.Map<List<AttendanceRecordDTO>>(records);
         }
 
@@ -110,11 +118,17 @@ namespace Infrastructure.Services.Attendance
         {
             var emp = await GetUserOrThrow(empId);
 
-            var attendanceRecords = await context.AttendanceRecords
+            var attendanceRecord = await context.AttendanceRecords
                 .Where(a => a.CheckInTime >= DateTime.UtcNow.Date && a.EmployeeId == empId)
                 .FirstOrDefaultAsync();
 
-            return mapper.Map<AttendanceRecordDTO>(attendanceRecords);
+            if (attendanceRecord is not null)
+            {
+                var tz = TimeZoneInfo.FindSystemTimeZoneById("Egypt Standard Time");
+                attendanceRecord.CheckInTime = TimeZoneInfo.ConvertTimeFromUtc(attendanceRecord.CheckInTime, tz);
+            }
+
+            return mapper.Map<AttendanceRecordDTO>(attendanceRecord);
         }
 
         public async Task<AttendanceRecordDTO> NewAttendanceRecord(CreateAttendanceRecordDTO recordDTO)
@@ -132,6 +146,7 @@ namespace Infrastructure.Services.Attendance
 
             var otherEmpsWithSameIp = await context.AttendanceRecords
                 .Where(r => r.IpAddress == recordDTO.IpAddress && 
+                r.DeviceId == recordDTO.DeviceId &&
                 r.EmployeeId != recordDTO.EmployeeId && 
                 r.CheckInTime.Date == DateTime.UtcNow.Date)
                 .Include(r => r.Employee)
@@ -146,7 +161,7 @@ namespace Infrastructure.Services.Attendance
                     CheckInTime = DateTime.UtcNow,
                     DeviceId = recordDTO.DeviceId,
                     IpAddress = recordDTO.IpAddress,
-                    Status = recordDTO.Status
+                    Status = AttendanceStatus.Present
                 };
                 await context.AddAsync(attendanceRecord);
                 await context.SaveChangesAsync();
@@ -195,7 +210,8 @@ namespace Infrastructure.Services.Attendance
                 var request = new LeaveRequest
                 {
                     EmployeeId = emp.Id,
-                    Date = leaveRequestDTO.Date,
+                    FromDate = leaveRequestDTO.FromDate,
+                    ToDate = leaveRequestDTO.ToDate,
                     Status = LeaveStatus.Pending,
                     ActionDate = DateTime.UtcNow
                 };

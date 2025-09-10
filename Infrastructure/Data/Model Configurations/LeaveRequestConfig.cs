@@ -21,7 +21,10 @@ namespace Infrastructure.Data.Model_Configurations
             builder.Property(lr => lr.EmployeeId)
                 .IsRequired();
 
-            builder.Property(lr => lr.Date)
+            builder.Property(lr => lr.FromDate)
+                .IsRequired();
+
+            builder.Property(lr => lr.ToDate)
                 .IsRequired();
 
             builder.Property(lr => lr.Status)

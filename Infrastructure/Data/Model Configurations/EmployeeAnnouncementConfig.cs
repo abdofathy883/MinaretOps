@@ -28,7 +28,7 @@ namespace Infrastructure.Data.Model_Configurations
 
             // Configure the many-to-one relationship with ApplicationUser
             builder.HasOne(ea => ea.Employee)
-                .WithMany()
+                .WithMany(ea => ea.EmployeeAnnouncements)
                 .HasForeignKey(ea => ea.EmployeeId)
                 .OnDelete(DeleteBehavior.Cascade);
 

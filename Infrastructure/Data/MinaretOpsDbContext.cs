@@ -25,7 +25,7 @@ namespace Infrastructure.Data
         public DbSet<Announcement> Announcements { get; set; }
         public DbSet<EmployeeAnnouncement> EmployeeAnnouncements { get; set; }
         public DbSet<Complaint> Complaints { get; set; }
-        //public DbSet<KPIIncedint> KPIIncedints { get; set; }
+        public DbSet<KPIIncedint> KPIIncedints { get; set; }
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
@@ -44,6 +44,7 @@ namespace Infrastructure.Data
             builder.ApplyConfiguration(new AnnouncementConfig());
             builder.ApplyConfiguration(new EmployeeAnnouncementConfig());
             builder.ApplyConfiguration(new ComplaintConfig());
+            builder.ApplyConfiguration(new IncedientConfig());
         }
     }
 }

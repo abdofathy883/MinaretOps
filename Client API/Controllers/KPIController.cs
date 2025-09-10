@@ -15,7 +15,7 @@ namespace Client_API.Controllers
             kPIService = service;
         }
 
-        [HttpPost] 
+        [HttpPost]
         public async Task<IActionResult> NewKPIIncedint(CreateIncedintDTO dto)
         {
             if (!ModelState.IsValid)
@@ -30,6 +30,27 @@ namespace Client_API.Controllers
             {
                 return BadRequest(new { message = ex.Message });
             }
+        }
+
+        [HttpGet("summary/{employeeId}")]
+        public async Task<IActionResult> GetEmployeeSummary(string employeeId, [FromQuery] int year, [FromQuery] int month)
+        {
+            var res = await kPIService.GetEmployeeMonthlyAsync(employeeId, year, month);
+            return Ok(res);
+        }
+
+        [HttpGet("summary")]
+        public async Task<IActionResult> GetAllSummaries([FromQuery] int year, [FromQuery] int month)
+        {
+            var res = await kPIService.GetMonthlySummeriesAsync(year, month);
+            return Ok(res);
+        }
+
+        [HttpGet("incidents")]
+        public async Task<IActionResult> GetIncidents([FromQuery] string? employeeId, [FromQuery] int year, [FromQuery] int month)
+        {
+            var res = await kPIService.GetIncedientsAsync(employeeId, year, month);
+            return Ok(res);
         }
     }
 }

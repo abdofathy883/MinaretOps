@@ -4,6 +4,7 @@ using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,13 +12,15 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Infrastructure.Migrations
 {
     [DbContext(typeof(MinaretOpsDbContext))]
-    partial class MinaretOpsDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250910142204_AddedKPIsModel")]
+    partial class AddedKPIsModel
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.9")
+                .HasAnnotation("ProductVersion", "9.0.8")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -386,6 +389,9 @@ namespace Infrastructure.Migrations
                     b.Property<int>("AnnouncementId")
                         .HasColumnType("int");
 
+                    b.Property<string>("ApplicationUserId")
+                        .HasColumnType("nvarchar(450)");
+
                     b.Property<bool>("IsRead")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
@@ -394,6 +400,8 @@ namespace Infrastructure.Migrations
                     b.HasKey("EmployeeId", "AnnouncementId");
 
                     b.HasIndex("AnnouncementId");
+
+                    b.HasIndex("ApplicationUserId");
 
                     b.HasIndex("EmployeeId");
 
@@ -477,21 +485,18 @@ namespace Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("Aspect")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("Aspect")
+                        .HasColumnType("int");
 
                     b.Property<string>("Description")
-                        .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("EmployeeId")
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("EvidenceURL")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("PenaltyPercentage")
                         .HasColumnType("int");
@@ -918,8 +923,12 @@ namespace Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Core.Models.ApplicationUser", "Employee")
+                    b.HasOne("Core.Models.ApplicationUser", null)
                         .WithMany("EmployeeAnnouncements")
+                        .HasForeignKey("ApplicationUserId");
+
+                    b.HasOne("Core.Models.ApplicationUser", "Employee")
+                        .WithMany()
                         .HasForeignKey("EmployeeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -951,7 +960,7 @@ namespace Infrastructure.Migrations
             modelBuilder.Entity("Core.Models.KPIIncedint", b =>
                 {
                     b.HasOne("Core.Models.ApplicationUser", "Employee")
-                        .WithMany("KPIIncedints")
+                        .WithMany()
                         .HasForeignKey("EmployeeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -1073,8 +1082,6 @@ namespace Infrastructure.Migrations
                     b.Navigation("EmployeeAnnouncements");
 
                     b.Navigation("InternalTaskAssignments");
-
-                    b.Navigation("KPIIncedints");
 
                     b.Navigation("LeaveRequests");
 

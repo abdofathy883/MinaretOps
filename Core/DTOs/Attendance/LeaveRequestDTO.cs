@@ -13,7 +13,8 @@ namespace Core.DTOs.Attendance
         public int Id { get; set; }
         public required string EmployeeId { get; set; }
         public required string EmployeeName { get; set; }
-        public DateTime Date { get; set; }
+        public DateTime FromDate { get; set; }
+        public DateTime ToDate { get; set; }
         public LeaveStatus Status { get; set; }
         public DateTime? ActionDate { get; set; }
     }
