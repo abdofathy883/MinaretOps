@@ -116,6 +116,7 @@ namespace Infrastructure.Services.Clients
                             var task = new TaskItem
                             {
                                 Title = taskDto.Title,
+                                TaskType = taskDto.TaskType,
                                 Description = taskDto.Description,
                                 Deadline = taskDto.Deadline,
                                 Priority = taskDto.Priority,

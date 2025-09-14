@@ -8,5 +8,7 @@ namespace Core.DTOs.Blog
 {
     public class BlogCategoryDTO
     {
+        public int Id { get; set; }
+        public required string Title { get; set; }
     }
 }

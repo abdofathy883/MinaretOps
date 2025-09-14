@@ -6,6 +6,7 @@ namespace Core.DTOs.InternalTasks
     {
         public int Id { get; set; }
         public string Title { get; set; }
+        public required InternalTaskType TaskType { get; set; }
         public string Description { get; set; }
         public DateTime Deadline { get; set; }
         public DateTime CreatedAt { get; set; }

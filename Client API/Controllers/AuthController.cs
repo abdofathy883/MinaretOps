@@ -97,5 +97,16 @@ namespace Client_API.Controllers
 
             return Ok(result);
         }
+
+        [HttpGet("team-members")]
+        public async Task<IActionResult> GetTeamMembersAsync()
+        {
+            var teamMembers = await authService.GetTeamMembersAsync();
+            if (teamMembers.Count > 0)
+            {
+                return Ok(teamMembers);
+            }
+            return NotFound("لا يوجد أعضاء في الفريق");
+        }
     }
 }

@@ -18,6 +18,10 @@ namespace Infrastructure.Data.Model_Configurations
                 .IsRequired()
                 .HasMaxLength(200);
 
+            builder.Property(t => t.TaskType)
+                .IsRequired()
+                .HasConversion<string>();
+
             builder.Property(t => t.Description)
                 .IsRequired(false)
                 .HasMaxLength(2000);

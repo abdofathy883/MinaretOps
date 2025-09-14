@@ -1,4 +1,5 @@
 ﻿using Core.Enums;
+using Microsoft.AspNetCore.Http;
 
 namespace Core.DTOs.AuthDTOs
 {
@@ -15,5 +16,8 @@ namespace Core.DTOs.AuthDTOs
         public required string NID { get; set; }
         public required string PaymentNumber { get; set; }
         public required DateOnly DateOfHiring { get; set; }
+        public required IFormFile ProfilePicture { get; set; }
+        public required string JobTitle { get; set; }
+        public required string Bio { get; set; }
     }
 }

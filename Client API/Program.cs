@@ -20,6 +20,7 @@ using Infrastructure.Services.Announcements;
 using Infrastructure.Services.Discord;
 using Infrastructure.Services.Complaints;
 using Infrastructure.Services.KPI;
+using Infrastructure.Services.Blog;
 
 namespace Client_API
 {
@@ -43,6 +44,7 @@ namespace Client_API
                 ?? throw new Exception("Error in JWT Settings");
 
             builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSetting"));
+            builder.Services.Configure<DiscordSettings>(builder.Configuration.GetSection("Discord"));
 
 
             builder.Services.AddSingleton<JWTSettings>(jwtOptions);
@@ -56,7 +58,7 @@ namespace Client_API
             builder.Services.AddScoped<IInternalTaskService, InternalTaskService>();
             builder.Services.AddScoped<IEmailService, EmailService>();
             builder.Services.AddScoped<IContactFormService, ContactFormService>();
-            //builder.Services.AddScoped<IBlogService, BlogService>();
+            builder.Services.AddScoped<IBlogService, BlogService>();
             //builder.Services.AddScoped<IPortfolioService, PortfolioService>();
             builder.Services.AddScoped<MediaUploadService>();
             builder.Services.AddScoped<IAttendanceService, AttendanceService>();
@@ -64,7 +66,7 @@ namespace Client_API
             builder.Services.AddScoped<IAnnouncementService, AnnouncementService>();
             builder.Services.AddScoped<IComplaintService, ComplaintService>();
             builder.Services.AddScoped<IKPIService, KPIService>();
-            builder.Services.AddHttpClient<DiscordService>();
+            builder.Services.AddScoped<DiscordService>();
 
             builder.Services.AddAutoMapper(cfg =>
             {

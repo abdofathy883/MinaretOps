@@ -26,6 +26,11 @@ namespace Infrastructure.Data
         public DbSet<EmployeeAnnouncement> EmployeeAnnouncements { get; set; }
         public DbSet<Complaint> Complaints { get; set; }
         public DbSet<KPIIncedint> KPIIncedints { get; set; }
+        public DbSet<BlogCategory> BlogCategories { get; set; }
+        public DbSet<Post> BlogPosts { get; set; }
+        public DbSet<ProjectCategory> ProjectCategories { get; set; }
+        public DbSet<Project> Projects { get; set; }
+
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);

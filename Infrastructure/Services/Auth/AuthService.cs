@@ -3,6 +3,7 @@ using Core.Interfaces;
 using Core.Models;
 using Infrastructure.Data;
 using Infrastructure.Exceptions;
+using Infrastructure.Services.MediaUploads;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,17 +15,20 @@ namespace Infrastructure.Services.Auth
         private readonly UserManager<ApplicationUser> userManager;
         private readonly IJWTServices jwtServices;
         private readonly IEmailService emailService;
+        private readonly MediaUploadService mediaUploadService;
         public AuthService(
             MinaretOpsDbContext _context,
             UserManager<ApplicationUser> _userManager,
             IJWTServices _jwtServices,
-            IEmailService email
+            IEmailService email,
+            MediaUploadService service
             )
         {
             dbContext = _context;
             userManager = _userManager;
             jwtServices = _jwtServices;
             emailService = email;
+            mediaUploadService = service;
         }
         public async Task<List<AuthResponseDTO>> GetAllUsersAsync()
         {
@@ -39,6 +43,9 @@ namespace Infrastructure.Services.Auth
                 Email = u.Email,
                 PhoneNumber = u.PhoneNumber,
                 Roles = userManager.GetRolesAsync(u).Result.ToList(),
+                ProfilePicture = u.ProfilePicture,
+                JobTitle = u.JobTitle,
+                Bio = u.Bio
             }).ToList();
         }
         public async Task<UserDTO> GetUserByIdAsync(string userId)
@@ -59,6 +66,9 @@ namespace Infrastructure.Services.Auth
                 PaymentNumber = user.PaymentNumber,
                 DateOfHiring = user.DateOfHiring,
                 Roles = userManager.GetRolesAsync(user).Result.ToList(),
+                ProfilePicture = user.ProfilePicture,
+                JobTitle = user.JobTitle,
+                Bio = user.Bio
             };
         }
         public async Task<AuthResponseDTO> LoginAsync(LoginDTO login)
@@ -120,6 +130,8 @@ namespace Infrastructure.Services.Auth
             if (validateErrors is not null && validateErrors.Count > 0)
                 return FailResult(string.Join(", ", validateErrors));
 
+            var imageUploadResult = await mediaUploadService.UploadImageWithPath(newUser.ProfilePicture, $"{newUser.FirstName} {newUser.LastName}");
+
             var user = new ApplicationUser
             {
                 FirstName = newUser.FirstName,
@@ -133,7 +145,10 @@ namespace Infrastructure.Services.Auth
                 Street = newUser.Street,
                 NID = newUser.NID,
                 PaymentNumber = newUser.PaymentNumber,
-                DateOfHiring = newUser.DateOfHiring
+                DateOfHiring = newUser.DateOfHiring,
+                ProfilePicture = imageUploadResult.Url,
+                JobTitle = newUser.JobTitle,
+                Bio = newUser.Bio,
             };
 
             using var dbTransaction = await dbContext.Database.BeginTransactionAsync();
@@ -361,6 +376,20 @@ namespace Infrastructure.Services.Auth
 
             await userManager.DeleteAsync(user);
             return true;
+        }
+
+        public async Task<List<TeamMemberDTO>> GetTeamMembersAsync()
+        {
+            var teamMembers = await userManager.Users.ToListAsync()
+                ?? throw new InvalidObjectException("لا يوجد مستخدمين");
+
+            return teamMembers.Select(u => new TeamMemberDTO
+            {
+                FullName = $"{u.FirstName} {u.LastName}",
+                ProfilePicture = u.ProfilePicture,
+                JobTitle = u.JobTitle,
+                Bio = u.Bio
+            }).ToList();
         }
     }
 }

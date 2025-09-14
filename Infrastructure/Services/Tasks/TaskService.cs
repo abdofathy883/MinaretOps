@@ -66,12 +66,12 @@ namespace Infrastructure.Services.NewFolder
             return await context.SaveChangesAsync() > 0;
         }
 
-        public async Task DeleteTaskAsync(int taskId)
+        public async Task<bool> DeleteTaskAsync(int taskId)
         {
             var task = await GetTaskOrThrow(taskId);
 
             context.Remove(task);
-            await context.SaveChangesAsync();
+            return await context.SaveChangesAsync() > 0;
         }
 
         public async Task<List<TaskDTO>> GetAllTasksAsync()
@@ -170,6 +170,7 @@ namespace Infrastructure.Services.NewFolder
                 var task = new TaskItem
                 {
                     Title = createTask.Title,
+                    TaskType = createTask.TaskType,
                     Description = createTask.Description,
                     Status = createTask.Status,
                     ClientServiceId = createTask.ClientServiceId,
@@ -192,11 +193,8 @@ namespace Infrastructure.Services.NewFolder
                 };
 
                 await emailService.SendEmailWithTemplateAsync(task.Employee.Email, "New Task Has Been Assigned To You", "NewTaskAssignment", replacements);
-                if (await userManager.IsInRoleAsync(employee, UserRoles.GraphicDesigner.ToString()) || 
-                    await userManager.IsInRoleAsync(employee, UserRoles.GraphicDesignerTeamLeader.ToString()))
-                {
-                    await discordService.SendTaskToDiscord(mapper.Map<TaskDTO>(task));
-                }
+                await discordService.SendTaskNotification(clientService.Client.Name ,mapper.Map<TaskDTO>(task));
+
 
                 // Return the created task with all related data
                 var createdTask = await context.Tasks
@@ -263,6 +261,7 @@ namespace Infrastructure.Services.NewFolder
                         var task = new TaskItem
                         {
                             Title = taskDto.Title,
+                            TaskType = taskDto.TaskType,
                             Description = taskDto.Description,
                             Status = taskDto.Status,
                             ClientServiceId = createTaskGroup.ClientServiceId,
@@ -285,11 +284,8 @@ namespace Infrastructure.Services.NewFolder
                         };
 
                         await emailService.SendEmailWithTemplateAsync(task.Employee.Email, "New Task Has been Assigned To You", "NewTaskAssignment", replacements);
-                        if (await userManager.IsInRoleAsync(employee, UserRoles.GraphicDesigner.ToString()) ||
-                            await userManager.IsInRoleAsync(employee, UserRoles.GraphicDesignerTeamLeader.ToString()))
-                        {
-                            await discordService.SendTaskToDiscord(mapper.Map<TaskDTO>(task));
-                        }
+                        await discordService.SendTaskNotification(task.ClientService.Client.Name, mapper.Map<TaskDTO>(task));
+                        
                     }
                     await context.SaveChangesAsync();
                 }

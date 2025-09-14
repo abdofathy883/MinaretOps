@@ -5,6 +5,7 @@ namespace Core.DTOs.Tasks
     public class CreateTaskForGroupDTO
     {
         public required string Title { get; set; }
+        public required TaskType TaskType { get; set; }
         public required string Description { get; set; }
         public CustomTaskStatus Status { get; set; }
         public DateTime Deadline { get; set; }

@@ -76,6 +76,7 @@ namespace Infrastructure.Services.InternalTasks
                 var task = new InternalTask
                 {
                     Title = internalTaskDTO.Title,
+                    TaskType = internalTaskDTO.TaskType,
                     Description = internalTaskDTO.Description,
                     Deadline = internalTaskDTO.Deadline,
                     Priority = string.IsNullOrWhiteSpace(internalTaskDTO.Priority) ? "عادي" : internalTaskDTO.Priority,

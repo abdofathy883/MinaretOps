@@ -6,6 +6,7 @@ namespace Core.Models
     {
         public int Id { get; set; }
         public required string Title { get; set; }
+        public required TaskType TaskType { get; set; }
         public string? Description { get; set; }
         public CustomTaskStatus Status { get; set; } = CustomTaskStatus.Open;
         public int ClientServiceId { get; set; }

@@ -129,5 +129,23 @@ namespace Client_API.Controllers
                 return BadRequest(ex.Message);
             }
         }
+
+        [HttpDelete("delete-task/{taskId}")]
+        public async Task<IActionResult> DeleteTaskAsync(int taskId)
+        {
+            if (taskId == 0)
+                return BadRequest("Task Id Is Null");
+            try
+            {
+                var result = await taskService.DeleteTaskAsync(taskId);
+                if (result)
+                    return Ok(new { message = "Task deleted successfully" });
+                return NotFound("Task not found");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
     }
 }

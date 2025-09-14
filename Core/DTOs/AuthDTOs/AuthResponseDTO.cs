@@ -24,5 +24,8 @@ namespace Core.DTOs.AuthDTOs
         public string? RefreshToken { get; set; }
         public DateTime RefreshTokenExpiration { get; set; }
         public string? ConcurrencyStamp { get; set; }
+        public string? ProfilePicture { get; set; }
+        public string? JobTitle { get; set; }
+        public string? Bio { get; set; }
     }
 }

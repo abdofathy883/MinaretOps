@@ -13,5 +13,8 @@ namespace Core.Interfaces
         Task<List<AuthResponseDTO>> GetAllUsersAsync();
         Task<UserDTO> GetUserByIdAsync(string userId);
         Task<bool> DeleteUserAsync(string userId);
+
+
+        Task<List<TeamMemberDTO>> GetTeamMembersAsync();
     }
 }

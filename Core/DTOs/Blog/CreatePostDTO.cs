@@ -15,5 +15,6 @@ namespace Core.DTOs.Blog
         public required IFormFile FeaturedImage { get; set; }
         public string? ImageAltText { get; set; }
         public int CategoryId { get; set; }
+        public string? Author { get; set; }
     }
 }

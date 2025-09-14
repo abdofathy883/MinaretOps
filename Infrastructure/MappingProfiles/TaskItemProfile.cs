@@ -11,6 +11,7 @@ namespace Infrastructure.MappingProfiles
             CreateMap<TaskItem, TaskDTO>()
                 .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id))
                 .ForMember(dest => dest.Title, opt => opt.MapFrom(src => src.Title))
+                .ForMember(dest => dest.TaskType, opt => opt.MapFrom(src => src.TaskType))
                 .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description))
                 .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status))
                 .ForMember(dest => dest.ClientServiceId, opt => opt.MapFrom(src => src.ClientServiceId))

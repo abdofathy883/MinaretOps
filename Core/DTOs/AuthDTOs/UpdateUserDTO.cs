@@ -1,4 +1,6 @@
-﻿namespace Core.DTOs.AuthDTOs
+﻿using Microsoft.AspNetCore.Http;
+
+namespace Core.DTOs.AuthDTOs
 {
     public class UpdateUserDTO
     {
@@ -11,5 +13,8 @@
         public string? Street { get; set; }
         public string? PaymentNumber { get; set; }
         public string? Role { get; set; }
+        public required IFormFile ProfilePicture { get; set; }
+        public required string JobTitle { get; set; }
+        public required string Bio { get; set; }
     }
 }

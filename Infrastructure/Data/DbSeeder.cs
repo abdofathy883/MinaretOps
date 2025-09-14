@@ -39,7 +39,10 @@ namespace Infrastructure.Data
                     City = "Minya",
                     Street = "12345",
                     PaymentNumber = "01028128912",
-                    NID = "29909272402873"
+                    NID = "29909272402873",
+                    ProfilePicture = string.Empty,
+                    JobTitle = "Software Engineer",
+                    Bio = string.Empty
                 };
 
                 var result = await userManager.CreateAsync(admin, password);

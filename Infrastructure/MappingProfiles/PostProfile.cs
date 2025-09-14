@@ -20,7 +20,8 @@ namespace Infrastructure.MappingProfiles
                 .ForMember(dest => dest.FeaturedImage, opt => opt.MapFrom(src => src.FeaturedImage))
                 .ForMember(dest => dest.ImageAltText, opt => opt.MapFrom(src => src.ImageAltText))
                 .ForMember(dest => dest.CategoryId, opt => opt.MapFrom(src => src.Category))
-                .ForMember(dest => dest.CategoryName, opt => opt.MapFrom(src => $"{src.Category.Title}"));
+                .ForMember(dest => dest.CategoryName, opt => opt.MapFrom(src => $"{src.Category.Title}"))
+                .ForMember(dest => dest.Author, opt => opt.MapFrom(src => src.Author));
         }
     }
 }

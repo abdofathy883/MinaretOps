@@ -1,7 +1,10 @@
-﻿namespace Core.DTOs.Blog
+﻿using Microsoft.AspNetCore.Http;
+
+namespace Core.DTOs.Blog
 {
     public class CreateBlogCategoryDTO
     {
-        public required string Title { get; set; }
+        public string Title { get; set; }
+
     }
 }
