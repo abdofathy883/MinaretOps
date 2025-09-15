@@ -1,4 +1,4 @@
-﻿using Core.DTOs.Logs;
+﻿using Core.DTOs.LoggingDTO;
 using Microsoft.AspNetCore.Mvc;
 using Serilog;
 using Serilog.Events;
