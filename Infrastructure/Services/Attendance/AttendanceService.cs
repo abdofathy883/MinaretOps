@@ -49,29 +49,6 @@ namespace Infrastructure.Services.Attendance
             return mapper.Map<AttendanceRecordDTO>(record);
         }
 
-        public async Task<LeaveRequestDTO> ChangeLeaveRequestStatusByAdminAsync(string adminId, int requestId, LeaveStatus newStatus)
-        {
-            var admin = await GetUserOrThrow(adminId);
-            if (!await userManager.IsInRoleAsync(admin, "Admin"))
-                throw new UnauthorizedAccessException("User is not authorized to perform this action.");
-
-            var request = await context.LeaveRequests
-                .Include(r => r.Employee)
-                .FirstOrDefaultAsync(r => r.Id == requestId)
-                ?? throw new InvalidObjectException($"Leave request with Id {requestId} not found.");
-
-            request.Status = newStatus;
-            request.ActionDate = DateTime.UtcNow;
-            context.Update(request);
-            await context.SaveChangesAsync();
-            //return mapper.Map<LeaveRequestDTO>(request);
-            var mappedResult = mapper.Map<LeaveRequestDTO>(request);
-            if (mappedResult == null)
-                throw new InvalidOperationException("Failed to map leave request to DTO");
-
-            return mappedResult;
-        }
-
         public async Task<List<AttendanceRecordDTO>> GetAllAttendanceRecords()
         {
             var records = await context.AttendanceRecords
@@ -88,14 +65,6 @@ namespace Infrastructure.Services.Attendance
             return mapper.Map<List<AttendanceRecordDTO>>(records);
         }
 
-        public async Task<List<LeaveRequestDTO>> GetAllLeaveRequests()
-        {
-            var requests = await context.LeaveRequests
-                .Include(r => r.Employee)
-                .ToListAsync();
-            return mapper.Map<List<LeaveRequestDTO>>(requests);
-        }
-
         public async Task<List<AttendanceRecordDTO>> GetAttendanceRecordsByEmployee(string employeeId)
         {
             var emp = await GetUserOrThrow(employeeId);
@@ -107,17 +76,6 @@ namespace Infrastructure.Services.Attendance
             logger.LogInformation("Fetched {Count} attendance records for employee {EmployeeId}", records.Count, employeeId);
 
             return mapper.Map<List<AttendanceRecordDTO>>(records);
-        }
-
-        public async Task<List<LeaveRequestDTO>> GetLeaveRequestsByEmployee(string employeeId)
-        {
-            var emp = await GetUserOrThrow(employeeId);
-
-            var requests = await context.LeaveRequests
-                .Where(r => r.EmployeeId == employeeId)
-                .ToListAsync();
-
-            return mapper.Map<List<LeaveRequestDTO>>(requests);
         }
 
         public async Task<AttendanceRecordDTO> GetTodayAttendanceForEmployeeAsync(string empId)
@@ -207,37 +165,6 @@ namespace Infrastructure.Services.Attendance
                 logger.LogError("Error occurred while creating attendance record for employee {EmployeeId}, with error message: {ex}", recordDTO.EmployeeId, ex.Message);
                 await transaction.RollbackAsync();
                 throw;
-            }
-        }
-
-        public async Task<LeaveRequestDTO> SubmitLeaveRequest(CreateLeaveRequestDTO leaveRequestDTO)
-        {
-            if (leaveRequestDTO is null)
-                throw new InvalidObjectException("");
-
-            var emp = await GetUserOrThrow(leaveRequestDTO.EmployeeId);
-
-            using var transaction = await context.Database.BeginTransactionAsync();
-
-            try
-            {
-                var request = new LeaveRequest
-                {
-                    EmployeeId = emp.Id,
-                    FromDate = leaveRequestDTO.FromDate,
-                    ToDate = leaveRequestDTO.ToDate,
-                    Status = LeaveStatus.Pending,
-                    ActionDate = DateTime.UtcNow
-                };
-                await context.AddAsync(request);
-                await context.SaveChangesAsync();
-                await transaction.CommitAsync();
-                return mapper.Map<LeaveRequestDTO>(request);
-            }
-            catch(Exception ex)
-            {
-                await transaction.RollbackAsync();
-                throw new NotImplementedOperationException(ex.Message);
             }
         }
 

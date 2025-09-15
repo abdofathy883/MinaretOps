@@ -10,12 +10,5 @@ namespace Core.Interfaces
         Task<List<AttendanceRecordDTO>> GetAllAttendanceRecords();
         Task<AttendanceRecordDTO> ChangeAttendanceStatusByAdminAsync(string adminId, int recordId, AttendanceStatus newStatus);
         Task<AttendanceRecordDTO> GetTodayAttendanceForEmployeeAsync(string empId);
-
-        // Leave Requests
-        Task<LeaveRequestDTO> SubmitLeaveRequest(CreateLeaveRequestDTO leaveRequestDTO);
-        Task<List<LeaveRequestDTO>> GetLeaveRequestsByEmployee(string employeeId);
-        Task<List<LeaveRequestDTO>> GetAllLeaveRequests();
-        Task<LeaveRequestDTO> ChangeLeaveRequestStatusByAdminAsync(string adminId, int requestId, LeaveStatus newStatus);
-
     }
 }

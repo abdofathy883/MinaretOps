@@ -13,6 +13,7 @@ using Infrastructure.Services.Discord;
 using Infrastructure.Services.Email;
 using Infrastructure.Services.InternalTasks;
 using Infrastructure.Services.KPI;
+using Infrastructure.Services.LeaveRequestService;
 using Infrastructure.Services.MediaUploads;
 using Infrastructure.Services.NewFolder;
 using Infrastructure.Services.Notifications;
@@ -63,6 +64,7 @@ namespace Client_API
             //builder.Services.AddScoped<IPortfolioService, PortfolioService>();
             builder.Services.AddScoped<MediaUploadService>();
             builder.Services.AddScoped<IAttendanceService, AttendanceService>();
+            builder.Services.AddScoped<ILeaveRequestService, LeaveRequestService>();
             builder.Services.AddScoped<INotificationService, NotificatonService>();
             builder.Services.AddScoped<IAnnouncementService, AnnouncementService>();
             builder.Services.AddScoped<IComplaintService, ComplaintService>();
