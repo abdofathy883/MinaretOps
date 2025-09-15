@@ -7,6 +7,7 @@ using Infrastructure.Data;
 using Infrastructure.Exceptions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace Infrastructure.Services.Attendance
 {
@@ -16,17 +17,20 @@ namespace Infrastructure.Services.Attendance
         private readonly IEmailService emailService;
         private readonly IMapper mapper;
         private readonly UserManager<ApplicationUser> userManager;
+        private readonly ILogger<AttendanceService> logger;
         public AttendanceService(
             MinaretOpsDbContext dbContext,
             IEmailService _emailService,
             IMapper _mapper,
-            UserManager<ApplicationUser> _userManager
+            UserManager<ApplicationUser> _userManager,
+            ILogger<AttendanceService> _logger
             )
         {
             context = dbContext;
             emailService = _emailService;
             mapper = _mapper;
             userManager = _userManager;
+            logger = _logger;
         }
 
         public async Task<AttendanceRecordDTO> ChangeAttendanceStatusByAdminAsync(string adminId, int recordId, AttendanceStatus newStatus)
@@ -100,6 +104,8 @@ namespace Infrastructure.Services.Attendance
                 .Where(r => r.EmployeeId == employeeId)
                 .ToListAsync();
 
+            logger.LogInformation("Fetched {Count} attendance records for employee {EmployeeId}", records.Count, employeeId);
+
             return mapper.Map<List<AttendanceRecordDTO>>(records);
         }
 
@@ -134,7 +140,10 @@ namespace Infrastructure.Services.Attendance
         public async Task<AttendanceRecordDTO> NewAttendanceRecord(CreateAttendanceRecordDTO recordDTO)
         {
             if (recordDTO is null)
-                throw new InvalidObjectException("");
+            {
+                logger.LogError("Attendance Record Coming From Frontend is Null");
+                throw new InvalidObjectException("Attendance Record Coming From Frontend is Empty");
+            }
 
             var user = await GetUserOrThrow(recordDTO.EmployeeId);
 
@@ -163,8 +172,12 @@ namespace Infrastructure.Services.Attendance
                     IpAddress = recordDTO.IpAddress,
                     Status = AttendanceStatus.Present
                 };
+
+                logger.LogInformation("Creating new attendance record for employee {EmployeeId} at {CheckInTime}", recordDTO.EmployeeId, attendanceRecord.CheckInTime);
                 await context.AddAsync(attendanceRecord);
                 await context.SaveChangesAsync();
+
+                logger.LogInformation("Attendance record created with Id {RecordId}", attendanceRecord.Id);
 
                 if (otherEmpsWithSameIp.Any())
                 {
@@ -189,8 +202,9 @@ namespace Infrastructure.Services.Attendance
                 await transaction.CommitAsync();
                 return mapper.Map<AttendanceRecordDTO>(attendanceRecord);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                logger.LogError("Error occurred while creating attendance record for employee {EmployeeId}, with error message: {ex}", recordDTO.EmployeeId, ex.Message);
                 await transaction.RollbackAsync();
                 throw;
             }

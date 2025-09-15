@@ -157,6 +157,7 @@ namespace Infrastructure.Services.NewFolder
 
             // Validate that the client service exists
             var clientService = await context.ClientServices
+                .Include(cs => cs.Client)
                 .FirstOrDefaultAsync(cs => cs.Id == createTask.ClientServiceId)
                 ?? throw new InvalidObjectException("العميل غير مشترك في هذه الخدمة");
 

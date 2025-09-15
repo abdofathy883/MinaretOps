@@ -5,6 +5,7 @@ using Core.Models;
 using Infrastructure.Data;
 using Infrastructure.Exceptions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace Infrastructure.Services.Services
 {
@@ -12,13 +13,16 @@ namespace Infrastructure.Services.Services
     {
         private readonly MinaretOpsDbContext dbContext;
         private readonly IMapper mapper;
+        private readonly ILogger<ServiceService> logger;
         public ServiceService(
             MinaretOpsDbContext _dbContext,
-            IMapper _mapper
+            IMapper _mapper,
+            ILogger<ServiceService> _logger
             )
         {
             dbContext = _dbContext;
             mapper = _mapper;
+            logger = _logger;
         }
         public async Task<ServiceDTO> AddServiceAsync(CreateServiceDTO newService)
         {
@@ -64,6 +68,8 @@ namespace Infrastructure.Services.Services
         {
             var services = await dbContext.Services.ToListAsync()
                 ?? throw new InvalidObjectException("لا يوجد خدمات");
+
+            logger.LogInformation("Services have been retrived with count: {count}", services.Count);
 
             return mapper.Map<List<ServiceDTO>>(services);
         }

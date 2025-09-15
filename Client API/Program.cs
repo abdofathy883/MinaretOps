@@ -3,24 +3,25 @@ using Core.Models;
 using Core.Settings;
 using Infrastructure.Data;
 using Infrastructure.MappingProfiles;
+using Infrastructure.Services.Announcements;
+using Infrastructure.Services.Attendance;
 using Infrastructure.Services.Auth;
+using Infrastructure.Services.Blog;
+using Infrastructure.Services.Complaints;
+using Infrastructure.Services.ContactForm;
+using Infrastructure.Services.Discord;
 using Infrastructure.Services.Email;
 using Infrastructure.Services.InternalTasks;
+using Infrastructure.Services.KPI;
+using Infrastructure.Services.MediaUploads;
 using Infrastructure.Services.NewFolder;
+using Infrastructure.Services.Notifications;
 using Infrastructure.Services.Services;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.HttpOverrides;
+using Serilog;
 using ClientService = Infrastructure.Services.Clients.ClientService;
-using Infrastructure.Services.ContactForm;
-using Infrastructure.Services.MediaUploads;
-using Infrastructure.Services.Attendance;
-using Infrastructure.Services.Notifications;
-using Infrastructure.Services.Announcements;
-using Infrastructure.Services.Discord;
-using Infrastructure.Services.Complaints;
-using Infrastructure.Services.KPI;
-using Infrastructure.Services.Blog;
 
 namespace Client_API
 {
@@ -91,6 +92,13 @@ namespace Client_API
             builder.Services.AddControllers();
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
             builder.Services.AddOpenApi();
+
+            Log.Logger = new LoggerConfiguration()
+                .MinimumLevel.Debug()
+                .WriteTo.File("logs/log-.txt", rollingInterval: RollingInterval.Day)
+                .CreateLogger();
+
+            builder.Host.UseSerilog();
 
             builder.Services.AddCors(options =>
             {
