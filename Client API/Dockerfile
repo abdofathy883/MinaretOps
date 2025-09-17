@@ -12,10 +12,12 @@ EXPOSE 5001
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
+COPY ["MinaretOps.sln", "."]
 COPY ["Client API/Client API.csproj", "Client API/"]
 COPY ["Infrastructure/Infrastructure.csproj", "Infrastructure/"]
 COPY ["Core/Core.csproj", "Core/"]
-RUN dotnet restore "./Client API/Client API.csproj"
+# RUN dotnet restore "./Client API/Client API.csproj"
+RUN dotnet restore "MinaretOps.sln"
 COPY . .
 WORKDIR "/src/Client API"
 RUN dotnet build "./Client API.csproj" -c $BUILD_CONFIGURATION -o /app/build
