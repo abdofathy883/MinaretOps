@@ -139,7 +139,7 @@ jobs:
             # --- Deploy app containers ---
             echo "Rebuilding and starting containers..."
             docker compose down
-            docker compose up -d --build
+            docker compose up -d --build --no-cache clientapi
 
             echo "Waiting for app container..."
             sleep 50
