@@ -117,6 +117,18 @@ jobs:
             BACKUP_DIR="${{ env.SERVER_BACKUP_DIR }}/db-$(date +%Y%m%d-%H%M%S)"
             BACKUP_NAME="MinaretOps_$(date +%Y%m%d-%H%M%S).bak"
             mkdir -p "$BACKUP_DIR"
+
+            # Wait for SQL Server to be ready
+            echo "Waiting for SQL Server to be ready..."
+            for i in {1..30}; do
+              if docker exec sqlserver /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "${{ secrets.SA_PASSWORD }}" -C -N -Q "SELECT 1" >/dev/null 2>&1; then
+                echo "SQL Server is ready"
+                break
+              fi
+              echo "Waiting for SQL Server... attempt $i/30"
+              sleep 10
+            done
+            
             echo "Backing up database to $BACKUP_DIR/$BACKUP_NAME"
 
             docker exec sqlserver /opt/mssql-tools18/bin/sqlcmd \
