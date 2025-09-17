@@ -65,6 +65,16 @@ jobs:
       - name: List publish output
         run: ls -lah ./publish
 
+      - name: Clean remote directory
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          script: |
+            rm -rf ${{ env.SERVER_APP_DIR }}/*
+
         
       # 3) Upload publish output and efbundle to VPS
       - name: Upload published app
