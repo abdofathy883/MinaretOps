@@ -73,7 +73,7 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT }}
           script: |
-            rm -rf ${{ env.SERVER_APP_DIR }}/*
+            find ${{ env.SERVER_APP_DIR }} -mindepth 1 ! -name 'docker-compose.yml' ! -name 'docker-compose.override.yml' -exec rm -rf {} +
 
         
       # 3) Upload publish output and efbundle to VPS
