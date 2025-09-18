@@ -86,7 +86,7 @@ jobs:
           port: ${{ secrets.VPS_PORT }}
           source: "./deployment/*"
           target: "/var/www/minaretopsapi"
-          strip_components: 1
+          strip_components: 0
           overwrite: true
         
       # 3) Upload publish output and efbundle to VPS
