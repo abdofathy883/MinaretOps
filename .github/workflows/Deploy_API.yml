@@ -27,7 +27,7 @@ jobs:
         run: dotnet test MinaretOps.sln --configuration Release --no-build
 
       - name: Publish
-        run: dotnet publish "ClientAPI/ClientAPI.csproj" --configuration Release --output ./publish
+        run: dotnet publish "Client API/ClientAPI.csproj" --configuration Release --output ./publish
 
       - name: Install EF Tools
         run: dotnet tool install --global dotnet-ef
