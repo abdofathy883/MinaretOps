@@ -24,7 +24,7 @@ using Microsoft.EntityFrameworkCore;
 using Serilog;
 using ClientService = Infrastructure.Services.Clients.ClientService;
 
-namespace Client_API
+namespace ClientAPI
 {
     public class Program
     {

@@ -13,4 +13,4 @@ WORKDIR /app
 COPY . .
 
 # Set the entry point to run the application
-ENTRYPOINT ["dotnet", "Client API.dll"]
+ENTRYPOINT ["dotnet", "ClientAPI.dll"]

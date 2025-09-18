@@ -3,7 +3,7 @@ using Core.Enums;
 using Core.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Client_API.Controllers
+namespace ClientAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]

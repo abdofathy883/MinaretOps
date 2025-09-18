@@ -12,7 +12,7 @@
       "commandName": "Project",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "ConnectionStrings__DefaultConnection": "localhost,1433;Database=MinaretOps;User Id=sa;Password=Minaret@2021;Encrypt=False;TrustServerCertificate=True",
+        "ConnectionStrings__DefaultConnection": "sqlserver,1433;Database=MinaretOps;User Id=sa;Password=Minaret@2021;Encrypt=False;TrustServerCertificate=True",
         "JWT__Key": "bff5d0ac0670db1c5453be06af14dbd7",
         "EmailSetting__fromEmail": "zminaretagency@gmail.com",
         "EmailSetting__appPassword": "kctmiqpsqeyccqhg",

@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Serilog;
 using Serilog.Events;
 
-namespace Client_API.Controllers
+namespace ClientAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
