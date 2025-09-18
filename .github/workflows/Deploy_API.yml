@@ -4,14 +4,6 @@ on:
   push:
     branches: [ main, master ]
 
-# env:
-#   PROJECT_ROOT: minaretopsapi
-#   PUBLISH_DIR: minaretopsapi/publish
-#   EFBUNDLE_PATH: minaretopsapi/efbundle
-#   SERVER_APP_DIR: /var/www/minaretopsapi
-#   SERVER_BACKUP_DIR: /var/backups
-#   DB_BACKUP_NAME: MinaretOps_$(date +%Y%m%d-%H%M%S).bak
-
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -37,20 +29,8 @@ jobs:
       - name: Publish
         run: dotnet publish "ClientAPI/ClientAPI.csproj" --configuration Release --output ./publish
 
-      # Expose publish dir as env var
-      # - name: Set PUBLISH_DIR
-      #   run: echo "PUBLISH_DIR=./publish" >> $GITHUB_ENV
-
-      # 2) Build EF migrations bundle (no SDK/tools needed on server)
       - name: Install EF Tools
         run: dotnet tool install --global dotnet-ef
-        # env:
-        #   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
-        #   DOTNET_NOLOGO: 1
-
-      # - name: Add .NET tools to PATH
-      #   run: echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
-        
 
       - name: Create EF Migrations Bundle
         run: |
@@ -60,9 +40,6 @@ jobs:
             --output ./efbundle \
             --self-contained \
             --target-runtime linux-x64
-
-      # - name: List publish output
-      #   run: ls -lah ./publish
 
       - name: Prepare Deployment Package
         run: |
@@ -87,55 +64,7 @@ jobs:
           target: "/var/www"
           strip_components: 0
           overwrite: true
-        
-      # 3) Upload publish output and efbundle to VPS
-      # - name: Upload published app
-      #   uses: appleboy/scp-action@v0.1.7
-      #   with:
-      #     host: ${{ secrets.VPS_HOST }}
-      #     username: ${{ secrets.VPS_USERNAME }}
-      #     key: ${{ secrets.VPS_SSH_KEY }}
-      #     port: ${{ secrets.VPS_PORT }}
-      #     source: ${{ env.PUBLISH_DIR }}/*
-      #     target: ${{ env.SERVER_APP_DIR }}
-      #     # target: ${{ env.SERVER_APP_DIR }}/published
-      #     strip_components: 1
-      #     # strip_components: 2
-      #     overwrite: true
-          
 
-      # - name: Upload EF bundle
-      #   uses: appleboy/scp-action@v0.1.7
-      #   with:
-      #     host: ${{ secrets.VPS_HOST }}
-      #     username: ${{ secrets.VPS_USERNAME }}
-      #     key: ${{ secrets.VPS_SSH_KEY }}
-      #     port: ${{ secrets.VPS_PORT }}
-      #     # source: ${{ env.EFBUNDLE_PATH }}
-      #     source: ./efbundle
-      #     target: ${{ env.SERVER_APP_DIR }}
-      #     strip_components: 0
-
-      # - name: Prepare Docker files
-      #   run: |
-      #     mkdir -p ./docker-files
-      #     cp docker-compose.yml ./docker-files/
-      #     cp docker-compose.override.yml ./docker-files/
-      #     cp "Client API/Dockerfile" ./docker-files/
-
-      # - name: Upload Docker files
-      #   uses: appleboy/scp-action@v0.1.7
-      #   with:
-      #     host: ${{ secrets.VPS_HOST }}
-      #     username: ${{ secrets.VPS_USERNAME }}
-      #     key: ${{ secrets.VPS_SSH_KEY }}
-      #     port: ${{ secrets.VPS_PORT }}
-      #     source: "./docker-files/*"
-      #     target: ${{ env.SERVER_APP_DIR }}
-      #     strip_components: 1
-      #     overwrite: true
-
-      # 4) Backup DB, run migrations, rebuild & restart containers
       - name: Deploy on Server
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -187,11 +116,6 @@ jobs:
                 -Q "BACKUP DATABASE [MinaretOps] TO DISK = N'/var/opt/mssql/backup/$BACKUP_NAME' WITH FORMAT, INIT, COMPRESSION"
               docker cp sqlserver:/var/opt/mssql/backup/$BACKUP_NAME "$BACKUP_DIR"/
             fi
-
-            # docker exec sqlserver /opt/mssql-tools18/bin/sqlcmd \
-            #   -S localhost -U sa -P "${{ secrets.SA_PASSWORD }}" \
-            #   -C -N \
-            #   -Q "BACKUP DATABASE [MinaretOps] TO DISK = N'/var/opt/mssql/backup/$BACKUP_NAME' WITH FORMAT, INIT, COMPRESSION"
 
             # Copy backup to host backup dir
             docker cp sqlserver:/var/opt/mssql/backup/$BACKUP_NAME "$BACKUP_DIR"/
