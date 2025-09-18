@@ -2,7 +2,7 @@ services:
   clientapi:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: ./Dockerfile
     ports:
       - "60000:8080"
       - "60001:5001"
