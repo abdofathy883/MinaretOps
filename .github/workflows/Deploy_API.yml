@@ -94,31 +94,31 @@ jobs:
                 break
               fi
               echo "Waiting for SQL Server... ($i/30)"
-              sleep 2
+              sleep 10
             done
 
             # --- DB Backup ---
-            BACKUP_DIR="/var/backups/db-$(date +%Y%m%d-%H%M%S)"
-            BACKUP_NAME="MinaretOps_$(date +%Y%m%d-%H%M%S).bak"
-            mkdir -p "$BACKUP_DIR"
-            echo "Backing up database to $BACKUP_DIR/$BACKUP_NAME"
+            # BACKUP_DIR="/var/backups/db-$(date +%Y%m%d-%H%M%S)"
+            # BACKUP_NAME="MinaretOps_$(date +%Y%m%d-%H%M%S).bak"
+            # mkdir -p "$BACKUP_DIR"
+            # echo "Backing up database to $BACKUP_DIR/$BACKUP_NAME"
 
 
-            if docker exec sqlserver /opt/mssql-tools18/bin/sqlcmd \
-                -S tcp:localhost,1433 -U sa -P "${{ secrets.SA_PASSWORD }}" -C \
-                -Q "IF DB_ID('MinaretOps') IS NULL PRINT 'NO_DB'" \
-                | grep -q "NO_DB"; then
-              echo "Database MinaretOps does not exist, skipping backup."
-            else
-              docker exec sqlserver /opt/mssql-tools18/bin/sqlcmd \
-                -S tcp:localhost,1433 -U sa -P "${{ secrets.SA_PASSWORD }}" -C \
-                # -C -N \
-                -Q "BACKUP DATABASE [MinaretOps] TO DISK = N'/var/opt/mssql/backup/$BACKUP_NAME' WITH FORMAT, INIT, COMPRESSION"
-              docker cp sqlserver:/var/opt/mssql/backup/$BACKUP_NAME "$BACKUP_DIR"/
-            fi
+            # if docker exec sqlserver /opt/mssql-tools18/bin/sqlcmd \
+            #     -S tcp:localhost,1433 -U sa -P "${{ secrets.SA_PASSWORD }}" -C \
+            #     -Q "IF DB_ID('MinaretOps') IS NULL PRINT 'NO_DB'" \
+            #     | grep -q "NO_DB"; then
+            #   echo "Database MinaretOps does not exist, skipping backup."
+            # else
+            #   docker exec sqlserver /opt/mssql-tools18/bin/sqlcmd \
+            #     -S tcp:localhost,1433 -U sa -P "${{ secrets.SA_PASSWORD }}" -C \
+            #     # -C -N \
+            #     -Q "BACKUP DATABASE [MinaretOps] TO DISK = N'/var/opt/mssql/backup/$BACKUP_NAME' WITH FORMAT, INIT, COMPRESSION"
+            #   docker cp sqlserver:/var/opt/mssql/backup/$BACKUP_NAME "$BACKUP_DIR"/
+            # fi
 
-            # Copy backup to host backup dir
-            docker cp sqlserver:/var/opt/mssql/backup/$BACKUP_NAME "$BACKUP_DIR"/
+            # # Copy backup to host backup dir
+            # docker cp sqlserver:/var/opt/mssql/backup/$BACKUP_NAME "$BACKUP_DIR"/
 
             # --- Apply EF migration bundle ---
             chmod +x ./efbundle
