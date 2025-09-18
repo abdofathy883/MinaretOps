@@ -35,7 +35,7 @@ jobs:
         run: dotnet test MinaretOps.sln --configuration Release --no-build
 
       - name: Publish
-        run: dotnet publish "Client API/Client API.csproj" --configuration Release --output ./publish
+        run: dotnet publish "ClientAPI/ClientAPI.csproj" --configuration Release --output ./publish
 
       # Expose publish dir as env var
       # - name: Set PUBLISH_DIR
@@ -56,7 +56,7 @@ jobs:
         run: |
           dotnet ef migrations bundle \
             --project "Infrastructure/Infrastructure.csproj" \
-            --startup-project "Client API/Client API.csproj" \
+            --startup-project "ClientAPI/ClientAPI.csproj" \
             --output ./efbundle \
             --self-contained \
             --target-runtime linux-x64
@@ -72,7 +72,7 @@ jobs:
           # Copy Docker files
           cp docker-compose.yml ./deployment/
           cp docker-compose.override.yml ./deployment/
-          cp "Client API/Dockerfile" ./deployment/Dockerfile
+          cp "ClientAPI/Dockerfile" ./deployment/Dockerfile
           # Copy EF bundle
           cp ./efbundle ./deployment/
 
@@ -199,7 +199,7 @@ jobs:
             # --- Apply EF migration bundle ---
             chmod +x ./efbundle
             echo "Applying EF migrations bundle..."
-            ConnectionStrings__DefaultConnection="Server=localhost,1433;Database=MinaretOps;User Id=sa;Password=${{ secrets.SA_PASSWORD }};TrustServerCertificate=true" ./efbundle
+            ConnectionStrings__DefaultConnection="Server=sqlserver,1433;Database=MinaretOps;User Id=sa;Password=${{ secrets.SA_PASSWORD }};TrustServerCertificate=true" ./efbundle
 
             echo "Migrations applied successfully."
 
