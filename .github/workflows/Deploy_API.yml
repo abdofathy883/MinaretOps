@@ -69,11 +69,10 @@ jobs:
           mkdir -p ./deployment
           # Copy published files
           cp -r ./publish/* ./deployment/
-          # Copy Docker files with correct structure
+          # Copy Docker files
           cp docker-compose.yml ./deployment/
           cp docker-compose.override.yml ./deployment/
-          mkdir -p ./deployment/Client\ API/
-          cp "Client API/Dockerfile" ./deployment/Client\ API/
+          cp "Client API/Dockerfile" ./deployment/Dockerfile
           # Copy EF bundle
           cp ./efbundle ./deployment/
 
