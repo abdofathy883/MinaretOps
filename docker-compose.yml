@@ -3,4 +3,4 @@ services:
     image: ${DOCKER_REGISTRY-}clientapi
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Client API/Dockerfile
