@@ -4,13 +4,13 @@ on:
   push:
     branches: [ main, master ]
 
-env:
-  PROJECT_ROOT: minaretopsapi
-  PUBLISH_DIR: minaretopsapi/publish
-  EFBUNDLE_PATH: minaretopsapi/efbundle
-  SERVER_APP_DIR: /var/www/minaretopsapi
-  SERVER_BACKUP_DIR: /var/backups
-  DB_BACKUP_NAME: MinaretOps_$(date +%Y%m%d-%H%M%S).bak
+# env:
+#   PROJECT_ROOT: minaretopsapi
+#   PUBLISH_DIR: minaretopsapi/publish
+#   EFBUNDLE_PATH: minaretopsapi/efbundle
+#   SERVER_APP_DIR: /var/www/minaretopsapi
+#   SERVER_BACKUP_DIR: /var/backups
+#   DB_BACKUP_NAME: MinaretOps_$(date +%Y%m%d-%H%M%S).bak
 
 jobs:
   build-and-deploy:
@@ -34,23 +34,22 @@ jobs:
       - name: Test
         run: dotnet test MinaretOps.sln --configuration Release --no-build
 
-      # 1) Publish the API
       - name: Publish
         run: dotnet publish "Client API/Client API.csproj" --configuration Release --output ./publish
 
       # Expose publish dir as env var
-      - name: Set PUBLISH_DIR
-        run: echo "PUBLISH_DIR=./publish" >> $GITHUB_ENV
+      # - name: Set PUBLISH_DIR
+      #   run: echo "PUBLISH_DIR=./publish" >> $GITHUB_ENV
 
       # 2) Build EF migrations bundle (no SDK/tools needed on server)
       - name: Install EF Tools
         run: dotnet tool install --global dotnet-ef
-        env:
-          DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
-          DOTNET_NOLOGO: 1
+        # env:
+        #   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
+        #   DOTNET_NOLOGO: 1
 
-      - name: Add .NET tools to PATH
-        run: echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
+      # - name: Add .NET tools to PATH
+      #   run: echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
         
 
       - name: Create EF Migrations Bundle
@@ -62,58 +61,83 @@ jobs:
             --self-contained \
             --target-runtime linux-x64
 
-      - name: List publish output
-        run: ls -lah ./publish
+      # - name: List publish output
+      #   run: ls -lah ./publish
+
+      - name: Prepare Deployment Package
+        run: |
+          mkdir -p ./deployment
+          # Copy published files
+          cp -r ./publish/* ./deployment/
+          # Copy Docker files with correct structure
+          cp docker-compose.yml ./deployment/
+          cp docker-compose.override.yml ./deployment/
+          mkdir -p ./deployment/Client\ API/
+          cp "Client API/Dockerfile" ./deployment/Client\ API/
+          # Copy EF bundle
+          cp ./efbundle ./deployment/
+
+      - name: Upload Deployment Package
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          source: "./deployment/*"
+          target: "/var/www/minaretopsapi"
+          strip_components: 1
+          overwrite: true
         
       # 3) Upload publish output and efbundle to VPS
-      - name: Upload published app
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USERNAME }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          port: ${{ secrets.VPS_PORT }}
-          source: ${{ env.PUBLISH_DIR }}/*
-          target: ${{ env.SERVER_APP_DIR }}
-          # target: ${{ env.SERVER_APP_DIR }}/published
-          strip_components: 1
-          # strip_components: 2
-          overwrite: true
+      # - name: Upload published app
+      #   uses: appleboy/scp-action@v0.1.7
+      #   with:
+      #     host: ${{ secrets.VPS_HOST }}
+      #     username: ${{ secrets.VPS_USERNAME }}
+      #     key: ${{ secrets.VPS_SSH_KEY }}
+      #     port: ${{ secrets.VPS_PORT }}
+      #     source: ${{ env.PUBLISH_DIR }}/*
+      #     target: ${{ env.SERVER_APP_DIR }}
+      #     # target: ${{ env.SERVER_APP_DIR }}/published
+      #     strip_components: 1
+      #     # strip_components: 2
+      #     overwrite: true
           
 
-      - name: Upload EF bundle
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USERNAME }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          port: ${{ secrets.VPS_PORT }}
-          # source: ${{ env.EFBUNDLE_PATH }}
-          source: ./efbundle
-          target: ${{ env.SERVER_APP_DIR }}
-          strip_components: 0
+      # - name: Upload EF bundle
+      #   uses: appleboy/scp-action@v0.1.7
+      #   with:
+      #     host: ${{ secrets.VPS_HOST }}
+      #     username: ${{ secrets.VPS_USERNAME }}
+      #     key: ${{ secrets.VPS_SSH_KEY }}
+      #     port: ${{ secrets.VPS_PORT }}
+      #     # source: ${{ env.EFBUNDLE_PATH }}
+      #     source: ./efbundle
+      #     target: ${{ env.SERVER_APP_DIR }}
+      #     strip_components: 0
 
-      - name: Prepare Docker files
-        run: |
-          mkdir -p ./docker-files
-          cp docker-compose.yml ./docker-files/
-          cp docker-compose.override.yml ./docker-files/
-          cp "Client API/Dockerfile" ./docker-files/
+      # - name: Prepare Docker files
+      #   run: |
+      #     mkdir -p ./docker-files
+      #     cp docker-compose.yml ./docker-files/
+      #     cp docker-compose.override.yml ./docker-files/
+      #     cp "Client API/Dockerfile" ./docker-files/
 
-      - name: Upload Docker files
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USERNAME }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          port: ${{ secrets.VPS_PORT }}
-          source: "./docker-files/*"
-          target: ${{ env.SERVER_APP_DIR }}
-          strip_components: 1
-          overwrite: true
+      # - name: Upload Docker files
+      #   uses: appleboy/scp-action@v0.1.7
+      #   with:
+      #     host: ${{ secrets.VPS_HOST }}
+      #     username: ${{ secrets.VPS_USERNAME }}
+      #     key: ${{ secrets.VPS_SSH_KEY }}
+      #     port: ${{ secrets.VPS_PORT }}
+      #     source: "./docker-files/*"
+      #     target: ${{ env.SERVER_APP_DIR }}
+      #     strip_components: 1
+      #     overwrite: true
 
       # 4) Backup DB, run migrations, rebuild & restart containers
-      - name: Run backup, migrate, and deploy
+      - name: Deploy on Server
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -123,7 +147,7 @@ jobs:
           script_stop: true
           script: |
             set -euo pipefail
-            cd "${{ env.SERVER_APP_DIR }}"
+            cd /var/www/minaretopsapi
 
             # --- Sanity checks ---
             if ! command -v docker &>/dev/null; then
@@ -146,7 +170,7 @@ jobs:
             done
 
             # --- DB Backup ---
-            BACKUP_DIR="${{ env.SERVER_BACKUP_DIR }}/db-$(date +%Y%m%d-%H%M%S)"
+            BACKUP_DIR="/var/backups/db-$(date +%Y%m%d-%H%M%S)"
             BACKUP_NAME="MinaretOps_$(date +%Y%m%d-%H%M%S).bak"
             mkdir -p "$BACKUP_DIR"
             echo "Backing up database to $BACKUP_DIR/$BACKUP_NAME"
@@ -162,9 +186,7 @@ jobs:
             # --- Apply EF migration bundle ---
             chmod +x ./efbundle
             echo "Applying EF migrations bundle..."
-            # Host connects to the db container via published port 1433 -> localhost,1433
             ConnectionStrings__DefaultConnection="Server=localhost,1433;Database=MinaretOps;User Id=sa;Password=${{ secrets.SA_PASSWORD }};TrustServerCertificate=true" ./efbundle
-
 
             echo "Migrations applied successfully."
 
