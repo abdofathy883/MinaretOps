@@ -44,7 +44,7 @@ jobs:
         git reset --hard origin/master
 
         # Publish into separate folder
-        dotnet publish -c Release -o /var/www/minaretopsapi/publish
+        dotnet publish /var/www/minaretopsapi/src/ClientAPI/ClientAPI.csproj -c Release -o /var/www/minaretopsapi/publish
 
         # Restart service
         sudo systemctl restart internal-api.theminaretagency.com
