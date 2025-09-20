@@ -172,10 +172,10 @@ namespace ClientAPI
             app.Urls.Add("https://localhost:5001");
 
 
+            app.UseCors("FrontendOnly");
             app.UseAuthentication();
             app.UseAuthorization();
 
-            app.UseCors("FrontendOnly");
 
 
             app.MapControllers();
