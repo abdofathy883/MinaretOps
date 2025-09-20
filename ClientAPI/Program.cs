@@ -182,9 +182,6 @@ namespace ClientAPI
 
             using (var scope = app.Services.CreateScope())
             {
-                //var services = scope.ServiceProvider;
-                //await DbSeeder.SeedAsync(services);
-
                 var services = scope.ServiceProvider;
                 var dbContext = services.GetRequiredService<MinaretOpsDbContext>();
                 await dbContext.Database.MigrateAsync();
