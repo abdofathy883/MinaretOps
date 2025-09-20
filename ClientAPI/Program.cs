@@ -167,9 +167,9 @@ namespace ClientAPI
                 
             });
 
-            app.UseHttpsRedirection();
+            //app.UseHttpsRedirection();
             app.Urls.Add("http://localhost:8080");
-            app.Urls.Add("https://localhost:5001");
+            //app.Urls.Add("https://localhost:5001");
 
 
             app.UseCors("FrontendOnly");
