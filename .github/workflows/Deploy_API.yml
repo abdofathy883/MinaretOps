@@ -22,18 +22,28 @@ jobs:
       run: |
         ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }} << 'EOF'
           set -e
-          cd /var/www/minaretopsapi/src || mkdir -p /var/www/minaretopsapi/src && cd /var/www/minaretopsapi/src
+          cd /var/www/minaretopsapi || mkdir -p /var/www/minaretopsapi/src && cd /var/www/minaretopsapi
           
           # Make sure git repo is clean and up to date
-          git init
-          git remote remove origin || true
-          git remote add origin https://${{ secrets.GIT_USERNAME }}:${{ secrets.GIT_TOKEN }}@github.com/abdofathy883/MinaretOps.git
+          # git init
+          # git remote remove origin || true
+          # git remote add origin https://${{ secrets.GIT_USERNAME }}:${{ secrets.GIT_TOKEN }}@github.com/abdofathy883/MinaretOps.git
+          # Initialize or update repo
+          if [ ! -d ".git" ]; then
+            git init
+            git remote add origin https://${{ secrets.GIT_USERNAME }}:${{ secrets.GIT_TOKEN }}@github.com/abdofathy883/MinaretOps.git
+          else
+            git remote set-url origin https://${{ secrets.GIT_USERNAME }}:${{ secrets.GIT_TOKEN }}@github.com/abdofathy883/MinaretOps.git
+          fi
+
           git fetch origin master
           git reset --hard origin/master
           
           # Publish into the folder expected by systemd
-          dotnet publish /var/www/minaretopsapi/src/ClientAPI/ClientAPI.csproj -c Release -o /var/www/minaretopsapi/published
+          # dotnet publish /var/www/minaretopsapi/src/ClientAPI/ClientAPI.csproj -c Release -o /var/www/minaretopsapi/published
           
+          dotnet publish ClientAPI/ClientAPI.csproj -c Release -o /var/www/minaretopsapi/published
+
           # Restart the correct service
           systemctl daemon-reload
           systemctl restart minaretapi.service
