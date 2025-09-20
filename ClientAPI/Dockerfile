@@ -12,12 +12,12 @@ ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 
 # Copy project files (no spaces)
-COPY ["MinaretOps.sln", "."]
+# COPY ["MinaretOps.sln", "."]
 COPY ["ClientAPI/ClientAPI.csproj", "ClientAPI/"]
 COPY ["Infrastructure/Infrastructure.csproj", "Infrastructure/"]
 COPY ["Core/Core.csproj", "Core/"]
 
-RUN dotnet restore "MinaretOps.sln"
+RUN dotnet restore "ClientAPI/ClientAPI.csproj"
 
 COPY . .
 WORKDIR "/src/ClientAPI"
