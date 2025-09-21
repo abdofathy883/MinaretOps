@@ -7,11 +7,6 @@ using Infrastructure.Data;
 using Infrastructure.Exceptions;
 using Infrastructure.Services.MediaUploads;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Infrastructure.Services.KPI
 {
@@ -178,7 +173,7 @@ namespace Infrastructure.Services.KPI
                     EvidenceURL = evidenceURL,
                     TimeStamp = DateTime.UtcNow
                 };
-                //await context.KPIIncedints.AddAsync(incedint);
+                await context.KPIIncedints.AddAsync(incedint);
                 await context.SaveChangesAsync();
 
                 Dictionary<string, string> replacements = new Dictionary<string, string>

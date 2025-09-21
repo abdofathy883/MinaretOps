@@ -62,8 +62,8 @@ namespace Infrastructure.Services.Complaints
                 Dictionary<string, string> replacements = new Dictionary<string, string>
                 {
                     { "Subject", complaintDTO.Subject },
-                    { "Content", complaintDTO.Content },
-                    { "EmployeeName", $"{emp.FirstName} {emp.LastName}" },
+                    { "SubmissionMessage", complaintDTO.Content },
+                    { "SubmittedBy", $"{emp.FirstName} {emp.LastName}" },
                     { "TimeStamp", complaint.CreatedAt.ToString() }
                 };
                 await emailService.SendEmailWithTemplateAsync(emp.Email ?? string.Empty, "New Complaint Received", "Complaint", replacements);

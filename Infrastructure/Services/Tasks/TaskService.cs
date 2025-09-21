@@ -44,6 +44,7 @@ namespace Infrastructure.Services.NewFolder
                 {"FullName", $"{task.Employee.FirstName} {task.Employee.LastName}" },
                 {"Email", $"{task.Employee.Email}" },
                 {"TaskTitle", $"{task.Title}" },
+                {"TaskId", $"{task.Id}" },
                 {"OldStatus", $"{task.Status}" },
                 {"NewStatus", $"{status}" },
                 {"TimeStamp", $"{DateTime.UtcNow}" }
@@ -140,6 +141,7 @@ namespace Infrastructure.Services.NewFolder
                 {"FullName", $"{task.Employee.FirstName} {task.Employee.LastName}" },
                 {"Email", $"{task.Employee.Email}" },
                 {"TaskTitle", $"{task.Title}" },
+                {"TaskId", $"{task.Id}" },
                 {"TimeStamp", $"{DateTime.UtcNow}" }
             };
 
@@ -190,6 +192,7 @@ namespace Infrastructure.Services.NewFolder
                     {"FullName", $"{task.Employee.FirstName} {task.Employee.LastName}" },
                     {"Email", $"{task.Employee.Email}" },
                     {"TaskTitle", $"{task.Title}" },
+                    {"TaskId", $"{task.Id}" },
                     {"TimeStamp", $"{DateTime.UtcNow}" }
                 };
 
@@ -280,6 +283,7 @@ namespace Infrastructure.Services.NewFolder
                             {"FullName", $"{task.Employee.FirstName} {task.Employee.LastName}" },
                             {"Email", $"{task.Employee.Email}" },
                             {"TaskTitle", $"{task.Title}" },
+                            {"TaskId", $"{task.Id}" },
                             {"Client", $"{task.ClientService.Client.Name}" },
                             {"TimeStamp", $"{DateTime.UtcNow}" }
                         };

@@ -67,9 +67,9 @@ namespace Infrastructure.Services.Announcements
                 await context.SaveChangesAsync();
                 Dictionary<string, string> replacements = new Dictionary<string, string>
                 {
-                    { "{{Title}}", dto.Title },
-                    { "{{Message}}", dto.Message },
-                    { "{{Date}}", announcement.CreatedAt.ToString("f") }
+                    { "{{AnnouncementTitle}}", dto.Title },
+                    { "{{AnnouncementContent}}", dto.Message },
+                    { "{{TimeStamp}}", announcement.CreatedAt.ToString("f") }
                 };
                 foreach (var emp in employees)
                 {

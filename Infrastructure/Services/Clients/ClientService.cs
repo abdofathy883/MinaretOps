@@ -135,16 +135,16 @@ namespace Infrastructure.Services.Clients
                                 throw new InvalidObjectException($"Employee with ID {taskDto.EmployeeId} not found");
                             }
 
-                            Dictionary<string, string> replacements = new Dictionary<string, string>
-                            {
-                                {"FullName", $"{task.Employee.FirstName} {task.Employee.LastName}" },
-                                {"Email", $"{task.Employee.Email}" },
-                                {"TaskTitle", $"{task.Title}" },
-                                {"ClientName", $"{task.ClientService.Client.Name}" },
-                                {"TimeStamp", $"{DateTime.UtcNow}" }
-                            };
+                            //Dictionary<string, string> replacements = new Dictionary<string, string>
+                            //{
+                            //    {"FullName", $"{task.Employee.FirstName} {task.Employee.LastName}" },
+                            //    {"Email", $"{task.Employee.Email}" },
+                            //    {"TaskTitle", $"{task.Title}" },
+                            //    {"ClientName", $"{task.ClientService.Client.Name}" },
+                            //    {"TimeStamp", $"{DateTime.UtcNow}" }
+                            //};
 
-                            await emailService.SendEmailWithTemplateAsync(task.Employee.Email, "New Client Assigned To You", "NewClientAssignment", replacements);
+                            //await emailService.SendEmailWithTemplateAsync(task.Employee.Email, "New Client Assigned To You", "NewClientAssignment", replacements);
                         }
                     }
                 }

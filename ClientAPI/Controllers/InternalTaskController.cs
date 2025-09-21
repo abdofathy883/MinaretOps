@@ -77,5 +77,40 @@ namespace ClientAPI.Controllers
                 return BadRequest(ex.Message);
             }
         }
+
+        [HttpDelete("{taskId}")]
+        public async Task<IActionResult> DeleteTaskAsync(int taskId)
+        {
+            if (taskId == 0)
+                return BadRequest();
+
+            try
+            {
+                var result = await internalTaskService.DeleteInternalTaskAsync(taskId);
+                return Ok(result);
+            }
+            catch(Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpPut("{taskId}")]
+        public async Task<IActionResult> UpdateInternalTaskAsync(int taskId, UpdateInternalTaskDTO taskDTO)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest();
+            }
+            try
+            {
+                var result = await internalTaskService.UpdateInternalTaskAsync(taskId, taskDTO);
+                return Ok(result);
+            }
+            catch(Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
     }
 }
