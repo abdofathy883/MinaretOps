@@ -159,6 +159,7 @@ namespace ClientAPI
             if (app.Environment.IsDevelopment())
             {
                 app.MapOpenApi();
+                app.Urls.Add("https://localhost:5001");
             }
 
             app.UseForwardedHeaders(new ForwardedHeadersOptions
@@ -170,7 +171,6 @@ namespace ClientAPI
 
             //app.UseHttpsRedirection();
             app.Urls.Add("http://0.0.0.0:8080");
-            app.Urls.Add("https://localhost:5001");
 
 
             app.UseCors("FrontendOnly");
