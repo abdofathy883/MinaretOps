@@ -24,6 +24,7 @@ namespace ClientAPI.Controllers
             return BadRequest(result);
         }
         [HttpPost("register")]
+        //[Consumes("multipart/form-data")]
         public async Task<IActionResult> RegisterAsync(RegisterUserDTO request)
         {
             if (request is null)
@@ -31,7 +32,9 @@ namespace ClientAPI.Controllers
             try
             {
                 var result = await authService.RegisterUserAsync(request);
-                return Ok(result);
+                if (result.IsAuthenticated)
+                    return Ok(result);
+                return BadRequest();
 
             }
             catch(Exception ex)

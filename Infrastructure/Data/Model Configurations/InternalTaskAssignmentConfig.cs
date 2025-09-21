@@ -11,13 +11,13 @@ namespace Infrastructure.Data.Model_Configurations
             builder.HasKey(a => a.Id);
             builder.Property(a => a.Id).UseIdentityColumn(1, 1);
 
-            builder.Property(a => a.UserId).IsRequired();
+            builder.Property(a => a.UserId).IsRequired(false);
             builder.Property(a => a.IsLeader).IsRequired();
 
             builder.HasOne(a => a.User)
                 .WithMany(u => u.InternalTaskAssignments)
                 .HasForeignKey(a => a.UserId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.SetNull);
 
             builder.HasIndex(a => a.UserId);
             builder.HasIndex(a => a.InternalTaskId);

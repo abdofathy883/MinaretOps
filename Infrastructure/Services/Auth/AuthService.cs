@@ -130,7 +130,7 @@ namespace Infrastructure.Services.Auth
             if (validateErrors is not null && validateErrors.Count > 0)
                 return FailResult(string.Join(", ", validateErrors));
 
-            var imageUploadResult = await mediaUploadService.UploadImageWithPath(newUser.ProfilePicture, $"{newUser.FirstName} {newUser.LastName}");
+            //var imageUploadResult = await mediaUploadService.UploadImageWithPath(newUser.ProfilePicture, $"{newUser.FirstName} {newUser.LastName}");
 
             var user = new ApplicationUser
             {
@@ -146,9 +146,9 @@ namespace Infrastructure.Services.Auth
                 NID = newUser.NID,
                 PaymentNumber = newUser.PaymentNumber,
                 DateOfHiring = newUser.DateOfHiring,
-                ProfilePicture = imageUploadResult.Url,
-                JobTitle = newUser.JobTitle,
-                Bio = newUser.Bio,
+                ProfilePicture = string.Empty,
+                JobTitle = string.Empty,
+                Bio = string.Empty,
             };
 
             using var dbTransaction = await dbContext.Database.BeginTransactionAsync();

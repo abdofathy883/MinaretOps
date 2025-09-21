@@ -34,7 +34,7 @@ namespace Infrastructure.Data.Model_Configurations
                 .IsRequired();
 
             builder.Property(t => t.EmployeeId)
-                .IsRequired();
+                .IsRequired(false);
 
             builder.Property(t => t.Deadline)
                 .IsRequired();
@@ -56,7 +56,7 @@ namespace Infrastructure.Data.Model_Configurations
             builder.HasOne(t => t.Employee)
                 .WithMany(u => u.TaskItems)
                 .HasForeignKey(t => t.EmployeeId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.SetNull);
 
             // Add indexes for foreign keys
             builder.HasIndex(t => t.TaskGroupId);

@@ -33,7 +33,7 @@ namespace Infrastructure.Data.Model_Configurations
             builder.HasOne(c => c.User)
                 .WithMany(u => u.Complaints)
                 .HasForeignKey(c => c.EmployeeId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.Cascade);
 
             // Add index for foreign key
             builder.HasIndex(c => c.EmployeeId);
