@@ -25,16 +25,11 @@ namespace Infrastructure.Services.Discord
         {
             client.Ready += () =>
             {
-                Console.WriteLine("Bot is connected and ready!");
                 return Task.CompletedTask;
             };
 
             await client.LoginAsync(TokenType.Bot, options.Value.BotToken);
-            Console.WriteLine("token: ", options.Value.BotToken);
             await client.StartAsync();
-
-            //// Keep bot alive
-            //await Task.Delay(-1);
         }
 
         public async Task SendTaskNotification(string channelId, TaskDTO task)
@@ -46,6 +41,7 @@ namespace Infrastructure.Services.Discord
 
             var embed = new EmbedBuilder
             {
+                
                 Title = $"New Task: {task.Title}",
                 Description = task.Description,
                 Color = new Color(89, 125, 245), // RGB for blue
@@ -53,6 +49,7 @@ namespace Infrastructure.Services.Discord
             };
 
             embed.AddField("Assigned To", task.EmployeeName ?? "Unknown", inline: true);
+            embed.AddField("Task Id", task.Id, inline: true);
             embed.AddField("Due Date", task.Deadline.ToString("yyyy-MM-dd"), inline: true);
             embed.AddField("Priority", task.Priority ?? "عادي", inline: true);
             embed.AddField("Status", task.Status.ToString(), inline: true);

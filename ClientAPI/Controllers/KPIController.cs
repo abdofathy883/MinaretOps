@@ -16,6 +16,7 @@ namespace ClientAPI.Controllers
         }
 
         [HttpPost]
+        [Consumes("multipart/form-data")]
         public async Task<IActionResult> NewKPIIncedint(CreateIncedintDTO dto)
         {
             if (!ModelState.IsValid)
@@ -33,24 +34,31 @@ namespace ClientAPI.Controllers
         }
 
         [HttpGet("summary/{employeeId}")]
-        public async Task<IActionResult> GetEmployeeSummary(string employeeId, [FromQuery] int year, [FromQuery] int month)
+        public async Task<IActionResult> GetEmployeeSummary(string employeeId)
         {
-            var res = await kPIService.GetEmployeeMonthlyAsync(employeeId, year, month);
+            var res = await kPIService.GetEmployeeMonthlyAsync(employeeId);
             return Ok(res);
         }
 
-        [HttpGet("summary")]
-        public async Task<IActionResult> GetAllSummaries([FromQuery] int year, [FromQuery] int month)
+        [HttpGet("all-summaries")]
+        public async Task<IActionResult> GetAllSummaries()
         {
-            var res = await kPIService.GetMonthlySummeriesAsync(year, month);
+            var res = await kPIService.GetMonthlySummeriesAsync();
             return Ok(res);
         }
 
-        [HttpGet("incidents")]
-        public async Task<IActionResult> GetIncidents([FromQuery] string? employeeId, [FromQuery] int year, [FromQuery] int month)
+        [HttpGet("incidents/{employeeId}")]
+        public async Task<IActionResult> GetIncidents(string employeeId)
         {
-            var res = await kPIService.GetIncedientsAsync(employeeId, year, month);
+            var res = await kPIService.GetIncedientsByEmpIdAsync(employeeId);
             return Ok(res);
+        }
+
+        [HttpGet("get-all-incedints")]
+        public async Task<IActionResult> GetAllIncedintsAsync()
+        {
+            var result = await kPIService.GetAllIncedientsAsync();
+            return Ok(result);
         }
     }
 }

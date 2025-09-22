@@ -1,9 +1,4 @@
 ﻿using Microsoft.Extensions.Hosting;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Infrastructure.Services.Discord
 {
@@ -14,20 +9,8 @@ namespace Infrastructure.Services.Discord
         {
             discordService = service;
         }
-        public async Task StartAsync(CancellationToken cancellationToken)
-        {
-            try
-            {
-            await discordService.StartAsync();
-
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("error////////////////////:", ex);
-                throw new Exception(ex.Message);
-            }
-
-        }
+        public async Task StartAsync(CancellationToken cancellationToken) 
+            => await discordService.StartAsync();
 
         public Task StopAsync(CancellationToken cancellationToken) 
             => Task.CompletedTask;

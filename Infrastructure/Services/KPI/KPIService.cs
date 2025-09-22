@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Services.KPI
 {
-    public class KPIService: IKPIService
+    public class KPIService : IKPIService
     {
         private readonly MinaretOpsDbContext context;
         private readonly IEmailService emailService;
@@ -38,43 +38,32 @@ namespace Infrastructure.Services.KPI
             { KPIAspectType.CustomerSatisfaction, 10 }
         };
         // Calculates one employee's KPI breakdown for a specific month (resets monthly by filtering incidents to that month only)
-        public Task<EmployeeMonthlyKPIDTO> GetEmployeeMonthlyAsync(string employeeId, int year, int month)
+        public Task<EmployeeMonthlyKPIDTO> GetEmployeeMonthlyAsync(string employeeId)
         {
-            // Define the first day of the target month
-            var from = new DateTime(year, month, 1);
-            // Define the first day of the next month (exclusive upper bound)
+            var currentMonth = DateTime.Now.Month;
+            var currentyear = DateTime.Now.Year;
+            var from = new DateTime(currentyear, currentMonth, 1);
             var to = from.AddMonths(1);
 
-            // Load the employee or fail if not found
             var employee = context.Users.Find(employeeId)
                 ?? throw new InvalidObjectException("Employee not found");
 
-            // Pull all KPI incidents for this employee within the month
             var incedints = context.KPIIncedints
                 .Where(i => i.EmployeeId == employeeId && i.TimeStamp >= from && i.TimeStamp < to)
                 .ToList();
 
-            // Each aspect starts at 20% (5 aspects * 20% = 100% baseline)
-            const int basePerAspect = 20;
-
-            // Initialize the DTO with base scores and identity/month info
             var dto = new EmployeeMonthlyKPIDTO
             {
                 EmployeeId = employee.Id,
                 EmployeeName = $"{employee.FirstName} {employee.LastName}",
-                Year = year,
+                Year = currentyear,
                 // Persist the queried month (used by MonthLabel)
-                Month = month,
-                // Initialize Commitment with base 20%
-                Commitment = basePerAspect,
-                // Initialize Productivity with base 20%
-                Productivity = basePerAspect,
-                // Initialize QualityOfWork with base 20%
-                QualityOfWork = basePerAspect,
-                // Initialize Cooperation with base 20%
-                Cooperation = basePerAspect,
-                // Initialize CustomerSatisfaction with base 20%
-                CustomerSatisfaction = basePerAspect
+                Month = currentMonth,
+                Commitment = AspectCaps[KPIAspectType.Commitment],
+                Productivity = AspectCaps[KPIAspectType.Productivity],
+                QualityOfWork = AspectCaps[KPIAspectType.QualityOfWork],
+                Cooperation = AspectCaps[KPIAspectType.Cooperation],
+                CustomerSatisfaction = AspectCaps[KPIAspectType.CustomerSatisfaction]
             };
 
             // For each aspect, apply capped deduction: min(incidents * 10%, AspectCap)
@@ -110,38 +99,24 @@ namespace Infrastructure.Services.KPI
                         break;
                 }
             }
-
-            // Return the computed monthly summary (Total is computed property on the DTO)
             return Task.FromResult(dto);
         }
 
-        public async Task<List<IncedintDTO>> GetIncedientsAsync(string? employeeId, int year, int month)
+        public async Task<List<IncedintDTO>> GetIncedientsByEmpIdAsync(string employeeId)
         {
-            var from = new DateTime(year, month, 1);
-            var to = from.AddMonths(1);
+            var incedients = await context.KPIIncedints
+                .Where(i => i.EmployeeId == employeeId)
+                .ToListAsync();
 
-            var query = context.KPIIncedints
-                .Where(i => i.TimeStamp >= from && i.TimeStamp < to)
-                .AsQueryable();
-
-            if (!string.IsNullOrWhiteSpace(employeeId))
-            {
-                query = query.Where(i => i.EmployeeId == employeeId);
-            }
-
-            var list = query
-                .OrderByDescending(i => i.TimeStamp)
-                .ToList();
-
-            return list.Select(i => mapper.Map<IncedintDTO>(i)).ToList();
+            return mapper.Map<List<IncedintDTO>>(incedients);
         }
 
-        public async Task<List<EmployeeMonthlyKPIDTO>> GetMonthlySummeriesAsync(int year, int month)
+        public async Task<List<EmployeeMonthlyKPIDTO>> GetMonthlySummeriesAsync()
         {
             var employeeIds = await context.Users.Select(u => u.Id).ToListAsync();
             var summaries = new List<EmployeeMonthlyKPIDTO>(employeeIds.Count);
             foreach (var id in employeeIds)
-                summaries.Add(await GetEmployeeMonthlyAsync(id, year, month));
+                summaries.Add(await GetEmployeeMonthlyAsync(id));
             return summaries.OrderBy(x => x.EmployeeName).ToList();
         }
 
@@ -186,7 +161,7 @@ namespace Infrastructure.Services.KPI
                     { "{{EvidenceURL}}", incedint.EvidenceURL ?? "N/A" }
                 };
 
-                await emailService.SendEmailWithTemplateAsync(employee.Email ?? string.Empty, "incedint", "KPIIncedint", replacements);
+                //await emailService.SendEmailWithTemplateAsync(employee.Email ?? string.Empty, "incedint", "KPIIncedint", replacements);
                 await transaction.CommitAsync();
                 return mapper.Map<IncedintDTO>(incedint);
             }
@@ -195,6 +170,14 @@ namespace Infrastructure.Services.KPI
                 await transaction.RollbackAsync();
                 throw new Exception($"Failed to create incedint: {ex.Message}" );
             }
+        }
+
+        public async Task<List<IncedintDTO>> GetAllIncedientsAsync()
+        {
+            var incedeients = await context.KPIIncedints
+                .Include(i => i.Employee)
+                .ToListAsync();
+            return mapper.Map<List<IncedintDTO>>(incedeients);
         }
     }
 }
