@@ -9,7 +9,7 @@ namespace Core.Interfaces
         Task<List<TaskDTO>> GetTasksByEmployeeIdAsync(string empId);
         Task<TaskDTO> GetTaskByIdAsync(int taskId);
         Task<bool> ChangeTaskStatusAsync(int taskId, CustomTaskStatus status);
-        Task<bool> UpdateTaskAsync(int taskId, UpdateTaskDTO updateTask);
+        Task<TaskDTO> UpdateTaskAsync(int taskId, UpdateTaskDTO updateTask);
         Task<bool> DeleteTaskAsync(int taskId);
 
         Task<TaskDTO> CreateTaskAsync(CreateTaskDTO createTask);

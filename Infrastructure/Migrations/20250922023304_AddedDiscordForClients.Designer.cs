@@ -4,6 +4,7 @@ using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Infrastructure.Migrations
 {
     [DbContext(typeof(MinaretOpsDbContext))]
-    partial class MinaretOpsDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250922023304_AddedDiscordForClients")]
+    partial class AddedDiscordForClients
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -246,8 +249,8 @@ namespace Infrastructure.Migrations
                     b.Property<DateOnly>("CreatedAt")
                         .HasColumnType("date");
 
-                    b.Property<string>("DiscordChannelId")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<long?>("DiscordChannelId")
+                        .HasColumnType("bigint");
 
                     b.Property<string>("DriveLink")
                         .IsRequired()

@@ -10,6 +10,7 @@ namespace Core.DTOs.Clients
         public string? CompanyNumber { get; set; }
         public string? BusinessDescription { get; set; }
         public string? DriveLink { get; set; }
+        public string? DiscordChannelId { get; set; }
         public ClientStatus Status { get; set; }
         public string? StatusNotes { get; set; }
     }

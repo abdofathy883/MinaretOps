@@ -75,6 +75,7 @@ namespace Infrastructure.Services.Clients
                     CompanyNumber = clientDTO.CompanyNumber,
                     BusinessDescription = clientDTO.BusinessDescription,
                     DriveLink = clientDTO.DriveLink,
+                    DiscordChannelId = clientDTO.DiscordChannelId,
                     ClientServices = new List<Core.Models.ClientService>()
                 };
 
@@ -184,6 +185,7 @@ namespace Infrastructure.Services.Clients
             client.CompanyNumber = updateClientDTO.CompanyNumber ?? client.CompanyNumber;
             client.BusinessDescription = updateClientDTO.BusinessDescription ?? client.BusinessDescription;
             client.DriveLink = updateClientDTO.DriveLink ?? client.DriveLink;
+            client.DiscordChannelId = updateClientDTO.DiscordChannelId;
             client.Status = updateClientDTO.Status;
             client.StatusNotes = updateClientDTO.StatusNotes ?? client.StatusNotes;
 

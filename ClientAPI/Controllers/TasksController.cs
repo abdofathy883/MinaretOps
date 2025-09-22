@@ -14,6 +14,7 @@ namespace ClientAPI.Controllers
         {
             taskService = service;
         }
+
         [HttpGet]
         public async Task<IActionResult> GetAllTasksAsync()
         {
@@ -27,6 +28,7 @@ namespace ClientAPI.Controllers
                 return BadRequest(ex.Message);
             }
         }
+
         [HttpGet("task/{taskId}")]
         public async Task<IActionResult> GetTaskById(int taskId)
         {

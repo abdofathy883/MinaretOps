@@ -39,32 +39,42 @@ namespace Infrastructure.Services.NewFolder
         {
             var task = await GetTaskOrThrow(taskId);
 
-            Dictionary<string, string> replacements = new Dictionary<string, string>
-            {
-                {"FullName", $"{task.Employee.FirstName} {task.Employee.LastName}" },
-                {"Email", $"{task.Employee.Email}" },
-                {"TaskTitle", $"{task.Title}" },
-                {"TaskId", $"{task.Id}" },
-                {"OldStatus", $"{task.Status}" },
-                {"NewStatus", $"{status}" },
-                {"TimeStamp", $"{DateTime.UtcNow}" }
-            };
-
             task.Status = status;
             if (status == CustomTaskStatus.Completed)
             {
                 task.CompletedAt = DateTime.UtcNow;
             }
             context.Update(task);
-            await emailService.SendEmailWithTemplateAsync(task.Employee.Email, "Task Updates", "ChangeTaskStatus", replacements);
-            await notificationService.CreateAsync(new Core.DTOs.Notifications.CreateNotificationDTO
+            await context.SaveChangesAsync();
+
+            if (!string.IsNullOrEmpty(task.Employee.Email) && !string.IsNullOrEmpty(task.EmployeeId))
             {
-                UserId = task.EmployeeId,
-                Title = "Task Status Updated",
-                Body = $"The status of task '{task.Title}' has been changed to {status}.",
-                Url = $"https://internal.theminaretagency.com/tasks/{task.Id}"
-            });
-            return await context.SaveChangesAsync() > 0;
+                Dictionary<string, string> replacements = new Dictionary<string, string>
+                {
+                    {"FullName", $"{task.Employee.FirstName} {task.Employee.LastName}" },
+                    {"Email", $"{task.Employee.Email}" },
+                    {"TaskTitle", $"{task.Title}" },
+                    {"TaskId", $"{task.Id}" },
+                    {"OldStatus", $"{task.Status}" },
+                    {"NewStatus", $"{status}" },
+                    {"TimeStamp", $"{DateTime.UtcNow}" }
+                };
+                await emailService.SendEmailWithTemplateAsync(task.Employee.Email, "Task Updates", "ChangeTaskStatus", replacements);
+                await notificationService.CreateAsync(new Core.DTOs.Notifications.CreateNotificationDTO
+                {
+                    UserId = task.EmployeeId,
+                    Title = "Task Status Updated",
+                    Body = $"The status of task '{task.Title}' has been changed to {status}.",
+                    Url = $"https://internal.theminaretagency.com/tasks/{task.Id}"
+                });
+                
+            }
+
+            string channel = task.ClientService.Client.DiscordChannelId ?? string.Empty;
+            TaskDTO mappedTask = mapper.Map<TaskDTO>(task);
+
+            await discordService.SendTaskNotification(channel, mappedTask);
+            return true;
         }
 
         public async Task<bool> DeleteTaskAsync(int taskId)
@@ -115,7 +125,7 @@ namespace Infrastructure.Services.NewFolder
             return mapper.Map<List<TaskDTO>>(tasks);
         }
 
-        public async Task<bool> UpdateTaskAsync(int taskId, UpdateTaskDTO updateTask)
+        public async Task<TaskDTO> UpdateTaskAsync(int taskId, UpdateTaskDTO updateTask)
         {
             if (updateTask is null)
                 throw new Exception();
@@ -136,18 +146,26 @@ namespace Infrastructure.Services.NewFolder
                 task.EmployeeId = user.Id;
             }
 
-            Dictionary<string, string> replacements = new Dictionary<string, string>
-            {
-                {"FullName", $"{task.Employee.FirstName} {task.Employee.LastName}" },
-                {"Email", $"{task.Employee.Email}" },
-                {"TaskTitle", $"{task.Title}" },
-                {"TaskId", $"{task.Id}" },
-                {"TimeStamp", $"{DateTime.UtcNow}" }
-            };
-
             context.Update(task);
-            await emailService.SendEmailWithTemplateAsync(task.Employee.Email, "Task Has Been Updated", "TaskUpdates", replacements);
-            return await context.SaveChangesAsync() > 0;
+            await context.SaveChangesAsync();
+
+            if (!string.IsNullOrEmpty(task.Employee.Email) && !string.IsNullOrEmpty(task.EmployeeId))
+            {
+                Dictionary<string, string> replacements = new Dictionary<string, string>
+                {
+                    {"FullName", $"{task.Employee.FirstName} {task.Employee.LastName}" },
+                    {"Email", $"{task.Employee.Email}" },
+                    {"TaskTitle", $"{task.Title}" },
+                    {"TaskId", $"{task.Id}" },
+                    {"TimeStamp", $"{DateTime.UtcNow}" }
+                };
+                await emailService.SendEmailWithTemplateAsync(task.Employee.Email, "Task Has Been Updated", "TaskUpdates", replacements);
+            }
+
+            string channel = task.ClientService.Client.DiscordChannelId ?? string.Empty;
+            TaskDTO mappedTask = mapper.Map<TaskDTO>(task);
+            await discordService.SendTaskNotification(channel, mappedTask);
+            return mappedTask;
         }
 
         public async Task<TaskDTO> CreateTaskAsync(CreateTaskDTO createTask)
@@ -187,18 +205,22 @@ namespace Infrastructure.Services.NewFolder
                 await context.Tasks.AddAsync(task);
                 await context.SaveChangesAsync();
 
-                Dictionary<string, string> replacements = new Dictionary<string, string>
+                if (!string.IsNullOrEmpty(task.Employee.Email) && !string.IsNullOrEmpty(task.EmployeeId))
                 {
-                    {"FullName", $"{task.Employee.FirstName} {task.Employee.LastName}" },
-                    {"Email", $"{task.Employee.Email}" },
-                    {"TaskTitle", $"{task.Title}" },
-                    {"TaskId", $"{task.Id}" },
-                    {"TimeStamp", $"{DateTime.UtcNow}" }
-                };
+                    Dictionary<string, string> replacements = new Dictionary<string, string>
+                    {
+                        {"FullName", $"{task.Employee.FirstName} {task.Employee.LastName}" },
+                        {"Email", $"{task.Employee.Email}" },
+                        {"TaskTitle", $"{task.Title}" },
+                        {"TaskId", $"{task.Id}" },
+                        {"TimeStamp", $"{DateTime.UtcNow}" }
+                    };
+                    await emailService.SendEmailWithTemplateAsync(task.Employee.Email, "New Task Has Been Assigned To You", "NewTaskAssignment", replacements);
+                }
+                string channel = task.ClientService.Client.DiscordChannelId ?? string.Empty;
+                TaskDTO mappedTask = mapper.Map<TaskDTO>(task);
 
-                await emailService.SendEmailWithTemplateAsync(task.Employee.Email, "New Task Has Been Assigned To You", "NewTaskAssignment", replacements);
-                await discordService.SendTaskNotification(clientService.Client.Name ,mapper.Map<TaskDTO>(task));
-
+                await discordService.SendTaskNotification(channel, mappedTask);
 
                 // Return the created task with all related data
                 var createdTask = await context.Tasks
@@ -277,22 +299,27 @@ namespace Infrastructure.Services.NewFolder
                         };
 
                         context.Tasks.Add(task);
+                        await context.SaveChangesAsync();
 
-                        Dictionary<string, string> replacements = new Dictionary<string, string>
+                        if (!string.IsNullOrEmpty(task.Employee.Email) && !string.IsNullOrEmpty(task.EmployeeId))
                         {
-                            {"FullName", $"{task.Employee.FirstName} {task.Employee.LastName}" },
-                            {"Email", $"{task.Employee.Email}" },
-                            {"TaskTitle", $"{task.Title}" },
-                            {"TaskId", $"{task.Id}" },
-                            {"Client", $"{task.ClientService.Client.Name}" },
-                            {"TimeStamp", $"{DateTime.UtcNow}" }
-                        };
+                            Dictionary<string, string> replacements = new Dictionary<string, string>
+                            {
+                                {"FullName", $"{task.Employee.FirstName} {task.Employee.LastName}" },
+                                {"Email", $"{task.Employee.Email}" },
+                                {"TaskTitle", $"{task.Title}" },
+                                {"TaskId", $"{task.Id}" },
+                                {"Client", $"{task.ClientService.Client.Name}" },
+                                {"TimeStamp", $"{DateTime.UtcNow}" }
+                            };
+                            await emailService.SendEmailWithTemplateAsync(task.Employee.Email, "New Task Has been Assigned To You", "NewTaskAssignment", replacements);
+                        }
 
-                        await emailService.SendEmailWithTemplateAsync(task.Employee.Email, "New Task Has been Assigned To You", "NewTaskAssignment", replacements);
-                        await discordService.SendTaskNotification(task.ClientService.Client.Name, mapper.Map<TaskDTO>(task));
-                        
+                        string channel = task.ClientService.Client.DiscordChannelId ?? string.Empty;
+                        TaskDTO mappedTask = mapper.Map<TaskDTO>(task);
+
+                        await discordService.SendTaskNotification(channel, mappedTask);                        
                     }
-                    await context.SaveChangesAsync();
                 }
 
                 // Return the created task group with all related data

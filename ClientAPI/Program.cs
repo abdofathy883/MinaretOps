@@ -36,8 +36,6 @@ namespace ClientAPI
             builder.Services.AddDbContext<MinaretOpsDbContext>(options =>
             options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-            Console.WriteLine(builder.Configuration.GetConnectionString("DefaultConnection"));
-
             builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
                 .AddEntityFrameworkStores<MinaretOpsDbContext>()
                 .AddDefaultTokenProviders();
@@ -69,7 +67,8 @@ namespace ClientAPI
             builder.Services.AddScoped<IAnnouncementService, AnnouncementService>();
             builder.Services.AddScoped<IComplaintService, ComplaintService>();
             builder.Services.AddScoped<IKPIService, KPIService>();
-            builder.Services.AddScoped<DiscordService>();
+            builder.Services.AddSingleton<DiscordService>();
+            builder.Services.AddHostedService<DiscordHostedService>();
 
             builder.Services.AddAutoMapper(cfg =>
             {

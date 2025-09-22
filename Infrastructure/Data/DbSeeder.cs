@@ -13,7 +13,7 @@ namespace Infrastructure.Data
 
             // Seed Roles
             var roles = new[] { "Admin", "AccountManager", "GraphicDesigner", "GraphicDesignerTeamLeader",
-            "ContentCreator", "ContentCreatorTeamLeader", "AdsSpecialest", "SEOSpecialest", "WebDeveloper"};
+            "ContentCreator", "ContentCreatorTeamLeader", "AdsSpecialest", "SEOSpecialest", "WebDeveloper", "VideoEditor"};
             foreach (var role in roles)
             {
                 if (!await roleManager.RoleExistsAsync(role))
