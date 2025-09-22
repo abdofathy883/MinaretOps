@@ -4,3 +4,5 @@ services:
     build:
       context: .
       dockerfile: ClientAPI/Dockerfile
+    volumes:
+      - /var/www/clientapi/wwwroot/uploads:/app/wwwroot/uploads
