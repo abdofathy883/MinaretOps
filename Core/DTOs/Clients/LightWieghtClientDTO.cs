@@ -9,6 +9,6 @@ namespace Core.DTOs.Clients
         public string? CompanyName { get; set; }
         public ClientStatus Status { get; set; }
         public int ServiceId { get; set; }
-        public string ServiceTitle { get; set; }
+        public string? ServiceTitle { get; set; }
     }
 }

@@ -8,6 +8,6 @@ namespace Core.Settings
 {
     public class DiscordSettings
     {
-        public string BotToken { get; set; }
+        public string? BotToken { get; set; }
     }
 }

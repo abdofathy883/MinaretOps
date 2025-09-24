@@ -65,6 +65,7 @@ namespace ClientAPI.Controllers
         }
 
         [HttpPatch("update-user")]
+        [Consumes("multipart/form-data")]
         public async Task<IActionResult> UpdateAsync(UpdateUserDTO updateUserDTO)
         {
             if (updateUserDTO is null)

@@ -54,6 +54,7 @@ namespace Infrastructure.Services.NewFolder
                     {"FullName", $"{task.Employee.FirstName} {task.Employee.LastName}" },
                     {"Email", $"{task.Employee.Email}" },
                     {"TaskTitle", $"{task.Title}" },
+                    {"TaskType", $"{task.TaskType}" },
                     {"TaskId", $"{task.Id}" },
                     {"OldStatus", $"{task.Status}" },
                     {"NewStatus", $"{status}" },
@@ -76,7 +77,6 @@ namespace Infrastructure.Services.NewFolder
             await discordService.SendTaskNotification(channel, mappedTask);
             return true;
         }
-
         public async Task<bool> DeleteTaskAsync(int taskId)
         {
             var task = await GetTaskOrThrow(taskId);
@@ -84,7 +84,6 @@ namespace Infrastructure.Services.NewFolder
             context.Remove(task);
             return await context.SaveChangesAsync() > 0;
         }
-
         public async Task<List<TaskDTO>> GetAllTasksAsync()
         {
             var tasks = await context.Tasks
@@ -97,7 +96,6 @@ namespace Infrastructure.Services.NewFolder
 
             return mapper.Map<List<TaskDTO>>(tasks);
         }
-
         public async Task<TaskDTO> GetTaskByIdAsync(int taskId)
         {
             var task = await context.Tasks
@@ -110,7 +108,6 @@ namespace Infrastructure.Services.NewFolder
 
             return mapper.Map<TaskDTO>(task);
         }
-
         public async Task<List<TaskDTO>> GetTasksByEmployeeIdAsync(string empId)
         {
             var tasks = await context.Tasks
@@ -124,7 +121,6 @@ namespace Infrastructure.Services.NewFolder
 
             return mapper.Map<List<TaskDTO>>(tasks);
         }
-
         public async Task<TaskDTO> UpdateTaskAsync(int taskId, UpdateTaskDTO updateTask)
         {
             if (updateTask is null)
@@ -156,6 +152,7 @@ namespace Infrastructure.Services.NewFolder
                     {"FullName", $"{task.Employee.FirstName} {task.Employee.LastName}" },
                     {"Email", $"{task.Employee.Email}" },
                     {"TaskTitle", $"{task.Title}" },
+                    {"TaskType", $"{task.TaskType}" },
                     {"TaskId", $"{task.Id}" },
                     {"TimeStamp", $"{DateTime.UtcNow}" }
                 };
@@ -167,7 +164,6 @@ namespace Infrastructure.Services.NewFolder
             await discordService.SendTaskNotification(channel, mappedTask);
             return mappedTask;
         }
-
         public async Task<TaskDTO> CreateTaskAsync(CreateTaskDTO createTask)
         {
             // Validate that the task group exists
@@ -212,6 +208,7 @@ namespace Infrastructure.Services.NewFolder
                         {"FullName", $"{task.Employee.FirstName} {task.Employee.LastName}" },
                         {"Email", $"{task.Employee.Email}" },
                         {"TaskTitle", $"{task.Title}" },
+                        {"TaskType", $"{task.TaskType}" },
                         {"TaskId", $"{task.Id}" },
                         {"TimeStamp", $"{DateTime.UtcNow}" }
                     };
@@ -243,7 +240,6 @@ namespace Infrastructure.Services.NewFolder
                 throw new Exception(ex.Message);
             }
         }
-
         public async Task<TaskGroupDTO> CreateTaskGroupAsync(CreateTaskGroupDTO createTaskGroup)
         {
             // Validate that the client service exists
@@ -308,6 +304,7 @@ namespace Infrastructure.Services.NewFolder
                                 {"FullName", $"{task.Employee.FirstName} {task.Employee.LastName}" },
                                 {"Email", $"{task.Employee.Email}" },
                                 {"TaskTitle", $"{task.Title}" },
+                                {"TaskType", $"{task.TaskType}" },
                                 {"TaskId", $"{task.Id}" },
                                 {"Client", $"{task.ClientService.Client.Name}" },
                                 {"TimeStamp", $"{DateTime.UtcNow}" }
@@ -343,7 +340,6 @@ namespace Infrastructure.Services.NewFolder
                 throw new Exception(ex.Message);
             }
         }
-
         public async Task<List<TaskGroupDTO>> GetTaskGroupsByClientServiceAsync(int clientServiceId)
         {
             var taskGroups = await context.TaskGroups

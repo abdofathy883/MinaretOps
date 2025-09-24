@@ -108,7 +108,7 @@ namespace Infrastructure.Services.Notifications
                 {
                     await pushClient.RequestPushMessageDeliveryAsync(pushSub, new PushMessage(payload));
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     // handle expired subscription (remove it from DB)
                     context.PushSubscriptions.Remove(sub);

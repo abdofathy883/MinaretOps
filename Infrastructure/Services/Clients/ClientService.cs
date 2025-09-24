@@ -1,9 +1,11 @@
 ﻿using AutoMapper;
 using Core.DTOs.Clients;
+using Core.DTOs.Tasks;
 using Core.Interfaces;
 using Core.Models;
 using Infrastructure.Data;
 using Infrastructure.Exceptions;
+using Infrastructure.Services.Discord;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -15,17 +17,20 @@ namespace Infrastructure.Services.Clients
         private readonly IMapper mapper;
         private readonly ILogger<ClientService> logger;
         private readonly IEmailService emailService;
+        private readonly DiscordService discordService;
         public ClientService(
             MinaretOpsDbContext minaret,
             IMapper _mapper,
             ILogger<ClientService> _logger,
-            IEmailService email
+            IEmailService email,
+            DiscordService service
             )
         {
             dbContext = minaret;
             mapper = _mapper;
             logger = _logger;
             emailService = email;
+            discordService = service;
         }
         public async Task<List<LightWieghtClientDTO>> GetAllClientsAsync()
         {
@@ -130,22 +135,24 @@ namespace Infrastructure.Services.Clients
                             await dbContext.AddAsync(task);
 
                             // Get employee information from the database to avoid null reference
-                            var employee = await dbContext.Users.FirstOrDefaultAsync(u => u.Id == taskDto.EmployeeId);
-                            if (employee == null)
+                            if (!string.IsNullOrEmpty(task.Employee.Email))
                             {
-                                throw new InvalidObjectException($"Employee with ID {taskDto.EmployeeId} not found");
+                                Dictionary<string, string> replacements = new Dictionary<string, string>
+                                {
+                                    {"FullName", $"{task.Employee.FirstName} {task.Employee.LastName}" },
+                                    {"Email", $"{task.Employee.Email}" },
+                                    {"TaskTitle", $"{task.Title}" },
+                                    {"TaskType", $"task.TaskType" },
+                                    {"TaskId", $"{task.Id}" },
+                                    {"ClientName", $"{task.ClientService.Client.Name}" },
+                                    {"TimeStamp", $"{DateTime.UtcNow}" }
+                                };
+                                await emailService.SendEmailWithTemplateAsync(task.Employee.Email, "New Client Assigned To You", "NewClientAssignment", replacements);
+                                string channelId = clientDTO.DiscordChannelId ?? string.Empty;
+                                var mappedTask = mapper.Map<TaskDTO>(task);
+                                await discordService.SendTaskNotification(channelId, mappedTask);
                             }
 
-                            //Dictionary<string, string> replacements = new Dictionary<string, string>
-                            //{
-                            //    {"FullName", $"{task.Employee.FirstName} {task.Employee.LastName}" },
-                            //    {"Email", $"{task.Employee.Email}" },
-                            //    {"TaskTitle", $"{task.Title}" },
-                            //    {"ClientName", $"{task.ClientService.Client.Name}" },
-                            //    {"TimeStamp", $"{DateTime.UtcNow}" }
-                            //};
-
-                            //await emailService.SendEmailWithTemplateAsync(task.Employee.Email, "New Client Assigned To You", "NewClientAssignment", replacements);
                         }
                     }
                 }

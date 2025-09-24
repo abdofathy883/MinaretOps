@@ -40,8 +40,8 @@ namespace Infrastructure.Services.Auth
                 Id = u.Id,
                 FirstName = u.FirstName,
                 LastName = u.LastName,
-                Email = u.Email,
-                PhoneNumber = u.PhoneNumber,
+                Email = u.Email ?? string.Empty,
+                PhoneNumber = u.PhoneNumber ?? string.Empty,
                 Roles = userManager.GetRolesAsync(u).Result.ToList(),
                 ProfilePicture = u.ProfilePicture,
                 JobTitle = u.JobTitle,
@@ -57,9 +57,8 @@ namespace Infrastructure.Services.Auth
                 Id = user.Id,
                 FirstName = user.FirstName,
                 LastName = user.LastName,
-                Email = user.Email,
-                PhoneNumber = user.PhoneNumber,
-                ConcurrencyStamp = user.ConcurrencyStamp,
+                Email = user.Email ?? string.Empty,
+                PhoneNumber = user.PhoneNumber ?? string.Empty,
                 City = user.City,
                 Street = user.Street,
                 NID = user.NID,
@@ -93,7 +92,7 @@ namespace Infrastructure.Services.Auth
             authDTO.Id = user.Id;
             authDTO.FirstName = user.FirstName;
             authDTO.LastName = user.LastName;
-            authDTO.Email = user.Email;
+            authDTO.Email = user.Email ?? string.Empty;
             authDTO.UserName = user.UserName;
             authDTO.PhoneNumber = user.PhoneNumber ?? string.Empty;
             authDTO.Roles = roles.ToList();
@@ -159,7 +158,7 @@ namespace Infrastructure.Services.Auth
 
                 if (!result.Succeeded)
                 {
-                    return FailResult(string.Join(", ", validateErrors));
+                    return FailResult("Failed To Add New User");
                 }
 
                 await userManager.AddToRoleAsync(user, newUser.Role.ToString());
@@ -277,6 +276,15 @@ namespace Infrastructure.Services.Auth
                 user.Street = updatedUser.Street.Trim();
             if (user.PaymentNumber != updatedUser.PaymentNumber && !string.IsNullOrWhiteSpace(updatedUser.PaymentNumber))
                 user.PaymentNumber = updatedUser.PaymentNumber.Trim();
+            if (user.JobTitle != updatedUser.JobTitle && !string.IsNullOrWhiteSpace(updatedUser.JobTitle))
+                user.JobTitle = updatedUser.JobTitle.Trim();
+            if (user.Bio != updatedUser.Bio && !string.IsNullOrWhiteSpace(updatedUser.Bio))
+                user.Bio = updatedUser.Bio.Trim();
+            if (updatedUser.ProfilePicture is not null)
+            {
+                var uploaded = await mediaUploadService.UploadImageWithPath(updatedUser.ProfilePicture, $"{user.FirstName}_{user.LastName}-{user.JobTitle}-TheMinaretAgency");
+                user.ProfilePicture = uploaded.Url;
+            }
             if (user.Email != updatedUser.Email && !string.IsNullOrWhiteSpace(updatedUser.Email))
             {
                 user.Email = updatedUser.Email.Trim();
@@ -304,15 +312,17 @@ namespace Infrastructure.Services.Auth
                 };
             }
 
-            Dictionary<string, string> replacements = new Dictionary<string, string>
+            if (!string.IsNullOrEmpty(user.Email))
             {
-                {"EmpFullName", $"{user.FirstName} {user.LastName}" },
-                {"EmpEmail", $"{user.Email}" },
-                {"TimeStamp", $"{DateTime.UtcNow}" }
-            };
-
-            await emailService.SendEmailWithTemplateAsync(user.Email, "Change Password Confirmation", "ChangePasswordConfirmation", replacements);
-
+                Dictionary<string, string> replacements = new Dictionary<string, string>
+                {
+                    {"EmpFullName", $"{user.FirstName} {user.LastName}" },
+                    {"EmpEmail", $"{user.Email}" },
+                    {"TimeStamp", $"{DateTime.UtcNow}" }
+                };
+                
+                await emailService.SendEmailWithTemplateAsync(user.Email, "Change Password Confirmation", "ChangePasswordConfirmation", replacements);
+            }
 
             return new AuthResponseDTO
             {
@@ -322,15 +332,14 @@ namespace Infrastructure.Services.Auth
                 City = user.City,
                 Street = user.Street,
                 PaymentNumber = user.PaymentNumber,
-                PhoneNumber = user.PhoneNumber,
-                Email = user.Email,
+                PhoneNumber = user.PhoneNumber ?? string.Empty,
+                Email = user.Email ?? string.Empty,
                 NID = user.NID,
                 DateOfHiring = user.DateOfHiring,
                 IsAuthenticated = true,
                 Message = "تم تحديث بيانات الحساب بنجاح",
             };
         }
-
         public async Task<AuthResponseDTO> ChangePasswordAsync(ChangePasswordDTO passwordDTO)
         {
             var user = await GetUserOrThrow(passwordDTO.Id);
@@ -354,14 +363,17 @@ namespace Infrastructure.Services.Auth
                 };
             }
 
-            Dictionary<string, string> replacements = new Dictionary<string, string>
+            if (!string.IsNullOrEmpty(user.Email))
             {
-                {"FullName", $"{user.FirstName} {user.LastName}" },
-                {"Email", $"{user.Email}" },
-                {"TimeStamp", $"{DateTime.UtcNow}" }
-            };
-
-            await emailService.SendEmailWithTemplateAsync(user.Email, "Change Password Confirmation", "ChangePasswordConfirmation", replacements);
+                Dictionary<string, string> replacements = new Dictionary<string, string>
+                {
+                    {"FullName", $"{user.FirstName} {user.LastName}" },
+                    {"Email", $"{user.Email}" },
+                    {"TimeStamp", $"{DateTime.UtcNow}" }
+                };
+                
+                await emailService.SendEmailWithTemplateAsync(user.Email, "Change Password Confirmation", "ChangePasswordConfirmation", replacements);
+            }
 
             return new AuthResponseDTO
             {
@@ -369,7 +381,6 @@ namespace Infrastructure.Services.Auth
                 Message = "تم تحديث الرقم السري"
             };
         }
-
         public async Task<bool> DeleteUserAsync(string userId)
         {
             var user = await GetUserOrThrow(userId);
@@ -377,7 +388,6 @@ namespace Infrastructure.Services.Auth
             await userManager.DeleteAsync(user);
             return true;
         }
-
         public async Task<List<TeamMemberDTO>> GetTeamMembersAsync()
         {
             var teamMembers = await userManager.Users.ToListAsync()

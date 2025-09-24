@@ -136,7 +136,7 @@ namespace Infrastructure.Services.KPI
                 {
                     var uploaded = await mediaUploadService.UploadImageWithPath(
                         dto.EvidenceURL,
-                        $"{employee.FirstName} {employee.LastName} - {dto.Aspect} {DateTime.UtcNow}"
+                        $"{employee.FirstName}_{employee.LastName}-{dto.Aspect}"
                         );
                     evidenceURL = uploaded.Url;
                 }

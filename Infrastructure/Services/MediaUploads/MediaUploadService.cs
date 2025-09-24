@@ -20,7 +20,7 @@ namespace Infrastructure.Services.MediaUploads
                 Directory.CreateDirectory(uploadsFolder);
 
             var sanitizedEntityName = string.Join("_", entityTitle.Split(Path.GetInvalidFileNameChars()));
-            var fileNameWithoutExt = $"{sanitizedEntityName}_The Minaret Agency";
+            var fileNameWithoutExt = $"{sanitizedEntityName}_The_Minaret_Agency";
             var webpFileName = fileNameWithoutExt + ".webp";
             var webpFilePath = Path.Combine(uploadsFolder, webpFileName);
 

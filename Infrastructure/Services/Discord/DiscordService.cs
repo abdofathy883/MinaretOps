@@ -3,6 +3,8 @@ using Core.Settings;
 using Discord;
 using Discord.WebSocket;
 using Microsoft.Extensions.Options;
+using System.ComponentModel;
+using System.Reflection;
 using System.Threading.Channels;
 
 namespace Infrastructure.Services.Discord
@@ -41,10 +43,9 @@ namespace Infrastructure.Services.Discord
 
             var embed = new EmbedBuilder
             {
-                
                 Title = $"New Task: {task.Title}",
                 Description = task.Description,
-                Color = new Color(89, 125, 245), // RGB for blue
+                Color = new Color(145, 240, 11), // RGB for lime
                 Timestamp = DateTimeOffset.UtcNow
             };
 
@@ -53,13 +54,27 @@ namespace Infrastructure.Services.Discord
             embed.AddField("Due Date", task.Deadline.ToString("yyyy-MM-dd"), inline: true);
             embed.AddField("Priority", task.Priority ?? "عادي", inline: true);
             embed.AddField("Status", task.Status.ToString(), inline: true);
-            embed.AddField("Task Type", task.TaskType.ToString(), inline: true);
+            embed.AddField("Task Type", task.TaskType.GetDescription(), inline: true);
             embed.AddField("Reference", task.Refrence ?? "N/A", inline: true);
             embed.AddField("Client", task.ClientName, inline: true);
+            embed.AddField("Task Link", $"https://internal.theminaretagency.com/tasks/{task.Id}");
 
             embed.WithFooter("The Minaret Agency Task Management");
 
             await channel.SendMessageAsync(embed: embed.Build());
+        }
+
+    }
+
+    public static class EnumToString
+    {
+        public static string GetDescription(this Enum value)
+        {
+            var field = value.GetType().GetField(value.ToString());
+            var attr = (DescriptionAttribute)field
+                .GetCustomAttribute(typeof(DescriptionAttribute));
+
+            return attr != null ? attr.Description : value.ToString();
         }
     }
 }
