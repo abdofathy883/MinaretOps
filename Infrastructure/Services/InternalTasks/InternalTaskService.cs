@@ -30,14 +30,43 @@ namespace Infrastructure.Services.InternalTasks
             var task = await context.InternalTasks.FirstOrDefaultAsync(t => t.Id == taskId)
                 ?? throw new InvalidObjectException("بيانات التاسك غير صحيحة");
 
-            task.Status = status;
-            if (status == CustomTaskStatus.Completed)
+            using var transaction = await context.Database.BeginTransactionAsync();
+            try
             {
-                task.CompletedAt = DateTime.UtcNow;
+                task.Status = status;
+                if (status == CustomTaskStatus.Completed)
+                {
+                    task.CompletedAt = DateTime.UtcNow;
+                }
+
+                foreach (var ass in task.Assignments)
+                {
+                    if (!string.IsNullOrEmpty(ass.User.Email))
+                    {
+                        Dictionary<string, string> replacements = new()
+                        {
+                            { "TaskTitle", task.Title },
+                            { "TaskId", $"{task.Id}" },
+                            { "TaskType", $"{task.TaskType}" },
+                            { "TaskStatus", status.ToString() },
+                            { "TaskDeadline", task.Deadline.ToString("yyyy-MM-dd") }
+                        };
+                        await emailService.SendEmailWithTemplateAsync(ass.User.Email, "New Internal Task", "NewTaskAssignment", replacements);
+                    }
+                }
+
+                context.Update(task);
+                await context.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return true;
+
+            }
+            catch(Exception ex)
+            {
+                await transaction.RollbackAsync();
+                throw new Exception(ex.Message);
             }
 
-            await context.SaveChangesAsync();
-            return true;
         }
 
         public async Task<InternalTaskDTO> CreateInternalTaskAsync(CreateInternalTaskDTO internalTaskDTO)
@@ -99,9 +128,36 @@ namespace Infrastructure.Services.InternalTasks
 
                     task.Assignments.Add(taskAssignment);
                     await context.AddAsync(taskAssignment);
-                }
 
+                }
+                
                 await context.SaveChangesAsync();
+
+                var assignmentsWithUsers = await context.InternalTaskAssignments
+                    .Where(a => a.InternalTaskId == task.Id)
+                    .Include(a => a.User)
+                    .ToListAsync();
+
+                foreach (var ass in assignmentsWithUsers)
+                {
+                    if (!string.IsNullOrEmpty(ass.User?.Email))
+                    {
+                        Dictionary<string, string> replacements = new()
+                        {
+                            { "TaskTitle", task.Title },
+                            { "TaskId", $"{task.Id}" },
+                            { "TaskType", $"{task.TaskType}" },
+                            { "TaskStatus", task.Status.ToString() },
+                            { "TaskDeadline", task.Deadline.ToString("yyyy-MM-dd") }
+                        };
+                        await emailService.SendEmailWithTemplateAsync(
+                            ass.User.Email,
+                            "New Internal Task",
+                            "NewTaskAssignment",
+                            replacements
+                        );
+                    }
+                }
                 await transaction.CommitAsync();
                 return mapper.Map<InternalTaskDTO>(task);
             }
@@ -244,6 +300,32 @@ namespace Infrastructure.Services.InternalTasks
                 }
 
                 await context.SaveChangesAsync();
+
+                var updatedAssignments = await context.InternalTaskAssignments
+                    .Where(a => a.InternalTaskId == taskId)
+                    .Include(a => a.User)
+                    .ToListAsync();
+
+                foreach (var ass in updatedAssignments)
+                {
+                    if (!string.IsNullOrEmpty(ass.User?.Email))
+                    {
+                        Dictionary<string, string> replacements = new()
+                        {
+                            { "TaskTitle", task.Title },
+                            { "TaskId", $"{task.Id}" },
+                            { "TaskType", $"{task.TaskType}" },
+                            { "TaskStatus", task.Status.ToString() },
+                            { "TaskDeadline", task.Deadline.ToString("yyyy-MM-dd") }
+                        };
+                        await emailService.SendEmailWithTemplateAsync(
+                            ass.User.Email,
+                            "Updated Internal Task",
+                            "NewTaskAssignment",
+                            replacements
+                        );
+                    }
+                }
                 await transaction.CommitAsync();
 
                 // Return updated task with assignments
