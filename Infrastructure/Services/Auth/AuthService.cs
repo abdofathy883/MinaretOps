@@ -6,6 +6,7 @@ using Infrastructure.Exceptions;
 using Infrastructure.Services.MediaUploads;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using System.Web;
 
 namespace Infrastructure.Services.Auth
 {
@@ -400,6 +401,35 @@ namespace Infrastructure.Services.Auth
                 JobTitle = u.JobTitle,
                 Bio = u.Bio
             }).ToList();
+        }
+
+        public async Task<string> RequestResetPasswordByAdminAsync(string userId)
+        {
+            var user = await GetUserOrThrow(userId);
+            var token = await userManager.GeneratePasswordResetTokenAsync(user);
+            var resetLink = $"https://internal.theminaretagency.com/reset-password?userId={user.Id}&token={HttpUtility.UrlEncode(token)}";
+            if (!string.IsNullOrEmpty(user.Email))
+            {
+                Dictionary<string, string> replacements = new()
+                {
+                    { "EmployeeName", $"{user.FirstName} {user.LastName}" },
+                    { "EmployeeEmail", user.Email },
+                    { "TimeStamp", $"{DateTime.UtcNow}" },
+                    { "ResetLink", resetLink }
+                };
+                await emailService.SendEmailWithTemplateAsync(user.Email, "Reset Your Password", "RequestResetPassword", replacements);
+            }
+            return resetLink;
+        }
+
+        public async Task ResetPAsswordAsync(ResetPasswordDTO resetPasswordDTO)
+        {
+            var user = await GetUserOrThrow(resetPasswordDTO.UserId);
+            var result = await userManager.ResetPasswordAsync(user, resetPasswordDTO.Token, resetPasswordDTO.NewPassword);
+            if (!result.Succeeded)
+            {
+                throw new InvalidOperationException(string.Join(", ", result.Errors.Select(e => e.Description)));
+            }
         }
     }
 }

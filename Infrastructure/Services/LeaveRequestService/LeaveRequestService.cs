@@ -95,6 +95,19 @@ namespace Infrastructure.Services.LeaveRequestService
                 };
                 await context.AddAsync(request);
                 await context.SaveChangesAsync();
+
+                if (!string.IsNullOrEmpty(emp.Email))
+                {
+                    Dictionary<string, string> replacements = new()
+                    {
+                        { "EmployeeName", $"{emp.FirstName} {emp.LastName}" },
+                        { "RequestFromDate", $"{request.FromDate}" },
+                        { "RequestToDate", $"{request.ToDate}" },
+                        { "RequestStatus", $"{request.Status.ToString()}" }
+                    };
+                    await emailService.SendEmailWithTemplateAsync(emp.Email, "New Leave Request", "NewLeaveRequest", replacements);
+                }
+
                 await transaction.CommitAsync();
                 return mapper.Map<LeaveRequestDTO>(request);
             }

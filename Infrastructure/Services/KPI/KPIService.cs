@@ -151,17 +151,22 @@ namespace Infrastructure.Services.KPI
                 await context.KPIIncedints.AddAsync(incedint);
                 await context.SaveChangesAsync();
 
-                Dictionary<string, string> replacements = new Dictionary<string, string>
+                if (!string.IsNullOrEmpty(employee.Email))
                 {
-                    { "{{EmployeeName}}", $"{employee.FirstName} {employee.LastName}" },
-                    { "{{Aspect}}", dto.Aspect.ToString() },
-                    { "{{Description}}", dto.Description ?? "N/A" },
-                    { "{{TimeStamp}}", incedint.TimeStamp.ToString("f") },
-                    { "{{PenaltyPercentage}}", incedint.PenaltyPercentage.ToString() },
-                    { "{{EvidenceURL}}", incedint.EvidenceURL ?? "N/A" }
-                };
+                    Dictionary<string, string> replacements = new Dictionary<string, string>
+                    {
+                        { "{{EmployeeName}}", $"{employee.FirstName} {employee.LastName}" },
+                        { "{{Aspect}}", dto.Aspect.ToString() },
+                        { "{{Description}}", dto.Description ?? "N/A" },
+                        { "{{TimeStamp}}", incedint.TimeStamp.ToString("f") },
+                        { "{{PenaltyPercentage}}", incedint.PenaltyPercentage.ToString() },
+                        { "{{EvidenceURL}}", incedint.EvidenceURL ?? "N/A" }
+                    };
+                    
+                    await emailService.SendEmailWithTemplateAsync(employee.Email, "New KPI Incedient", "NewIncedient", replacements);
+                }
 
-                //await emailService.SendEmailWithTemplateAsync(employee.Email ?? string.Empty, "incedint", "KPIIncedint", replacements);
+
                 await transaction.CommitAsync();
                 return mapper.Map<IncedintDTO>(incedint);
             }

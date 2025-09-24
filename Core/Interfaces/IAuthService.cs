@@ -9,6 +9,8 @@ namespace Core.Interfaces
         Task<AuthResponseDTO> UpdateUserAsync(UpdateUserDTO updatedUser);
         Task<AuthResponseDTO> ChangePasswordAsync(ChangePasswordDTO passwordDTO);
         Task<bool> ToggleVisibilityAsync(string userId);
+        Task<string> RequestResetPasswordByAdminAsync(string userId);
+        Task ResetPAsswordAsync(ResetPasswordDTO resetPasswordDTO);
 
         Task<List<AuthResponseDTO>> GetAllUsersAsync();
         Task<UserDTO> GetUserByIdAsync(string userId);

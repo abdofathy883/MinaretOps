@@ -102,6 +102,21 @@ namespace ClientAPI.Controllers
             return Ok(result);
         }
 
+        [HttpPost("send-reset-link/{userId}")]
+        public async Task<IActionResult> SendResetLinkAsync(string userId)
+        {
+            var link = await authService.RequestResetPasswordByAdminAsync(userId);
+            return Ok(new { link });
+
+        }
+
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPasswordAsync(ResetPasswordDTO resetPasswordDTO)
+        {
+            await authService.ResetPAsswordAsync(resetPasswordDTO);
+            return Ok();
+        }
+
         [HttpGet("team-members")]
         public async Task<IActionResult> GetTeamMembersAsync()
         {
