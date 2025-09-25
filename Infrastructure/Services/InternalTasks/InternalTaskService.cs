@@ -210,6 +210,30 @@ namespace Infrastructure.Services.InternalTasks
             return mapper.Map<InternalTaskDTO>(task);
         }
 
+        public async Task<List<InternalTaskDTO>> GetInternalTasksByEmpAsync(string empId)
+        {
+            var tasks = await context.InternalTasks
+                .Include(it => it.Assignments)
+                    .ThenInclude(a => a.User)
+                .Where(it => it.Assignments.Any(a => a.UserId == empId))
+                .ToListAsync();
+
+            return mapper.Map<List<InternalTaskDTO>>(tasks);
+        }
+
+        public async Task<List<InternalTaskDTO>> SearchByTitleAsync(string title)
+        {
+            if (string.IsNullOrWhiteSpace(title) || title.Trim().Length < 3)
+                return new List<InternalTaskDTO>();
+
+            var tasks = await context.InternalTasks
+                .Where(t => EF.Functions.Like(t.Title, $"%{title.Trim()}%"))
+                //.Where(t => t.Title.Contains(title))
+                .OrderByDescending(t => t.CreatedAt)
+                .ToListAsync();
+            return mapper.Map<List<InternalTaskDTO>>(tasks);
+        }
+
         public async Task<InternalTaskDTO> UpdateInternalTaskAsync(int taskId, UpdateInternalTaskDTO internalTaskDTO)
         {
             if (internalTaskDTO is null)

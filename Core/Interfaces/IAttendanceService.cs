@@ -10,5 +10,7 @@ namespace Core.Interfaces
         Task<List<AttendanceRecordDTO>> GetAllAttendanceRecords();
         Task<AttendanceRecordDTO> ChangeAttendanceStatusByAdminAsync(string adminId, int recordId, AttendanceStatus newStatus);
         Task<AttendanceRecordDTO> GetTodayAttendanceForEmployeeAsync(string empId);
+
+        Task MarkAbsenteesAsync();
     }
 }

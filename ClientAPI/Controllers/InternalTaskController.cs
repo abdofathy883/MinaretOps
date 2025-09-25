@@ -29,6 +29,24 @@ namespace ClientAPI.Controllers
             }
         }
 
+        [HttpGet("emp-tasks/{empId}")]
+        public async Task<IActionResult> GetInternalTasksByEmp(string empId)
+        {
+            if (string.IsNullOrEmpty(empId))
+            {
+                return BadRequest("Employee ID is required.");
+            }
+            try
+            {
+                var tasks = await internalTaskService.GetInternalTasksByEmpAsync(empId);
+                return Ok(tasks);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
         [HttpGet("{id}")]
         public async Task<IActionResult> GetInternalTaskById(int id)
         {
@@ -44,6 +62,20 @@ namespace ClientAPI.Controllers
                     return NotFound();
                 }
                 return Ok(task);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpGet("search-tasks/{title}")]
+        public async Task<IActionResult> SearchInternalTasksByTitle(string title)
+        {
+            try
+            {
+                var tasks = await internalTaskService.SearchByTitleAsync(title);
+                return Ok(tasks);
             }
             catch (Exception ex)
             {

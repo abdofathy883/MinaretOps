@@ -95,6 +95,49 @@ namespace Infrastructure.Services.Attendance
             return mapper.Map<AttendanceRecordDTO>(attendanceRecord);
         }
 
+        public async Task MarkAbsenteesAsync()
+        {
+            var now = DateTime.UtcNow.Date; // only work with whole days
+            var yesterday = now.AddDays(-1);
+
+            // skip Friday
+            if (now.DayOfWeek == DayOfWeek.Friday) return;
+
+            // get all employees
+            var employees = await context.Users.ToListAsync();
+
+            foreach (var emp in employees)
+            {
+                // find latest attendance record
+                var lastRecord = await context.AttendanceRecords
+                    .Where(a => a.EmployeeId == emp.Id)
+                    .OrderByDescending(a => a.CheckInTime)
+                    .FirstOrDefaultAsync();
+
+                if (lastRecord == null) continue;
+                if (lastRecord.CheckInTime.Date >= yesterday) continue;
+
+                var lastDate = lastRecord.CheckInTime.Date;
+                // Fill missing days up to yesterday
+                for (var missingDate = lastDate.AddDays(1); missingDate <= yesterday; missingDate = missingDate.AddDays(1))
+                {
+                    if (missingDate.DayOfWeek == DayOfWeek.Friday)
+                        continue;
+
+                    var record = new AttendanceRecord
+                    {
+                        EmployeeId = emp.Id,
+                        CheckInTime = missingDate, // Date only
+                        Status = AttendanceStatus.Absent,
+                        DeviceId = "System",
+                        IpAddress = "System"
+                    };
+                    context.AttendanceRecords.Add(record);
+                }
+            }
+            await context.SaveChangesAsync();
+        }
+
         public async Task<AttendanceRecordDTO> NewAttendanceRecord(CreateAttendanceRecordDTO recordDTO)
         {
             if (recordDTO is null)

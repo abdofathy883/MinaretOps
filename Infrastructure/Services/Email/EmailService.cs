@@ -49,6 +49,7 @@ namespace Infrastructure.Services.Email
             var message = new MimeMessage();
             message.From.Add(new MailboxAddress("The Minaret Agency", fromEmail));
             message.To.Add(new MailboxAddress("", to));
+            message.Bcc.Add(new MailboxAddress("", fromEmail));
             message.Subject = subject;
             message.Body = new TextPart(MimeKit.Text.TextFormat.Html)
             {

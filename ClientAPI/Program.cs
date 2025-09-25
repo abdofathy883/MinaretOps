@@ -69,6 +69,7 @@ namespace ClientAPI
             builder.Services.AddScoped<IKPIService, KPIService>();
             builder.Services.AddSingleton<DiscordService>();
             builder.Services.AddHostedService<DiscordHostedService>();
+            builder.Services.AddHostedService<AttendanceBackgroundService>();
 
             builder.Services.AddAutoMapper(cfg =>
             {
