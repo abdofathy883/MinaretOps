@@ -150,7 +150,7 @@ namespace Infrastructure.Services.Clients
                                 await emailService.SendEmailWithTemplateAsync(task.Employee.Email, "New Client Assigned To You", "NewClientAssignment", replacements);
                                 string channelId = clientDTO.DiscordChannelId ?? string.Empty;
                                 var mappedTask = mapper.Map<TaskDTO>(task);
-                                await discordService.SendTaskNotification(channelId, mappedTask);
+                                await discordService.NewTask(channelId, mappedTask);
                             }
 
                         }

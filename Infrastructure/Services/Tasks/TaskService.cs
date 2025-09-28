@@ -61,28 +61,62 @@ namespace Infrastructure.Services.NewFolder
                     {"TimeStamp", $"{DateTime.UtcNow}" }
                 };
                 await emailService.SendEmailWithTemplateAsync(task.Employee.Email, "Task Updates", "ChangeTaskStatus", replacements);
-                await notificationService.CreateAsync(new Core.DTOs.Notifications.CreateNotificationDTO
-                {
-                    UserId = task.EmployeeId,
-                    Title = "Task Status Updated",
-                    Body = $"The status of task '{task.Title}' has been changed to {status}.",
-                    Url = $"https://internal.theminaretagency.com/tasks/{task.Id}"
-                });
+                //await notificationService.CreateAsync(new Core.DTOs.Notifications.CreateNotificationDTO
+                //{
+                //    UserId = task.EmployeeId,
+                //    Title = "Task Status Updated",
+                //    Body = $"The status of task '{task.Title}' has been changed to {status}.",
+                //    Url = $"https://internal.theminaretagency.com/tasks/{task.Id}"
+                //});
                 
             }
 
-            string channel = task.ClientService.Client.DiscordChannelId ?? string.Empty;
-            TaskDTO mappedTask = mapper.Map<TaskDTO>(task);
-
-            await discordService.SendTaskNotification(channel, mappedTask);
+            string channel = task.ClientService.Client.DiscordChannelId;
+            if (!string.IsNullOrEmpty(channel))
+            {
+                TaskDTO mappedTask = mapper.Map<TaskDTO>(task);
+                await discordService.ChangeTaskStatus(channel, mappedTask, status);
+            }
             return true;
         }
         public async Task<bool> DeleteTaskAsync(int taskId)
         {
             var task = await GetTaskOrThrow(taskId);
 
-            context.Remove(task);
-            return await context.SaveChangesAsync() > 0;
+            using var transaction = await context.Database.BeginTransactionAsync();
+            try
+            {
+                context.Remove(task);
+                await context.SaveChangesAsync();
+
+                if (!string.IsNullOrEmpty(task.Employee.Email) && !string.IsNullOrEmpty(task.EmployeeId))
+                {
+                    Dictionary<string, string> replacements = new Dictionary<string, string>
+                    {
+                        {"FullName", $"{task.Employee.FirstName} {task.Employee.LastName}" },
+                        {"Email", $"{task.Employee.Email}" },
+                        {"TaskTitle", $"{task.Title}" },
+                        {"TaskType", $"{task.TaskType}" },
+                        {"TaskId", $"{task.Id}" },
+                        {"TimeStamp", $"{DateTime.UtcNow}" }
+                    };
+                    await emailService.SendEmailWithTemplateAsync(task.Employee.Email, "Task Updates", "ChangeTaskStatus", replacements);
+                }
+                string channel = task.ClientService.Client.DiscordChannelId;
+                if (!string.IsNullOrEmpty(channel))
+                {
+                    TaskDTO mappedTask = mapper.Map<TaskDTO>(task);
+                    await discordService.DeleteTask(channel, mappedTask);
+                }
+                await transaction.CommitAsync();
+                return true;
+            }
+            catch(Exception ex)
+            {
+                await transaction.RollbackAsync();
+                throw new Exception();
+            }
+
         }
         public async Task<List<TaskDTO>> GetAllTasksAsync()
         {
@@ -161,7 +195,11 @@ namespace Infrastructure.Services.NewFolder
 
             string channel = task.ClientService.Client.DiscordChannelId ?? string.Empty;
             TaskDTO mappedTask = mapper.Map<TaskDTO>(task);
-            await discordService.SendTaskNotification(channel, mappedTask);
+            if (!string.IsNullOrEmpty(channel))
+            {
+                await discordService.UpdateTask(channel, mappedTask);    
+            }
+
             return mappedTask;
         }
         public async Task<TaskDTO> CreateTaskAsync(CreateTaskDTO createTask)
@@ -189,7 +227,7 @@ namespace Infrastructure.Services.NewFolder
                     Title = createTask.Title,
                     TaskType = createTask.TaskType,
                     Description = createTask.Description,
-                    Status = createTask.Status,
+                    Status = CustomTaskStatus.Open,
                     ClientServiceId = createTask.ClientServiceId,
                     Deadline = createTask.Deadline,
                     Priority = createTask.Priority,
@@ -214,10 +252,13 @@ namespace Infrastructure.Services.NewFolder
                     };
                     await emailService.SendEmailWithTemplateAsync(task.Employee.Email, "New Task Has Been Assigned To You", "NewTaskAssignment", replacements);
                 }
-                string channel = task.ClientService.Client.DiscordChannelId ?? string.Empty;
-                TaskDTO mappedTask = mapper.Map<TaskDTO>(task);
+                string channel = task.ClientService.Client.DiscordChannelId;
+                if (!string.IsNullOrEmpty(channel))
+                {
+                    TaskDTO mappedTask = mapper.Map<TaskDTO>(task);
+                    await discordService.NewTask(channel, mappedTask);
+                }
 
-                await discordService.SendTaskNotification(channel, mappedTask);
 
                 // Return the created task with all related data
                 var createdTask = await context.Tasks
@@ -315,7 +356,7 @@ namespace Infrastructure.Services.NewFolder
                         string channel = task.ClientService.Client.DiscordChannelId ?? string.Empty;
                         TaskDTO mappedTask = mapper.Map<TaskDTO>(task);
 
-                        await discordService.SendTaskNotification(channel, mappedTask);                        
+                        await discordService.NewTask(channel, mappedTask);                        
                     }
                 }
 

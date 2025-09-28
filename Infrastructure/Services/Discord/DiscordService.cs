@@ -1,4 +1,5 @@
 ﻿using Core.DTOs.Tasks;
+using Core.Enums;
 using Core.Settings;
 using Discord;
 using Discord.WebSocket;
@@ -34,7 +35,7 @@ namespace Infrastructure.Services.Discord
             await client.StartAsync();
         }
 
-        public async Task SendTaskNotification(string channelId, TaskDTO task)
+        public async Task NewTask(string channelId, TaskDTO task)
         {
             var parsedChannel = ulong.Parse(channelId);
             var channel = client.GetChannel(parsedChannel) as IMessageChannel;
@@ -57,6 +58,82 @@ namespace Infrastructure.Services.Discord
             embed.AddField("Task Type", task.TaskType.GetDescription(), inline: true);
             embed.AddField("Reference", task.Refrence ?? "N/A", inline: true);
             embed.AddField("Client", task.ClientName, inline: true);
+            embed.AddField("Task Link", $"https://internal.theminaretagency.com/tasks/{task.Id}");
+
+            embed.WithFooter("The Minaret Agency Task Management");
+
+            await channel.SendMessageAsync(embed: embed.Build());
+        }
+        public async Task UpdateTask(string channelId, TaskDTO task)
+        {
+            var parsedChannel = ulong.Parse(channelId);
+            var channel = client.GetChannel(parsedChannel) as IMessageChannel;
+            if (channel is null)
+                throw new Exception();
+
+            var embed = new EmbedBuilder
+            {
+                Title = $"Task Update: {task.Title}",
+                Description = task.Description,
+                Color = new Color(145, 240, 11), // RGB for lime
+                Timestamp = DateTimeOffset.UtcNow
+            };
+
+            embed.AddField("Assigned To", task.EmployeeName ?? "Unknown", inline: true);
+            embed.AddField("Task Id", task.Id, inline: true);
+            embed.AddField("Due Date", task.Deadline.ToString("yyyy-MM-dd"), inline: true);
+            embed.AddField("Priority", task.Priority ?? "عادي", inline: true);
+            embed.AddField("Status", task.Status.ToString(), inline: true);
+            embed.AddField("Task Type", task.TaskType.GetDescription(), inline: true);
+            embed.AddField("Reference", task.Refrence ?? "N/A", inline: true);
+            embed.AddField("Client", task.ClientName, inline: true);
+            embed.AddField("Task Link", $"https://internal.theminaretagency.com/tasks/{task.Id}");
+
+            embed.WithFooter("The Minaret Agency Task Management");
+
+            await channel.SendMessageAsync(embed: embed.Build());
+        }
+        public async Task DeleteTask(string channelId, TaskDTO task)
+        {
+            var parsedChannel = ulong.Parse(channelId);
+            var channel = client.GetChannel(parsedChannel) as IMessageChannel;
+            if (channel is null)
+                throw new Exception();
+
+            var embed = new EmbedBuilder
+            {
+                Title = $"Task Deleted: {task.Title}",
+                Color = new Color(145, 240, 11), // RGB for lime
+                Timestamp = DateTimeOffset.UtcNow
+            };
+
+            embed.AddField("Assigned To", task.EmployeeName ?? "Unknown", inline: true);
+            embed.AddField("Task Id", task.Id, inline: true);
+
+            embed.WithFooter("The Minaret Agency Task Management");
+
+            await channel.SendMessageAsync(embed: embed.Build());
+        }
+        public async Task ChangeTaskStatus(string channelId, TaskDTO task, CustomTaskStatus status)
+        {
+            var parsedChannel = ulong.Parse(channelId);
+            var channel = client.GetChannel(parsedChannel) as IMessageChannel;
+            if (channel is null)
+                throw new Exception();
+
+            var embed = new EmbedBuilder
+            {
+                Title = $"Task Update: {task.Title}",
+                Description = task.Description,
+                Color = new Color(145, 240, 11), // RGB for lime
+                Timestamp = DateTimeOffset.UtcNow
+            };
+
+            embed.AddField("Assigned To", task.EmployeeName ?? "Unknown", inline: true);
+            embed.AddField("Task Id", task.Id, inline: true);
+            embed.AddField("Old Status", task.Status.ToString(), inline: true);
+            embed.AddField("New Status", status, inline: true);
+            embed.AddField("Task Type", task.TaskType.GetDescription(), inline: true);
             embed.AddField("Task Link", $"https://internal.theminaretagency.com/tasks/{task.Id}");
 
             embed.WithFooter("The Minaret Agency Task Management");

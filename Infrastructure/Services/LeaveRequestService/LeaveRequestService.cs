@@ -43,16 +43,33 @@ namespace Infrastructure.Services.LeaveRequestService
                 .FirstOrDefaultAsync(r => r.Id == requestId)
                 ?? throw new InvalidObjectException($"Leave request with Id {requestId} not found.");
 
-            request.Status = newStatus;
-            request.ActionDate = DateTime.UtcNow;
-            context.Update(request);
-            await context.SaveChangesAsync();
-            //return mapper.Map<LeaveRequestDTO>(request);
-            var mappedResult = mapper.Map<LeaveRequestDTO>(request);
-            if (mappedResult == null)
-                throw new InvalidOperationException("Failed to map leave request to DTO");
+            using var transaction = await context.Database.BeginTransactionAsync();
+            try
+            {
+                request.Status = newStatus;
+                request.ActionDate = DateTime.UtcNow;
+                context.Update(request);
+                await context.SaveChangesAsync();
 
-            return mappedResult;
+                if (!string.IsNullOrEmpty(request.Employee.Email))
+                {
+                    Dictionary<string, string> replacements = new()
+                    {
+                        { "EmployeeName", $"{request.Employee.FirstName} {request.Employee.LastName}" },
+                        { "FromDate", $"{request.FromDate}" },
+                        { "ToDate", $"{request.ToDate}" },
+                    };
+
+                    await emailService.SendEmailWithTemplateAsync(request.Employee.Email, "Leave Request Updates", "LeaveRequestUpdates", replacements);
+                }
+                await transaction.CommitAsync();
+                return mapper.Map<LeaveRequestDTO>(request);
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                throw new Exception();
+            }
         }
 
         public async Task<List<LeaveRequestDTO>> GetAllLeaveRequests()
