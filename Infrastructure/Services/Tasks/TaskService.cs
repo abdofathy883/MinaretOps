@@ -197,7 +197,7 @@ namespace Infrastructure.Services.NewFolder
             TaskDTO mappedTask = mapper.Map<TaskDTO>(task);
             if (!string.IsNullOrEmpty(channel))
             {
-                await discordService.UpdateTask(channel, mappedTask);    
+                await discordService.UpdateTask(channel, mappedTask);
             }
 
             return mappedTask;

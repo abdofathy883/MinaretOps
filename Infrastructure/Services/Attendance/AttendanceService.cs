@@ -53,6 +53,7 @@ namespace Infrastructure.Services.Attendance
         {
             var records = await context.AttendanceRecords
                 .Include(r => r.Employee)
+                .OrderByDescending(r => r.CheckInTime)
                 .ToListAsync();
 
             var tz = TimeZoneInfo.FindSystemTimeZoneById("Egypt Standard Time");
@@ -71,6 +72,7 @@ namespace Infrastructure.Services.Attendance
 
             var records = await context.AttendanceRecords
                 .Where(r => r.EmployeeId == employeeId)
+                .OrderByDescending(r => r.CheckInTime)
                 .ToListAsync();
 
             logger.LogInformation("Fetched {Count} attendance records for employee {EmployeeId}", records.Count, employeeId);
@@ -97,43 +99,34 @@ namespace Infrastructure.Services.Attendance
 
         public async Task MarkAbsenteesAsync()
         {
-            var now = DateTime.UtcNow.Date; // only work with whole days
-            var yesterday = now.AddDays(-1);
+            var today = DateTime.UtcNow.Date;
 
-            // skip Friday
-            if (now.DayOfWeek == DayOfWeek.Friday) return;
+            if (today.DayOfWeek == DayOfWeek.Friday) return;
 
-            // get all employees
             var employees = await context.Users.ToListAsync();
 
             foreach (var emp in employees)
             {
-                // find latest attendance record
-                var lastRecord = await context.AttendanceRecords
-                    .Where(a => a.EmployeeId == emp.Id)
-                    .OrderByDescending(a => a.CheckInTime)
-                    .FirstOrDefaultAsync();
+                bool hasRecord = await context.AttendanceRecords
+                    .AnyAsync(a => a.EmployeeId == emp.Id && a.CheckInTime.Date == today);
 
-                if (lastRecord == null) continue;
-                if (lastRecord.CheckInTime.Date >= yesterday) continue;
+                if (hasRecord) continue;
 
-                var lastDate = lastRecord.CheckInTime.Date;
-                // Fill missing days up to yesterday
-                for (var missingDate = lastDate.AddDays(1); missingDate <= yesterday; missingDate = missingDate.AddDays(1))
+                bool hasApprovedLeave = await context.LeaveRequests
+                    .AnyAsync(l => l.EmployeeId == emp.Id && 
+                    l.Status == LeaveStatus.Approved &&
+                    l.FromDate.Date <= today &&
+                    l.ToDate.Date >= today);
+
+                var record = new AttendanceRecord
                 {
-                    if (missingDate.DayOfWeek == DayOfWeek.Friday)
-                        continue;
-
-                    var record = new AttendanceRecord
-                    {
-                        EmployeeId = emp.Id,
-                        CheckInTime = missingDate, // Date only
-                        Status = AttendanceStatus.Absent,
-                        DeviceId = "System",
-                        IpAddress = "System"
-                    };
-                    context.AttendanceRecords.Add(record);
-                }
+                    EmployeeId = emp.Id,
+                    CheckInTime = today,
+                    Status = hasApprovedLeave ? AttendanceStatus.Leave : AttendanceStatus.Absent,
+                    DeviceId = "System",
+                    IpAddress = "System"
+                };
+                await context.AttendanceRecords.AddAsync(record);
             }
             await context.SaveChangesAsync();
         }

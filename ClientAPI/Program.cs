@@ -21,6 +21,7 @@ using Infrastructure.Services.Services;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Quartz;
 using Serilog;
 using ClientService = Infrastructure.Services.Clients.ClientService;
 
@@ -69,7 +70,24 @@ namespace ClientAPI
             builder.Services.AddScoped<IKPIService, KPIService>();
             builder.Services.AddSingleton<DiscordService>();
             builder.Services.AddHostedService<DiscordHostedService>();
-            builder.Services.AddHostedService<AttendanceBackgroundService>();
+
+            builder.Services.AddQuartz(q =>
+            {
+                // Register the job
+                var jobKey = new JobKey("AttendanceJob");
+                q.AddJob<AttendanceJob>(opts => opts.WithIdentity(jobKey));
+
+                // Run at 23:59 every day
+                q.AddTrigger(opts => opts
+                    .ForJob(jobKey)
+                    .WithIdentity("AttendanceJob-trigger")
+                    //.WithCronSchedule("59 23 * * *") // CRON: sec min hour day month day-of-week
+                    .WithSchedule(CronScheduleBuilder.DailyAtHourAndMinute(23, 59))
+                );
+            });
+
+            // Quartz hosted service
+            builder.Services.AddQuartzHostedService(q => q.WaitForJobsToComplete = true);
 
             builder.Services.AddAutoMapper(cfg =>
             {
