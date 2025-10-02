@@ -9,10 +9,15 @@ namespace Infrastructure.Data.Model_Configurations
         public void Configure(EntityTypeBuilder<InternalTaskAssignment> builder)
         {
             builder.HasKey(a => a.Id);
-            builder.Property(a => a.Id).UseIdentityColumn(1, 1);
 
-            builder.Property(a => a.UserId).IsRequired(false);
-            builder.Property(a => a.IsLeader).IsRequired();
+            builder.Property(a => a.Id)
+                .UseIdentityColumn(1, 1);
+
+            builder.Property(a => a.UserId)
+                .IsRequired(false);
+
+            builder.Property(a => a.IsLeader)
+                .IsRequired();
 
             builder.HasOne(a => a.User)
                 .WithMany(u => u.InternalTaskAssignments)

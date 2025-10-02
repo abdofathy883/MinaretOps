@@ -25,5 +25,9 @@ namespace Core.Models
             CompletedAt.Value.Date <= Deadline.Date;
         public int TaskGroupId { get; set; }
         public TaskGroup TaskGroup { get; set; } = default!;
+        public List<TaskItemHistory> TaskHistory { get; set; } = new();
+        public List<TaskCompletionResources> CompletionResources { get; set; } = new();
+        public string? CompletionNotes { get; set; }
+        public bool IsArchived { get; set; } = false;
     }
 }

@@ -16,7 +16,8 @@ namespace Infrastructure.MappingProfiles
                 .ForMember(dest => dest.TimeStamp, opt => opt.MapFrom(src => src.TimeStamp))
                 .ForMember(dest => dest.PenaltyPercentage, opt => opt.MapFrom(src => src.PenaltyPercentage))
                 .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description))
-                .ForMember(dest => dest.EvidenceURL, opt => opt.MapFrom(src => src.EvidenceURL));
+                .ForMember(dest => dest.EvidenceURL, opt => opt.MapFrom(src => src.EvidenceURL))
+                .ForMember(dest => dest.Date, opt => opt.MapFrom(src => src.Date));
         }
     }
 }

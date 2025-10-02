@@ -13,6 +13,7 @@ namespace Core.DTOs.InternalTasks
         public DateTime? CompletedAt { get; set; }
         public CustomTaskStatus Status { get; set; }
         public string Priority { get; set; }
+        public bool IsArchived { get; set; }
         public bool IsCompletedOnDeadline =>
             Status == CustomTaskStatus.Completed &&
             CompletedAt.HasValue &&

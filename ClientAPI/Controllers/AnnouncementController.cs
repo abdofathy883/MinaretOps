@@ -1,6 +1,5 @@
 ﻿using Core.DTOs.Announcements;
 using Core.Interfaces;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ClientAPI.Controllers

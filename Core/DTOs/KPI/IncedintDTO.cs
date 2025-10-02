@@ -18,6 +18,7 @@ namespace Core.DTOs.KPI
         public int PenaltyPercentage { get; set; } = 10; // currently fixed
         public string? Description { get; set; }
         public string? EvidenceURL { get; set; }
+        public DateOnly? Date { get; set; }
 
     }
 }

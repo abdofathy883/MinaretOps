@@ -8,6 +8,7 @@ using Infrastructure.Exceptions;
 using Infrastructure.Services.Discord;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using System.Threading.Tasks;
 
 namespace Infrastructure.Services.NewFolder
 {
@@ -35,49 +36,68 @@ namespace Infrastructure.Services.NewFolder
             notificationService = _notificationService;
             discordService = _discordService;
         }
-        public async Task<bool> ChangeTaskStatusAsync(int taskId, CustomTaskStatus status)
+        public async Task<bool> ChangeTaskStatusAsync(int taskId, CustomTaskStatus status, string userId)
         {
-            var task = await GetTaskOrThrow(taskId);
-
-            task.Status = status;
             if (status == CustomTaskStatus.Completed)
-            {
-                task.CompletedAt = DateTime.UtcNow;
-            }
-            context.Update(task);
-            await context.SaveChangesAsync();
+                throw new Exception();
 
-            if (!string.IsNullOrEmpty(task.Employee.Email) && !string.IsNullOrEmpty(task.EmployeeId))
+            var task = await GetTaskOrThrow(taskId);
+            var oldStatus = task.Status;
+
+            using var transaction = await context.Database.BeginTransactionAsync();
+            try
             {
-                Dictionary<string, string> replacements = new Dictionary<string, string>
+                task.Status = status;
+                var history = new TaskItemHistory
                 {
-                    {"FullName", $"{task.Employee.FirstName} {task.Employee.LastName}" },
-                    {"Email", $"{task.Employee.Email}" },
-                    {"TaskTitle", $"{task.Title}" },
-                    {"TaskType", $"{task.TaskType}" },
-                    {"TaskId", $"{task.Id}" },
-                    {"OldStatus", $"{task.Status}" },
-                    {"NewStatus", $"{status}" },
-                    {"TimeStamp", $"{DateTime.UtcNow}" }
+                    TaskItemId = taskId,
+                    PropertyName = "تغيير الحالة",
+                    OldValue = oldStatus.ToString(),
+                    NewValue = status.ToString(),
+                    UpdatedById = userId,
+                    UpdatedAt = DateTime.UtcNow
                 };
-                await emailService.SendEmailWithTemplateAsync(task.Employee.Email, "Task Updates", "ChangeTaskStatus", replacements);
-                //await notificationService.CreateAsync(new Core.DTOs.Notifications.CreateNotificationDTO
-                //{
-                //    UserId = task.EmployeeId,
-                //    Title = "Task Status Updated",
-                //    Body = $"The status of task '{task.Title}' has been changed to {status}.",
-                //    Url = $"https://internal.theminaretagency.com/tasks/{task.Id}"
-                //});
-                
-            }
+                context.Tasks.Update(task);
+                await context.TaskHistory.AddAsync(history);
+                await context.SaveChangesAsync();
 
-            string channel = task.ClientService.Client.DiscordChannelId;
-            if (!string.IsNullOrEmpty(channel))
-            {
-                TaskDTO mappedTask = mapper.Map<TaskDTO>(task);
-                await discordService.ChangeTaskStatus(channel, mappedTask, status);
+                if (!string.IsNullOrEmpty(task.Employee.Email) && !string.IsNullOrEmpty(task.EmployeeId))
+                {
+                    Dictionary<string, string> replacements = new Dictionary<string, string>
+                    {
+                        {"FullName", $"{task.Employee.FirstName} {task.Employee.LastName}" },
+                        {"Email", $"{task.Employee.Email}" },
+                        {"TaskTitle", $"{task.Title}" },
+                        {"TaskType", $"{task.TaskType}" },
+                        {"TaskId", $"{task.Id}" },
+                        {"OldStatus", $"{task.Status}" },
+                        {"NewStatus", $"{status}" },
+                        {"TimeStamp", $"{DateTime.UtcNow}" }
+                    };
+                    await emailService.SendEmailWithTemplateAsync(task.Employee.Email, "Task Updates", "ChangeTaskStatus", replacements);
+                    //await notificationService.CreateAsync(new Core.DTOs.Notifications.CreateNotificationDTO
+                    //{
+                    //    UserId = task.EmployeeId,
+                    //    Title = "Task Status Updated",
+                    //    Body = $"The status of task '{task.Title}' has been changed to {status}.",
+                    //    Url = $"https://internal.theminaretagency.com/tasks/{task.Id}"
+                    //});
+                
+                }
+                string? channel = task.ClientService?.Client?.DiscordChannelId;
+                if (!string.IsNullOrEmpty(channel))
+                {
+                    TaskDTO mappedTask = mapper.Map<TaskDTO>(task);
+                    await discordService.ChangeTaskStatus(channel, mappedTask, status);
+                }
+                await transaction.CommitAsync();
+                return true;
             }
-            return true;
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                throw new Exception(ex.Message);
+            }
         }
         public async Task<bool> DeleteTaskAsync(int taskId)
         {
@@ -100,9 +120,9 @@ namespace Infrastructure.Services.NewFolder
                         {"TaskId", $"{task.Id}" },
                         {"TimeStamp", $"{DateTime.UtcNow}" }
                     };
-                    await emailService.SendEmailWithTemplateAsync(task.Employee.Email, "Task Updates", "ChangeTaskStatus", replacements);
+                    await emailService.SendEmailWithTemplateAsync(task.Employee.Email, "Task Deleted", "DeleteTask", replacements);
                 }
-                string channel = task.ClientService.Client.DiscordChannelId;
+                string channel = task.ClientService.Client.DiscordChannelId ?? string.Empty;
                 if (!string.IsNullOrEmpty(channel))
                 {
                     TaskDTO mappedTask = mapper.Map<TaskDTO>(task);
@@ -118,9 +138,23 @@ namespace Infrastructure.Services.NewFolder
             }
 
         }
-        public async Task<List<TaskDTO>> GetAllTasksAsync()
+        public async Task<List<TaskDTO>> GetAllUnArchivedTasksAsync()
         {
             var tasks = await context.Tasks
+                .Where(t => !t.IsArchived)
+                .Include(t => t.ClientService)
+                    .ThenInclude(cs => cs.Service)
+                .Include(t => t.ClientService)
+                    .ThenInclude(cs => cs.Client)
+                .Include(t => t.Employee)
+                .ToListAsync();
+
+            return mapper.Map<List<TaskDTO>>(tasks);
+        }
+        public async Task<List<TaskDTO>> GetAllArchivedTasksAsync()
+        {
+            var tasks = await context.Tasks
+                .Where(t => t.IsArchived)
                 .Include(t => t.ClientService)
                     .ThenInclude(cs => cs.Service)
                 .Include(t => t.ClientService)
@@ -133,6 +167,7 @@ namespace Infrastructure.Services.NewFolder
         public async Task<TaskDTO> GetTaskByIdAsync(int taskId)
         {
             var task = await context.Tasks
+                .Include(t => t.TaskHistory)
                 .Include(t => t.ClientService)
                     .ThenInclude(cs => cs.Service)
                 .Include(t => t.ClientService)
@@ -144,55 +179,194 @@ namespace Infrastructure.Services.NewFolder
         }
         public async Task<List<TaskDTO>> GetTasksByEmployeeIdAsync(string empId)
         {
-            var tasks = await context.Tasks
+            var emp = await userManager.FindByIdAsync(empId)
+                ?? throw new Exception("Employee not found.");
+
+            var roles = await userManager.GetRolesAsync(emp);
+
+            IQueryable<TaskItem> query = context.Tasks
+                .Where(t => !t.IsArchived)
                 .Include(t => t.ClientService)
                     .ThenInclude(cs => cs.Service)
                 .Include(t => t.ClientService)
                     .ThenInclude(cs => cs.Client)
-                .Include(t => t.Employee)
-                .Where(t => t.EmployeeId == empId)
-                .ToListAsync();
+                .Include(t => t.Employee);
 
+            if (roles.Contains("Admin") || roles.Contains("AccountManager"))
+            {
+                // Return all tasks (no empId filter)
+            }
+            else if (roles.Contains("ContentCreatorTeamLeader"))
+            {
+                var contentTypes = new[] { TaskType.ContentWriting, TaskType.ContentStrategy };
+                query = query.Where(t => contentTypes.Contains(t.TaskType));
+            }
+            else if (roles.Contains("GraphicDesignerTeamLeader"))
+            {
+                var contentTypes = new[]
+                {
+                    TaskType.Illustrations,
+                    TaskType.LogoDesign,
+                    TaskType.VisualIdentity,
+                    TaskType.DesignDirections,
+                    TaskType.SM_Design,
+                    TaskType.Motion,
+                    TaskType.VideoEditing
+                };
+                query = query.Where(t => contentTypes.Contains(t.TaskType));
+            }
+            else
+            {
+                // Default: return only tasks assigned to this employee
+                query = query.Where(t => t.EmployeeId == empId);
+            }
+
+            var tasks = await query.ToListAsync();
             return mapper.Map<List<TaskDTO>>(tasks);
         }
-        public async Task<TaskDTO> UpdateTaskAsync(int taskId, UpdateTaskDTO updateTask)
+        public async Task<TaskDTO> UpdateTaskAsync(int taskId, UpdateTaskDTO updateTask, string userId)
         {
-            if (updateTask is null)
-                throw new Exception();
             var task = await GetTaskOrThrow(taskId);
+            var histories = new List<TaskItemHistory>();
 
-            task.Title = updateTask.Title ?? task.Title;
-            task.Description = updateTask.Description ?? task.Description;
-            task.Deadline = updateTask.Deadline ?? task.Deadline;
-            task.Priority = updateTask.Priority ?? task.Priority;
-            task.Refrence = updateTask.Refrence ?? task.Refrence;
-            task.Status = updateTask.Status;
+            // --- Title ---
+            if (!string.IsNullOrWhiteSpace(updateTask.Title) && updateTask.Title != task.Title)
+            {
+                histories.Add(new TaskItemHistory
+                {
+                    TaskItemId = task.Id,
+                    PropertyName = "العنوان",
+                    OldValue = task.Title,
+                    NewValue = updateTask.Title,
+                    UpdatedById = userId,
+                    UpdatedAt = DateTime.UtcNow
+                });
+                task.Title = updateTask.Title;
+            }
 
-            if (!string.IsNullOrWhiteSpace(updateTask.EmployeeId) && 
-                updateTask.EmployeeId != task.EmployeeId)
+            // --- Description ---
+            if (!string.IsNullOrWhiteSpace(updateTask.Description) && updateTask.Description != task.Description)
+            {
+                histories.Add(new TaskItemHistory
+                {
+                    TaskItemId = task.Id,
+                    PropertyName = "الوصف",
+                    OldValue = task.Description,
+                    NewValue = updateTask.Description,
+                    UpdatedById = userId,
+                    UpdatedAt = DateTime.UtcNow
+                });
+                task.Description = updateTask.Description;
+            }
+
+            // --- Deadline ---
+            if (updateTask.Deadline.HasValue && updateTask.Deadline.Value != task.Deadline)
+            {
+                histories.Add(new TaskItemHistory
+                {
+                    TaskItemId = task.Id,
+                    PropertyName = "الموعد النهائي",
+                    OldValue = task.Deadline.ToString("u"),
+                    NewValue = updateTask.Deadline.Value.ToString("u"),
+                    UpdatedById = userId,
+                    UpdatedAt = DateTime.UtcNow
+                });
+                task.Deadline = updateTask.Deadline.Value;
+            }
+
+            // --- Priority ---
+            if (!string.IsNullOrWhiteSpace(updateTask.Priority) && updateTask.Priority != task.Priority)
+            {
+                histories.Add(new TaskItemHistory
+                {
+                    TaskItemId = task.Id,
+                    PropertyName = "الأولوية",
+                    OldValue = task.Priority,
+                    NewValue = updateTask.Priority,
+                    UpdatedById = userId,
+                    UpdatedAt = DateTime.UtcNow
+                });
+                task.Priority = updateTask.Priority;
+            }
+
+            // --- Reference ---
+            if (!string.IsNullOrWhiteSpace(updateTask.Refrence) && updateTask.Refrence != task.Refrence)
+            {
+                histories.Add(new TaskItemHistory
+                {
+                    TaskItemId = task.Id,
+                    PropertyName = "المرجع",
+                    OldValue = task.Refrence,
+                    NewValue = updateTask.Refrence,
+                    UpdatedById = userId,
+                    UpdatedAt = DateTime.UtcNow
+                });
+                task.Refrence = updateTask.Refrence;
+            }
+
+            // --- Status ---
+            if (updateTask.Status != task.Status)
+            {
+                histories.Add(new TaskItemHistory
+                {
+                    TaskItemId = task.Id,
+                    PropertyName = "الحالة",
+                    OldValue = task.Status.ToString(),
+                    NewValue = updateTask.Status.ToString(),
+                    UpdatedById = userId,
+                    UpdatedAt = DateTime.UtcNow
+                });
+                task.Status = updateTask.Status;
+            }
+
+            // --- Employee ---
+            if (!string.IsNullOrWhiteSpace(updateTask.EmployeeId) && updateTask.EmployeeId != task.EmployeeId)
             {
                 var user = await userManager.FindByIdAsync(updateTask.EmployeeId)
-                    ?? throw new Exception();
+                    ?? throw new Exception("Employee not found");
+
+                histories.Add(new TaskItemHistory
+                {
+                    TaskItemId = task.Id,
+                    PropertyName = "الموظف",
+                    OldValue = task.EmployeeId ?? "غير محدد",
+                    NewValue = user.Id,
+                    UpdatedById = userId,
+                    UpdatedAt = DateTime.UtcNow
+                });
+
                 task.EmployeeId = user.Id;
             }
 
-            context.Update(task);
+            // --- Save task + history in one transaction ---
+            context.Tasks.Update(task);
+            if (histories.Any())
+                await context.TaskHistory.AddRangeAsync(histories);
+
             await context.SaveChangesAsync();
 
+            // --- Notifications ---
             if (!string.IsNullOrEmpty(task.Employee.Email) && !string.IsNullOrEmpty(task.EmployeeId))
             {
-                Dictionary<string, string> replacements = new Dictionary<string, string>
+                var replacements = new Dictionary<string, string>
                 {
                     {"FullName", $"{task.Employee.FirstName} {task.Employee.LastName}" },
-                    {"Email", $"{task.Employee.Email}" },
-                    {"TaskTitle", $"{task.Title}" },
-                    {"TaskType", $"{task.TaskType}" },
-                    {"TaskId", $"{task.Id}" },
-                    {"TimeStamp", $"{DateTime.UtcNow}" }
+                    {"Email", task.Employee.Email },
+                    {"TaskTitle", task.Title },
+                    {"TaskType", task.TaskType.ToString() },
+                    {"TaskId", task.Id.ToString() },
+                    {"TimeStamp", DateTime.UtcNow.ToString("u") }
                 };
-                await emailService.SendEmailWithTemplateAsync(task.Employee.Email, "Task Has Been Updated", "TaskUpdates", replacements);
+
+                await emailService.SendEmailWithTemplateAsync(
+                    task.Employee.Email,
+                    "Task Has Been Updated",
+                    "TaskUpdates",
+                    replacements
+                );
             }
 
+            // --- Discord update ---
             string channel = task.ClientService.Client.DiscordChannelId ?? string.Empty;
             TaskDTO mappedTask = mapper.Map<TaskDTO>(task);
             if (!string.IsNullOrEmpty(channel))
@@ -202,6 +376,7 @@ namespace Infrastructure.Services.NewFolder
 
             return mappedTask;
         }
+
         public async Task<TaskDTO> CreateTaskAsync(CreateTaskDTO createTask)
         {
             // Validate that the task group exists
@@ -214,10 +389,6 @@ namespace Infrastructure.Services.NewFolder
                 .Include(cs => cs.Client)
                 .FirstOrDefaultAsync(cs => cs.Id == createTask.ClientServiceId)
                 ?? throw new InvalidObjectException("العميل غير مشترك في هذه الخدمة");
-
-            // Validate that the employee exists
-            var employee = await userManager.FindByIdAsync(createTask.EmployeeId)
-                ?? throw new InvalidObjectException("لم نتمكن من العثور على الموظف");
 
             using var transaction = await context.Database.BeginTransactionAsync();
             try
@@ -232,7 +403,7 @@ namespace Infrastructure.Services.NewFolder
                     Deadline = createTask.Deadline,
                     Priority = createTask.Priority,
                     Refrence = createTask.Refrence,
-                    EmployeeId = createTask.EmployeeId,
+                    EmployeeId = createTask.EmployeeId ?? string.Empty,
                     TaskGroupId = createTask.TaskGroupId
                 };
 
@@ -252,7 +423,7 @@ namespace Infrastructure.Services.NewFolder
                     };
                     await emailService.SendEmailWithTemplateAsync(task.Employee.Email, "New Task Has Been Assigned To You", "NewTaskAssignment", replacements);
                 }
-                string channel = task.ClientService.Client.DiscordChannelId;
+                string channel = task.ClientService.Client.DiscordChannelId ?? string.Empty;
                 if (!string.IsNullOrEmpty(channel))
                 {
                     TaskDTO mappedTask = mapper.Map<TaskDTO>(task);
@@ -331,7 +502,7 @@ namespace Infrastructure.Services.NewFolder
                             Deadline = taskDto.Deadline,
                             Priority = taskDto.Priority,
                             Refrence = taskDto.Refrence,
-                            EmployeeId = taskDto.EmployeeId,
+                            EmployeeId = taskDto.EmployeeId ?? string.Empty,
                             TaskGroupId = taskGroup.Id
                         };
 
@@ -399,6 +570,13 @@ namespace Infrastructure.Services.NewFolder
 
             return mapper.Map<List<TaskGroupDTO>>(taskGroups);
         }
+        public async Task<bool> ToggleArchiveTaskAsync(int taskId)
+        {
+            var task = await GetTaskOrThrow(taskId);
+            task.IsArchived = !task.IsArchived;
+            context.Update(task);
+            return await context.SaveChangesAsync() > 0;
+        }
         private async Task<TaskItem> GetTaskOrThrow(int taskId)
         {
             var task = await context.Tasks
@@ -407,6 +585,139 @@ namespace Infrastructure.Services.NewFolder
                 ?? throw new InvalidObjectException("لا يوجد تاسك بهذه البيانات");
 
             return task;
+        }
+
+        //public async Task<List<TaskDTO>> SearchTasks(string query)
+        //{
+        //    if (string.IsNullOrWhiteSpace(query))
+        //        return new List<TaskDTO>();
+
+        //    query = query.Trim();
+        //    var isId = int.TryParse(query, out int taskId);
+
+        //    var tasksQuery = context.Tasks
+        //        .Include(t => t.ClientService)
+        //            .ThenInclude(cs => cs.Service)
+        //        .Include(t => t.ClientService)
+        //            .ThenInclude(cs => cs.Client)
+        //        .Include(t => t.Employee)
+        //        .AsQueryable();
+
+        //    tasksQuery = tasksQuery.Where(t =>
+        //        EF.Functions.Like(t.Title, $"%{query}%") ||
+        //        (isId && t.Id == taskId));
+
+        //    var tasks = await tasksQuery
+        //        .OrderByDescending(t => t.Id)
+        //        .ToListAsync();
+
+        //    return mapper.Map<List<TaskDTO>>(tasks);
+        //}
+
+        public async Task<List<TaskDTO>> SearchTasks(string query, string currentUserId)
+        {
+            if (string.IsNullOrWhiteSpace(query))
+                return new List<TaskDTO>();
+
+            query = query.Trim();
+            var isId = int.TryParse(query, out int taskId);
+
+            var emp = await userManager.FindByIdAsync(currentUserId)
+                ?? throw new Exception("Employee not found.");
+
+            var roles = await userManager.GetRolesAsync(emp);
+
+            IQueryable<TaskItem> tasksQuery = context.Tasks
+                .Include(t => t.ClientService)
+                    .ThenInclude(cs => cs.Service)
+                .Include(t => t.ClientService)
+                    .ThenInclude(cs => cs.Client)
+                .Include(t => t.Employee);
+
+            // Role-based filtering
+            if (roles.Contains("Admin") || roles.Contains("AccountManager"))
+            {
+                // no extra filter
+            }
+            else if (roles.Contains("ContentCreatorTeamLeader"))
+            {
+                var contentTypes = new[] { TaskType.ContentWriting, TaskType.ContentStrategy };
+                tasksQuery = tasksQuery.Where(t => contentTypes.Contains(t.TaskType));
+            }
+            else if (roles.Contains("GraphicDesignerTeamLeader"))
+            {
+                var graphicTypes = new[]
+                {
+                    TaskType.Illustrations,
+                    TaskType.LogoDesign,
+                    TaskType.VisualIdentity,
+                    TaskType.DesignDirections,
+                    TaskType.SM_Design,
+                    TaskType.Motion,
+                    TaskType.VideoEditing
+                };
+                tasksQuery = tasksQuery.Where(t => graphicTypes.Contains(t.TaskType));
+            }
+            else
+            {
+                // Regular employee
+                tasksQuery = tasksQuery.Where(t => t.EmployeeId == currentUserId);
+            }
+
+            // Search condition
+            tasksQuery = tasksQuery.Where(t =>
+                EF.Functions.Like(t.Title, $"%{query}%") ||
+                (isId && t.Id == taskId));
+
+            var tasks = await tasksQuery
+                .OrderByDescending(t => t.Id)
+                .ToListAsync();
+
+            return mapper.Map<List<TaskDTO>>(tasks);
+        }
+        public async Task<bool> CompleteTaskAsync(int taskId, CreateTaskResourcesDTO taskResourcesDTO, string userId)
+        {
+            var task = await GetTaskOrThrow(taskId);
+            var emp = await userManager.FindByIdAsync(userId)
+                ?? throw new Exception("Employee is not found");
+
+            if (taskResourcesDTO.URLs == null || !taskResourcesDTO.URLs.Any())
+                throw new Exception("At least one link is required to complete the task.");
+
+            var taskLinks = taskResourcesDTO.URLs
+                .Select(url => new TaskCompletionResources
+                {
+                    TaskId = taskId,
+                    URL = url
+                }).ToList();
+
+            task.CompletionNotes = taskResourcesDTO.CompletionNotes;
+            task.Status = CustomTaskStatus.Completed;
+            task.CompletedAt = DateTime.UtcNow;
+
+            await context.AddRangeAsync(taskLinks);
+            context.Update(task);
+
+            if (!string.IsNullOrEmpty(task.Employee.Email))
+            {
+                Dictionary<string, string> replacements = new Dictionary<string, string>
+                {
+                    { "FullName", $"{task.Employee.FirstName} {task.Employee.LastName}" },
+                    { "TaskTitle", task.Title },
+                    { "TaskType", task.TaskType.ToString() },
+                    { "TaskId", $"{task.Id}" },
+                    { "CompletionTime", $"{task.CompletedAt}" }
+                };
+
+                await emailService.SendEmailWithTemplateAsync(task.Employee.Email, "Task Completion", "TaskCompletion", replacements);
+            }
+            string channel = task.ClientService.Client.DiscordChannelId ?? string.Empty;
+            if (!string.IsNullOrEmpty(channel))
+            {
+                TaskDTO mappedTask = mapper.Map<TaskDTO>(task);
+                await discordService.NewTask(channel, mappedTask);
+            }
+            return await context.SaveChangesAsync() > 0;
         }
     }
 }

@@ -16,13 +16,16 @@ namespace Core.DTOs.Tasks
         public string? EmployeeId { get; set; }
         public string? EmployeeName { get; set; }
         public DateTime? CompletedAt { get; set; }
+        public bool IsArchived { get; set; }
         public bool IsCompletedOnDeadline =>
             Status == CustomTaskStatus.Completed &&
             CompletedAt.HasValue &&
             CompletedAt.Value.Date <= Deadline.Date;
         public int TaskGroupId { get; set; }
+        public List<TaskHistoryDTO> TaskHistory { get; set; } = new();
         public int ServiceId { get; set; }
         public string? ServiceName { get; set; }
+        public int ClientId { get; set; }
         public string? ClientName { get; set; }
     }
 }

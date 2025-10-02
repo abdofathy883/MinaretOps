@@ -15,12 +15,26 @@ namespace ClientAPI.Controllers
             taskService = service;
         }
 
-        [HttpGet]
+        [HttpGet("un-archived-tasks")]
         public async Task<IActionResult> GetAllTasksAsync()
         {
             try
             {
-                var tasks = await taskService.GetAllTasksAsync();
+                var tasks = await taskService.GetAllUnArchivedTasksAsync();
+                return Ok(tasks);
+            }
+            catch(Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpGet("archived-tasks")]
+        public async Task<IActionResult> GetAllArchivedTasksAsync()
+        {
+            try
+            {
+                var tasks = await taskService.GetAllArchivedTasksAsync();
                 return Ok(tasks);
             }
             catch(Exception ex)
@@ -61,14 +75,14 @@ namespace ClientAPI.Controllers
             }
         }
 
-        [HttpPut("update-task/{taskId}")]
-        public async Task<IActionResult> UpdateTaskAsync(int taskId, UpdateTaskDTO updateTaskDTO)
+        [HttpPut("update-task/{taskId}/{empId}")]
+        public async Task<IActionResult> UpdateTaskAsync(int taskId, string empId, UpdateTaskDTO updateTaskDTO)
         {
             if (taskId == 0 || updateTaskDTO is null)
                 return BadRequest("Task Id is Null Or New Task Object Is Null");
             try
             {
-                await taskService.UpdateTaskAsync(taskId, updateTaskDTO);
+                await taskService.UpdateTaskAsync(taskId, updateTaskDTO, empId);
                 return Ok(new { message = "Task updated successfully" });
             }
             catch (Exception ex)
@@ -77,11 +91,29 @@ namespace ClientAPI.Controllers
             }
         }
 
-        [HttpPatch("change-status/{taskId}")]
-        public async Task<IActionResult> ChangeTaskStatusAsync(int taskId, [FromBody] CustomTaskStatus status)
+        [HttpPatch("change-status/{taskId}/{empId}")]
+        public async Task<IActionResult> ChangeTaskStatusAsync(int taskId, string empId, [FromBody] CustomTaskStatus status)
         {
-            var result = await taskService.ChangeTaskStatusAsync(taskId, status);
+            var result = await taskService.ChangeTaskStatusAsync(taskId, status, empId);
             return Ok(result);
+        }
+
+        [HttpPatch("toggle-archive/{taskId}")]
+        public async Task<IActionResult> ArchiveTaskAsync(int taskId)
+        {
+            if (taskId == 0)
+                return BadRequest("Task Id Is Null");
+            try
+            {
+                var result = await taskService.ToggleArchiveTaskAsync(taskId);
+                if (result)
+                    return Ok(new { message = "Task archived successfully" });
+                return NotFound("Task not found");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         [HttpPost("create-task")]
@@ -149,5 +181,23 @@ namespace ClientAPI.Controllers
                 return BadRequest(ex.Message);
             }
         }
+
+        [HttpGet("search/{query}/{currentUserId}")]
+        public async Task<IActionResult> SearchTasksAsync(string query, string currentUserId)
+        {
+            if (string.IsNullOrWhiteSpace(query))
+                return BadRequest("Search query cannot be empty");
+            try
+            {
+                var tasks = await taskService.SearchTasks(query, currentUserId);
+                return Ok(tasks);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
     }
 }
+    
+

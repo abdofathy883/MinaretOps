@@ -20,6 +20,7 @@ namespace Infrastructure.MappingProfiles
                 .ForMember(dest => dest.Refrence, opt => opt.MapFrom(src => src.Refrence))
                 .ForMember(dest => dest.EmployeeId, opt => opt.MapFrom(src => src.EmployeeId))
                 .ForMember(dest => dest.CompletedAt, opt => opt.MapFrom(src => src.CompletedAt))
+                .ForMember(dest => dest.IsArchived, opt => opt.MapFrom(src => src.IsArchived))
                 .ForMember(dest => dest.IsCompletedOnDeadline, opt => opt.MapFrom(src => src.IsCompletedOnDeadline))
                 .ForMember(dest => dest.EmployeeName, opt =>
                     opt.MapFrom(src => $"{src.Employee.FirstName} {src.Employee.LastName}"))
@@ -28,7 +29,9 @@ namespace Infrastructure.MappingProfiles
                     opt.MapFrom(src => src.ClientService.Service.Title))
                 .ForMember(dest => dest.ClientName, opt =>
                     opt.MapFrom(src => src.ClientService.Client.Name))
-                .ForMember(dest => dest.ServiceId, opt => opt.MapFrom(src => src.ClientService.ServiceId));
+                .ForMember(dest => dest.ClientId, opt => opt.MapFrom(src => src.ClientService.Client.Id))
+                .ForMember(dest => dest.ServiceId, opt => opt.MapFrom(src => src.ClientService.ServiceId))
+                .ForMember(dest => dest.TaskHistory, opt => opt.MapFrom(src => src.TaskHistory));
         }
     }
 }

@@ -46,6 +46,9 @@ namespace Infrastructure.Data.Model_Configurations
             builder.Property(t => t.Priority)
                 .IsRequired();
 
+            builder.Property(t => t.IsArchived)
+                .HasDefaultValue(false);
+
             // Relationship with ClientService
             builder.HasOne(t => t.TaskGroup)
                 .WithMany(cs => cs.Tasks)

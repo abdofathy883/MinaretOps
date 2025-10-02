@@ -14,6 +14,8 @@ namespace Infrastructure.Data
         public DbSet<Service> Services { get; set; }
         public DbSet<ClientService> ClientServices { get; set; }
         public DbSet<TaskItem> Tasks { get; set; }
+        public DbSet<TaskItemHistory> TaskHistory { get; set; }
+        public DbSet<TaskCompletionResources> TaskCompletionResources { get; set; }
         public DbSet<TaskGroup> TaskGroups { get; set; }
         public DbSet<InternalTask> InternalTasks { get; set; }
         public DbSet<InternalTaskAssignment> InternalTaskAssignments { get; set; }
@@ -40,6 +42,7 @@ namespace Infrastructure.Data
             builder.ApplyConfiguration(new ServiceConfig());
             builder.ApplyConfiguration(new ClientServiceConfig());
             builder.ApplyConfiguration(new TaskConfig());
+            builder.ApplyConfiguration(new TaskLinksConfig());
             builder.ApplyConfiguration(new TaskGroupConfig());
             builder.ApplyConfiguration(new InternalTaskConfig());
             builder.ApplyConfiguration(new InternalTaskAssignmentConfig());

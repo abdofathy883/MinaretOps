@@ -31,6 +31,10 @@ namespace Infrastructure.Data.Model_Configurations
                 .HasMaxLength(500)
                 .IsRequired(false);
 
+            builder.Property(i => i.Date)
+                .IsRequired(false)
+                .HasDefaultValueSql("GETDATE()");
+
             builder.HasOne(i => i.Employee)
                 .WithMany(u => u.KPIIncedints)
                 .HasForeignKey(i => i.EmployeeId)

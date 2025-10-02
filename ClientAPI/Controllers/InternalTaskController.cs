@@ -15,12 +15,26 @@ namespace ClientAPI.Controllers
             internalTaskService = internalTask;
         }
 
-        [HttpGet]
+        [HttpGet("un-archived-tasks")]
         public async Task<IActionResult> GetAllInternalTasks()
         {
             try
             {
-                var tasks = await internalTaskService.GetAllInternalTasksAsync();
+                var tasks = await internalTaskService.GetAllUnArchivedInternalTasksAsync();
+                return Ok(tasks);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpGet("archived-tasks")]
+        public async Task<IActionResult> GetAllArchivedInternalTasks()
+        {
+            try
+            {
+                var tasks = await internalTaskService.GetAllArchivedInternalTasksAsync();
                 return Ok(tasks);
             }
             catch (Exception ex)
@@ -69,12 +83,12 @@ namespace ClientAPI.Controllers
             }
         }
 
-        [HttpGet("search-tasks/{title}")]
-        public async Task<IActionResult> SearchInternalTasksByTitle(string title)
+        [HttpGet("search-tasks/{query}/{empId}")]
+        public async Task<IActionResult> SearchInternalTasksByTitle(string query, string empId)
         {
             try
             {
-                var tasks = await internalTaskService.SearchByTitleAsync(title);
+                var tasks = await internalTaskService.SearchByTitleAsync(query, empId);
                 return Ok(tasks);
             }
             catch (Exception ex)
@@ -105,6 +119,22 @@ namespace ClientAPI.Controllers
                 return Ok(result);
             }
             catch(Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpPatch("archive/{taskId}")]
+        public async Task<IActionResult> ArchiveTaskAsync(int taskId)
+        {
+            if (taskId == 0)
+                return BadRequest();
+            try
+            {
+                var result = await internalTaskService.ToggleArchiveInternalTaskAsync(taskId);
+                return Ok(result);
+            }
+            catch (Exception ex)
             {
                 return BadRequest(ex.Message);
             }

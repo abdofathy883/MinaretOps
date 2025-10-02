@@ -18,7 +18,8 @@ namespace Infrastructure.MappingProfiles
                 .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => src.CreatedAt))
                 .ForMember(dest => dest.CompletedAt, opt => opt.MapFrom(src => src.CompletedAt))
                 .ForMember(dest => dest.Priority, opt => opt.MapFrom(src => src.Priority))
-                .ForMember(dest => dest.Assignments, opt => opt.MapFrom(src => src.Assignments));
+                .ForMember(dest => dest.Assignments, opt => opt.MapFrom(src => src.Assignments))
+                .ForMember(dest => dest.IsArchived, opt => opt.MapFrom(src => src.IsArchived));
         }
     }
 }

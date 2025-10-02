@@ -53,7 +53,7 @@ namespace Infrastructure.Services.Attendance
         {
             var records = await context.AttendanceRecords
                 .Include(r => r.Employee)
-                .OrderByDescending(r => r.CheckInTime)
+                .OrderBy(r => r.CheckInTime)
                 .ToListAsync();
 
             var tz = TimeZoneInfo.FindSystemTimeZoneById("Egypt Standard Time");

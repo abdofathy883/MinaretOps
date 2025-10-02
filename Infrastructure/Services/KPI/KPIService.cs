@@ -146,7 +146,8 @@ namespace Infrastructure.Services.KPI
                     Aspect = dto.Aspect,
                     Description = dto.Description,
                     EvidenceURL = evidenceURL,
-                    TimeStamp = DateTime.UtcNow
+                    TimeStamp = DateTime.UtcNow,
+                    Date = dto.Date
                 };
                 await context.KPIIncedints.AddAsync(incedint);
                 await context.SaveChangesAsync();

@@ -1,11 +1,14 @@
 ﻿using AutoMapper;
 using Core.DTOs.InternalTasks;
+using Core.DTOs.Tasks;
 using Core.Enums;
 using Core.Interfaces;
 using Core.Models;
 using Infrastructure.Data;
 using Infrastructure.Exceptions;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace Infrastructure.Services.InternalTasks
 {
@@ -14,15 +17,18 @@ namespace Infrastructure.Services.InternalTasks
         private readonly MinaretOpsDbContext context;
         private readonly IEmailService emailService;
         private readonly IMapper mapper;
+        private readonly UserManager<ApplicationUser> userManager;
         public InternalTaskService(
             MinaretOpsDbContext minaret,
             IEmailService email,
-            IMapper _mapper
+            IMapper _mapper,
+            UserManager<ApplicationUser> manager
             )
         {
             context = minaret;
             emailService = email;
             mapper = _mapper;
+            userManager = manager;
         }
 
         public async Task<bool> ChangeTaskStatusAsync(int taskId, CustomTaskStatus status)
@@ -51,7 +57,7 @@ namespace Infrastructure.Services.InternalTasks
                             { "TaskStatus", status.ToString() },
                             { "TaskDeadline", task.Deadline.ToString("yyyy-MM-dd") }
                         };
-                        await emailService.SendEmailWithTemplateAsync(ass.User.Email, "New Internal Task", "NewTaskAssignment", replacements);
+                        await emailService.SendEmailWithTemplateAsync(ass.User.Email, "Task Status Changes", "ChangeTaskStatus", replacements);
                     }
                 }
 
@@ -188,9 +194,21 @@ namespace Infrastructure.Services.InternalTasks
             return await context.SaveChangesAsync() > 0;
         }
 
-        public async Task<List<InternalTaskDTO>> GetAllInternalTasksAsync()
+        public async Task<List<InternalTaskDTO>> GetAllUnArchivedInternalTasksAsync()
         {
             var tasks = await context.InternalTasks
+                .Where(t => !t.IsArchived)
+                .Include(t => t.Assignments)
+                    .ThenInclude(a => a.User)
+                .OrderByDescending(t => t.CreatedAt)
+                .ToListAsync();
+
+            return mapper.Map<List<InternalTaskDTO>>(tasks);
+        }
+        public async Task<List<InternalTaskDTO>> GetAllArchivedInternalTasksAsync()
+        {
+            var tasks = await context.InternalTasks
+                .Where(t => t.IsArchived)
                 .Include(t => t.Assignments)
                     .ThenInclude(a => a.User)
                 .OrderByDescending(t => t.CreatedAt)
@@ -212,7 +230,16 @@ namespace Infrastructure.Services.InternalTasks
 
         public async Task<List<InternalTaskDTO>> GetInternalTasksByEmpAsync(string empId)
         {
+            var emp = await userManager.FindByIdAsync(empId)
+                ?? throw new Exception("Employee not found.");
+
+            //IQueryable<InternalTask> query = context.InternalTasks
+            //    .Where(t => !t.IsArchived)
+            //    .Include(t => t.Assignments)
+            //        .ThenInclude(a => a.User);
+
             var tasks = await context.InternalTasks
+                .Where(it => !it.IsArchived)
                 .Include(it => it.Assignments)
                     .ThenInclude(a => a.User)
                 .Where(it => it.Assignments.Any(a => a.UserId == empId))
@@ -221,16 +248,26 @@ namespace Infrastructure.Services.InternalTasks
             return mapper.Map<List<InternalTaskDTO>>(tasks);
         }
 
-        public async Task<List<InternalTaskDTO>> SearchByTitleAsync(string title)
+        public async Task<List<InternalTaskDTO>> SearchByTitleAsync(string query, string empId)
         {
-            if (string.IsNullOrWhiteSpace(title) || title.Trim().Length < 3)
+            if (string.IsNullOrWhiteSpace(query))
                 return new List<InternalTaskDTO>();
 
-            var tasks = await context.InternalTasks
-                .Where(t => EF.Functions.Like(t.Title, $"%{title.Trim()}%"))
-                //.Where(t => t.Title.Contains(title))
-                .OrderByDescending(t => t.CreatedAt)
+            query = query.Trim();
+            var isId = int.TryParse(query, out int taskId);
+
+            IQueryable<InternalTask> tasksQuery = context.InternalTasks
+                .Include(t => t.Assignments)
+                .Where(it => it.Assignments.Any(a => a.UserId == empId));
+
+            tasksQuery = tasksQuery.Where(t =>
+                EF.Functions.Like(t.Title, $"%{query}%") ||
+                (isId && t.Id == taskId));
+
+            var tasks = await tasksQuery
+                .OrderByDescending(t => t.Id)
                 .ToListAsync();
+
             return mapper.Map<List<InternalTaskDTO>>(tasks);
         }
 
@@ -345,7 +382,7 @@ namespace Infrastructure.Services.InternalTasks
                         await emailService.SendEmailWithTemplateAsync(
                             ass.User.Email,
                             "Updated Internal Task",
-                            "NewTaskAssignment",
+                            "TaskUpdates",
                             replacements
                         );
                     }
@@ -365,6 +402,22 @@ namespace Infrastructure.Services.InternalTasks
                 await transaction.RollbackAsync();
                 throw new NotImplementedOperationException($"حدث خطأ أثناء تحديث التاسك: {ex.Message}");
             }
+        }
+
+        public async Task<bool> ToggleArchiveInternalTaskAsync(int taskId)
+        {
+            var task = await GetTaskOrThrow(taskId);
+
+            task.IsArchived = !task.IsArchived;
+            context.Update(task);
+            return await context.SaveChangesAsync() > 0;
+        }
+
+        private async Task<InternalTask> GetTaskOrThrow(int taskId)
+        {
+            var task = await context.InternalTasks.FirstOrDefaultAsync(t => t.Id == taskId)
+                ?? throw new Exception();
+            return task;
         }
     }
 }

@@ -77,12 +77,14 @@ namespace ClientAPI
                 var jobKey = new JobKey("AttendanceJob");
                 q.AddJob<AttendanceJob>(opts => opts.WithIdentity(jobKey));
 
+                TimeZoneInfo egyptTZ = TimeZoneInfo.FindSystemTimeZoneById("Egypt Standard Time");
+                
                 // Run at 23:59 every day
                 q.AddTrigger(opts => opts
                     .ForJob(jobKey)
                     .WithIdentity("AttendanceJob-trigger")
                     //.WithCronSchedule("59 23 * * *") // CRON: sec min hour day month day-of-week
-                    .WithSchedule(CronScheduleBuilder.DailyAtHourAndMinute(23, 59))
+                    .WithSchedule(CronScheduleBuilder.DailyAtHourAndMinute(23, 59).InTimeZone(egyptTZ))
                 );
             });
 
@@ -107,6 +109,7 @@ namespace ClientAPI
                 cfg.AddProfile<NotificationProfile>();
                 cfg.AddProfile<ComplaintProfile>();
                 cfg.AddProfile<KPIIncedintProfile>();
+                cfg.AddProfile<TaskHistoryProfile>();
             });
 
             builder.Services.AddControllers();

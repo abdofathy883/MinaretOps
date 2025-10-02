@@ -4,6 +4,7 @@ using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Infrastructure.Migrations
 {
     [DbContext(typeof(MinaretOpsDbContext))]
-    partial class MinaretOpsDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250929215550_TaskArchiveProp")]
+    partial class TaskArchiveProp
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -521,11 +524,6 @@ namespace Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateOnly?>("Date")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("date")
-                        .HasDefaultValueSql("GETDATE()");
-
                     b.Property<string>("Description")
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
@@ -749,29 +747,6 @@ namespace Infrastructure.Migrations
                     b.ToTable("Services");
                 });
 
-            modelBuilder.Entity("Core.Models.TaskCompletionResources", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("TaskId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("URL")
-                        .IsRequired()
-                        .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TaskId");
-
-                    b.ToTable("TaskCompletionResources");
-                });
-
             modelBuilder.Entity("Core.Models.TaskGroup", b =>
                 {
                     b.Property<int>("Id")
@@ -821,9 +796,6 @@ namespace Infrastructure.Migrations
                     b.Property<DateTime?>("CompletedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("CompletionNotes")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<DateTime>("Deadline")
                         .HasColumnType("datetime2");
 
@@ -872,43 +844,6 @@ namespace Infrastructure.Migrations
                     b.HasIndex("TaskGroupId");
 
                     b.ToTable("Tasks");
-                });
-
-            modelBuilder.Entity("Core.Models.TaskItemHistory", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("NewValue")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("OldValue")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("PropertyName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("TaskItemId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UpdatedById")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TaskItemId");
-
-                    b.HasIndex("UpdatedById");
-
-                    b.ToTable("TaskHistory");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -1203,17 +1138,6 @@ namespace Infrastructure.Migrations
                     b.Navigation("Category");
                 });
 
-            modelBuilder.Entity("Core.Models.TaskCompletionResources", b =>
-                {
-                    b.HasOne("Core.Models.TaskItem", "Task")
-                        .WithMany("CompletionResources")
-                        .HasForeignKey("TaskId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Task");
-                });
-
             modelBuilder.Entity("Core.Models.TaskGroup", b =>
                 {
                     b.HasOne("Core.Models.ClientService", "ClientService")
@@ -1249,25 +1173,6 @@ namespace Infrastructure.Migrations
                     b.Navigation("Employee");
 
                     b.Navigation("TaskGroup");
-                });
-
-            modelBuilder.Entity("Core.Models.TaskItemHistory", b =>
-                {
-                    b.HasOne("Core.Models.TaskItem", "TaskItem")
-                        .WithMany("TaskHistory")
-                        .HasForeignKey("TaskItemId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Core.Models.ApplicationUser", "UpdatedBy")
-                        .WithMany()
-                        .HasForeignKey("UpdatedById")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("TaskItem");
-
-                    b.Navigation("UpdatedBy");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -1376,13 +1281,6 @@ namespace Infrastructure.Migrations
             modelBuilder.Entity("Core.Models.TaskGroup", b =>
                 {
                     b.Navigation("Tasks");
-                });
-
-            modelBuilder.Entity("Core.Models.TaskItem", b =>
-                {
-                    b.Navigation("CompletionResources");
-
-                    b.Navigation("TaskHistory");
                 });
 #pragma warning restore 612, 618
         }

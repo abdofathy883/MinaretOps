@@ -9,7 +9,9 @@ namespace Infrastructure.Data.Model_Configurations
         public void Configure(EntityTypeBuilder<InternalTask> builder)
         {
             builder.HasKey(t => t.Id);
-            builder.Property(t => t.Id).UseIdentityColumn(1, 1);
+
+            builder.Property(t => t.Id)
+                .UseIdentityColumn(1, 1);
 
             builder.Property(t => t.Title)
                 .IsRequired()
@@ -29,6 +31,9 @@ namespace Infrastructure.Data.Model_Configurations
 
             builder.Property(t => t.Priority)
                 .IsRequired();
+
+            builder.Property(t => t.IsArchived)
+                .HasDefaultValue(false);
 
             builder.Property(t => t.Deadline)
                 .IsRequired();
