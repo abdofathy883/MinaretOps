@@ -36,12 +36,12 @@ namespace Infrastructure.Services.LeaveRequestService
         {
             var admin = await GetUserOrThrow(adminId);
             if (!await userManager.IsInRoleAsync(admin, "Admin"))
-                throw new UnauthorizedAccessException("User is not authorized to perform this action.");
+                throw new UnauthorizedAccessException("هذا المستخدم غير مصرح له بهذا الاجراء");
 
             var request = await context.LeaveRequests
                 .Include(r => r.Employee)
                 .FirstOrDefaultAsync(r => r.Id == requestId)
-                ?? throw new InvalidObjectException($"Leave request with Id {requestId} not found.");
+                ?? throw new InvalidObjectException($"لم يتم العثور على طلب الاجازة بهذا المعرف {requestId}");
 
             using var transaction = await context.Database.BeginTransactionAsync();
             try
@@ -68,10 +68,9 @@ namespace Infrastructure.Services.LeaveRequestService
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
-                throw new Exception();
+                throw new Exception(ex.Message);
             }
         }
-
         public async Task<List<LeaveRequestDTO>> GetAllLeaveRequests()
         {
             var requests = await context.LeaveRequests
@@ -79,7 +78,6 @@ namespace Infrastructure.Services.LeaveRequestService
                 .ToListAsync();
             return mapper.Map<List<LeaveRequestDTO>>(requests);
         }
-
         public async Task<List<LeaveRequestDTO>> GetLeaveRequestsByEmployee(string employeeId)
         {
             var emp = await GetUserOrThrow(employeeId);
@@ -90,16 +88,11 @@ namespace Infrastructure.Services.LeaveRequestService
 
             return mapper.Map<List<LeaveRequestDTO>>(requests);
         }
-
         public async Task<LeaveRequestDTO> SubmitLeaveRequest(CreateLeaveRequestDTO leaveRequestDTO)
         {
-            if (leaveRequestDTO is null)
-                throw new InvalidObjectException("");
-
             var emp = await GetUserOrThrow(leaveRequestDTO.EmployeeId);
 
             using var transaction = await context.Database.BeginTransactionAsync();
-
             try
             {
                 var request = new LeaveRequest
@@ -134,12 +127,10 @@ namespace Infrastructure.Services.LeaveRequestService
                 throw new NotImplementedOperationException(ex.Message);
             }
         }
-
         private async Task<ApplicationUser> GetUserOrThrow(string userId)
         {
-            var user = await userManager.FindByIdAsync(userId);
-            if (user == null)
-                throw new InvalidObjectException($"User with Id {userId} not found");
+            var user = await userManager.FindByIdAsync(userId)
+                ?? throw new InvalidObjectException($"لم يتم العثور على موظف بهذا المعرف {userId}");
             return user;
         }
     }

@@ -15,20 +15,6 @@ namespace ClientAPI.Controllers
             internalTaskService = internalTask;
         }
 
-        [HttpGet("un-archived-tasks")]
-        public async Task<IActionResult> GetAllInternalTasks()
-        {
-            try
-            {
-                var tasks = await internalTaskService.GetAllUnArchivedInternalTasksAsync();
-                return Ok(tasks);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
-        }
-
         [HttpGet("archived-tasks")]
         public async Task<IActionResult> GetAllArchivedInternalTasks()
         {

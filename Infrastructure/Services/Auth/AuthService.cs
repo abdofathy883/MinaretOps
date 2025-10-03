@@ -322,7 +322,7 @@ namespace Infrastructure.Services.Auth
                     {"TimeStamp", $"{DateTime.UtcNow}" }
                 };
                 
-                await emailService.SendEmailWithTemplateAsync(user.Email, "Change Password Confirmation", "ChangePasswordConfirmation", replacements);
+                await emailService.SendEmailWithTemplateAsync(user.Email, "Profile Update Successfully", "ProfileUpdate", replacements);
             }
 
             return new AuthResponseDTO
@@ -350,7 +350,7 @@ namespace Infrastructure.Services.Auth
                 return new AuthResponseDTO
                 {
                     IsAuthenticated = false,
-                    Message = "تعذر تحديث الرقم السري"
+                    Message = "تعذر تحديث كلمة المرور"
                 };
             }
 
@@ -360,7 +360,7 @@ namespace Infrastructure.Services.Auth
                 return new AuthResponseDTO
                 {
                     IsAuthenticated = false,
-                    Message = "تعذر تحديث الرقم السري"
+                    Message = "تعذر تحديث كلمة المرور"
                 };
             }
 
@@ -379,7 +379,7 @@ namespace Infrastructure.Services.Auth
             return new AuthResponseDTO
             {
                 IsAuthenticated = true,
-                Message = "تم تحديث الرقم السري"
+                Message = "تم تحديث كلمة المرور"
             };
         }
         public async Task<bool> DeleteUserAsync(string userId)
@@ -402,7 +402,6 @@ namespace Infrastructure.Services.Auth
                 Bio = u.Bio
             }).ToList();
         }
-
         public async Task<string> RequestResetPasswordByAdminAsync(string userId)
         {
             var user = await GetUserOrThrow(userId);
@@ -421,7 +420,6 @@ namespace Infrastructure.Services.Auth
             }
             return resetLink;
         }
-
         public async Task ResetPAsswordAsync(ResetPasswordDTO resetPasswordDTO)
         {
             var user = await GetUserOrThrow(resetPasswordDTO.UserId);

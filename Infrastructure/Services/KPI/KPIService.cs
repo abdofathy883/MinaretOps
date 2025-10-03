@@ -28,7 +28,6 @@ namespace Infrastructure.Services.KPI
             mediaUploadService = uploadService;
             mapper = _mapper;
         }
-
         private static readonly Dictionary<KPIAspectType, int> AspectCaps = new()
         {
             { KPIAspectType.Commitment, 30 },
@@ -37,27 +36,25 @@ namespace Infrastructure.Services.KPI
             { KPIAspectType.QualityOfWork, 20 },
             { KPIAspectType.CustomerSatisfaction, 10 }
         };
-        // Calculates one employee's KPI breakdown for a specific month (resets monthly by filtering incidents to that month only)
-        public Task<EmployeeMonthlyKPIDTO> GetEmployeeMonthlyAsync(string employeeId)
+        public async Task<EmployeeMonthlyKPIDTO> GetEmployeeMonthlyAsync(string employeeId)
         {
             var currentMonth = DateTime.Now.Month;
             var currentyear = DateTime.Now.Year;
             var from = new DateTime(currentyear, currentMonth, 1);
             var to = from.AddMonths(1);
 
-            var employee = context.Users.Find(employeeId)
-                ?? throw new InvalidObjectException("Employee not found");
+            var employee = await context.Users.FindAsync(employeeId)
+                ?? throw new InvalidObjectException("لم يتم العثور على الموظف");
 
-            var incedints = context.KPIIncedints
+            var incedints = await context.KPIIncedints
                 .Where(i => i.EmployeeId == employeeId && i.TimeStamp >= from && i.TimeStamp < to)
-                .ToList();
+                .ToListAsync();
 
             var dto = new EmployeeMonthlyKPIDTO
             {
                 EmployeeId = employee.Id,
                 EmployeeName = $"{employee.FirstName} {employee.LastName}",
                 Year = currentyear,
-                // Persist the queried month (used by MonthLabel)
                 Month = currentMonth,
                 Commitment = AspectCaps[KPIAspectType.Commitment],
                 Productivity = AspectCaps[KPIAspectType.Productivity],
@@ -66,42 +63,32 @@ namespace Infrastructure.Services.KPI
                 CustomerSatisfaction = AspectCaps[KPIAspectType.CustomerSatisfaction]
             };
 
-            // For each aspect, apply capped deduction: min(incidents * 10%, AspectCap)
             foreach (var g in incedints.GroupBy(i => i.Aspect))
             {
-                // Resolve cap for this aspect (fallback to 20% if not configured)
                 var cap = AspectCaps.TryGetValue(g.Key, out var c) ? c : 20;
-                // Each incident deducts 10%; cap the deduction by the configured limit
                 var deduction = Math.Min(g.Count() * 10, cap);
 
-                // Subtract the effective deduction from the corresponding aspect, never below 0
                 switch (g.Key)
                 {
-                    // Apply deduction to Commitment
                     case KPIAspectType.Commitment:
                         dto.Commitment = Math.Max(0, dto.Commitment - deduction);
                         break;
-                    // Apply deduction to Productivity
                     case KPIAspectType.Productivity:
                         dto.Productivity = Math.Max(0, dto.Productivity - deduction);
                         break;
-                    // Apply deduction to QualityOfWork
                     case KPIAspectType.QualityOfWork:
                         dto.QualityOfWork = Math.Max(0, dto.QualityOfWork - deduction);
                         break;
-                    // Apply deduction to Cooperation
                     case KPIAspectType.Cooperation:
                         dto.Cooperation = Math.Max(0, dto.Cooperation - deduction);
                         break;
-                    // Apply deduction to CustomerSatisfaction
                     case KPIAspectType.CustomerSatisfaction:
                         dto.CustomerSatisfaction = Math.Max(0, dto.CustomerSatisfaction - deduction);
                         break;
                 }
             }
-            return Task.FromResult(dto);
+            return dto;
         }
-
         public async Task<List<IncedintDTO>> GetIncedientsByEmpIdAsync(string employeeId)
         {
             var incedients = await context.KPIIncedints
@@ -110,7 +97,6 @@ namespace Infrastructure.Services.KPI
 
             return mapper.Map<List<IncedintDTO>>(incedients);
         }
-
         public async Task<List<EmployeeMonthlyKPIDTO>> GetMonthlySummeriesAsync()
         {
             var employeeIds = await context.Users.Select(u => u.Id).ToListAsync();
@@ -119,14 +105,10 @@ namespace Infrastructure.Services.KPI
                 summaries.Add(await GetEmployeeMonthlyAsync(id));
             return summaries.OrderBy(x => x.EmployeeName).ToList();
         }
-
         public async Task<IncedintDTO> NewKPIIncedintAsync(CreateIncedintDTO dto)
         {
-            if (dto is null)
-                throw new InvalidObjectException("Invalid data");
-
             var employee = await context.Users.FindAsync(dto.EmployeeId)
-                ?? throw new InvalidObjectException("Employee not found");
+                ?? throw new InvalidObjectException("لم يتم العثور على الموظف");
 
             using var transaction = await context.Database.BeginTransactionAsync();
             try
@@ -166,8 +148,6 @@ namespace Infrastructure.Services.KPI
                     
                     await emailService.SendEmailWithTemplateAsync(employee.Email, "New KPI Incedient", "NewIncedient", replacements);
                 }
-
-
                 await transaction.CommitAsync();
                 return mapper.Map<IncedintDTO>(incedint);
             }
@@ -177,7 +157,6 @@ namespace Infrastructure.Services.KPI
                 throw new Exception($"Failed to create incedint: {ex.Message}" );
             }
         }
-
         public async Task<List<IncedintDTO>> GetAllIncedientsAsync()
         {
             var incedeients = await context.KPIIncedints

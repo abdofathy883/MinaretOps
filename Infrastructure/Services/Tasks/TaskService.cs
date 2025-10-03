@@ -6,6 +6,7 @@ using Core.Models;
 using Infrastructure.Data;
 using Infrastructure.Exceptions;
 using Infrastructure.Services.Discord;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using System.Threading.Tasks;
@@ -39,7 +40,9 @@ namespace Infrastructure.Services.NewFolder
         public async Task<bool> ChangeTaskStatusAsync(int taskId, CustomTaskStatus status, string userId)
         {
             if (status == CustomTaskStatus.Completed)
-                throw new Exception();
+                throw new InvalidOperationException("لا يمكن انهاء التاسك من خلال هذا الجراء");
+
+            var user = await userManager.FindByIdAsync(userId);
 
             var task = await GetTaskOrThrow(taskId);
             var oldStatus = task.Status;
@@ -60,29 +63,32 @@ namespace Infrastructure.Services.NewFolder
                 context.Tasks.Update(task);
                 await context.TaskHistory.AddAsync(history);
                 await context.SaveChangesAsync();
-
-                if (!string.IsNullOrEmpty(task.Employee.Email) && !string.IsNullOrEmpty(task.EmployeeId))
+                if (user is not null)
                 {
-                    Dictionary<string, string> replacements = new Dictionary<string, string>
+                    if (!string.IsNullOrEmpty(user.Email) && !string.IsNullOrEmpty(user.Id))
                     {
-                        {"FullName", $"{task.Employee.FirstName} {task.Employee.LastName}" },
-                        {"Email", $"{task.Employee.Email}" },
-                        {"TaskTitle", $"{task.Title}" },
-                        {"TaskType", $"{task.TaskType}" },
-                        {"TaskId", $"{task.Id}" },
-                        {"OldStatus", $"{task.Status}" },
-                        {"NewStatus", $"{status}" },
-                        {"TimeStamp", $"{DateTime.UtcNow}" }
-                    };
-                    await emailService.SendEmailWithTemplateAsync(task.Employee.Email, "Task Updates", "ChangeTaskStatus", replacements);
-                    //await notificationService.CreateAsync(new Core.DTOs.Notifications.CreateNotificationDTO
-                    //{
-                    //    UserId = task.EmployeeId,
-                    //    Title = "Task Status Updated",
-                    //    Body = $"The status of task '{task.Title}' has been changed to {status}.",
-                    //    Url = $"https://internal.theminaretagency.com/tasks/{task.Id}"
-                    //});
+                        Dictionary<string, string> replacements = new Dictionary<string, string>
+                        {
+                            {"FullName", $"{task.Employee.FirstName} {task.Employee.LastName}" },
+                            {"Email", $"{task.Employee.Email}" },
+                            {"TaskTitle", $"{task.Title}" },
+                            {"TaskType", $"{task.TaskType}" },
+                            {"TaskId", $"{task.Id}" },
+                            {"OldStatus", $"{task.Status}" },
+                            {"NewStatus", $"{status}" },
+                            {"TimeStamp", $"{DateTime.UtcNow}" }
+                        };
+                        await emailService.SendEmailWithTemplateAsync(user.Email, "Task Updates", "ChangeTaskStatus", replacements);
+                        //await notificationService.CreateAsync(new Core.DTOs.Notifications.CreateNotificationDTO
+                        //{
+                        //    UserId = task.EmployeeId,
+                        //    Title = "Task Status Updated",
+                        //    Body = $"The status of task '{task.Title}' has been changed to {status}.",
+                        //    Url = $"https://internal.theminaretagency.com/tasks/{task.Id}"
+                        //});
                 
+                    }
+                    
                 }
                 string? channel = task.ClientService?.Client?.DiscordChannelId;
                 if (!string.IsNullOrEmpty(channel))
@@ -122,7 +128,7 @@ namespace Infrastructure.Services.NewFolder
                     };
                     await emailService.SendEmailWithTemplateAsync(task.Employee.Email, "Task Deleted", "DeleteTask", replacements);
                 }
-                string channel = task.ClientService.Client.DiscordChannelId ?? string.Empty;
+                string? channel = task.ClientService?.Client?.DiscordChannelId;
                 if (!string.IsNullOrEmpty(channel))
                 {
                     TaskDTO mappedTask = mapper.Map<TaskDTO>(task);
@@ -134,22 +140,9 @@ namespace Infrastructure.Services.NewFolder
             catch(Exception ex)
             {
                 await transaction.RollbackAsync();
-                throw new Exception();
+                throw new Exception(ex.Message);
             }
 
-        }
-        public async Task<List<TaskDTO>> GetAllUnArchivedTasksAsync()
-        {
-            var tasks = await context.Tasks
-                .Where(t => !t.IsArchived)
-                .Include(t => t.ClientService)
-                    .ThenInclude(cs => cs.Service)
-                .Include(t => t.ClientService)
-                    .ThenInclude(cs => cs.Client)
-                .Include(t => t.Employee)
-                .ToListAsync();
-
-            return mapper.Map<List<TaskDTO>>(tasks);
         }
         public async Task<List<TaskDTO>> GetAllArchivedTasksAsync()
         {
@@ -168,6 +161,7 @@ namespace Infrastructure.Services.NewFolder
         {
             var task = await context.Tasks
                 .Include(t => t.TaskHistory)
+                .Include(t => t.CompletionResources)
                 .Include(t => t.ClientService)
                     .ThenInclude(cs => cs.Service)
                 .Include(t => t.ClientService)
@@ -180,7 +174,7 @@ namespace Infrastructure.Services.NewFolder
         public async Task<List<TaskDTO>> GetTasksByEmployeeIdAsync(string empId)
         {
             var emp = await userManager.FindByIdAsync(empId)
-                ?? throw new Exception("Employee not found.");
+                ?? throw new Exception("لم يتم العثور على الموظف");
 
             var roles = await userManager.GetRolesAsync(emp);
 
@@ -192,7 +186,7 @@ namespace Infrastructure.Services.NewFolder
                     .ThenInclude(cs => cs.Client)
                 .Include(t => t.Employee);
 
-            if (roles.Contains("Admin") || roles.Contains("AccountManager"))
+            if (roles.Contains(UserRoles.Admin.ToString()) || roles.Contains(UserRoles.AccountManager.ToString()))
             {
                 // Return all tasks (no empId filter)
             }
@@ -367,7 +361,7 @@ namespace Infrastructure.Services.NewFolder
             }
 
             // --- Discord update ---
-            string channel = task.ClientService.Client.DiscordChannelId ?? string.Empty;
+            string? channel = task.ClientService?.Client?.DiscordChannelId;
             TaskDTO mappedTask = mapper.Map<TaskDTO>(task);
             if (!string.IsNullOrEmpty(channel))
             {
@@ -423,7 +417,7 @@ namespace Infrastructure.Services.NewFolder
                     };
                     await emailService.SendEmailWithTemplateAsync(task.Employee.Email, "New Task Has Been Assigned To You", "NewTaskAssignment", replacements);
                 }
-                string channel = task.ClientService.Client.DiscordChannelId ?? string.Empty;
+                string? channel = task.ClientService?.Client?.DiscordChannelId;
                 if (!string.IsNullOrEmpty(channel))
                 {
                     TaskDTO mappedTask = mapper.Map<TaskDTO>(task);
@@ -524,7 +518,7 @@ namespace Infrastructure.Services.NewFolder
                             await emailService.SendEmailWithTemplateAsync(task.Employee.Email, "New Task Has been Assigned To You", "NewTaskAssignment", replacements);
                         }
 
-                        string channel = task.ClientService.Client.DiscordChannelId ?? string.Empty;
+                        string? channel = task.ClientService?.Client?.DiscordChannelId;
                         TaskDTO mappedTask = mapper.Map<TaskDTO>(task);
 
                         await discordService.NewTask(channel, mappedTask);                        
@@ -570,12 +564,13 @@ namespace Infrastructure.Services.NewFolder
 
             return mapper.Map<List<TaskGroupDTO>>(taskGroups);
         }
-        public async Task<bool> ToggleArchiveTaskAsync(int taskId)
+        public async Task<TaskDTO> ToggleArchiveTaskAsync(int taskId)
         {
             var task = await GetTaskOrThrow(taskId);
             task.IsArchived = !task.IsArchived;
             context.Update(task);
-            return await context.SaveChangesAsync() > 0;
+            await context.SaveChangesAsync();
+            return mapper.Map<TaskDTO>(task);
         }
         private async Task<TaskItem> GetTaskOrThrow(int taskId)
         {
@@ -586,33 +581,6 @@ namespace Infrastructure.Services.NewFolder
 
             return task;
         }
-
-        //public async Task<List<TaskDTO>> SearchTasks(string query)
-        //{
-        //    if (string.IsNullOrWhiteSpace(query))
-        //        return new List<TaskDTO>();
-
-        //    query = query.Trim();
-        //    var isId = int.TryParse(query, out int taskId);
-
-        //    var tasksQuery = context.Tasks
-        //        .Include(t => t.ClientService)
-        //            .ThenInclude(cs => cs.Service)
-        //        .Include(t => t.ClientService)
-        //            .ThenInclude(cs => cs.Client)
-        //        .Include(t => t.Employee)
-        //        .AsQueryable();
-
-        //    tasksQuery = tasksQuery.Where(t =>
-        //        EF.Functions.Like(t.Title, $"%{query}%") ||
-        //        (isId && t.Id == taskId));
-
-        //    var tasks = await tasksQuery
-        //        .OrderByDescending(t => t.Id)
-        //        .ToListAsync();
-
-        //    return mapper.Map<List<TaskDTO>>(tasks);
-        //}
 
         public async Task<List<TaskDTO>> SearchTasks(string query, string currentUserId)
         {
@@ -675,14 +643,14 @@ namespace Infrastructure.Services.NewFolder
 
             return mapper.Map<List<TaskDTO>>(tasks);
         }
-        public async Task<bool> CompleteTaskAsync(int taskId, CreateTaskResourcesDTO taskResourcesDTO, string userId)
+        public async Task<TaskDTO> CompleteTaskAsync(int taskId, CreateTaskResourcesDTO taskResourcesDTO, string userId)
         {
             var task = await GetTaskOrThrow(taskId);
             var emp = await userManager.FindByIdAsync(userId)
-                ?? throw new Exception("Employee is not found");
+                ?? throw new Exception("لم يتم العثور على هذا الموظف");
 
             if (taskResourcesDTO.URLs == null || !taskResourcesDTO.URLs.Any())
-                throw new Exception("At least one link is required to complete the task.");
+                throw new Exception("يجب ادخال رابط واحد على الاقل");
 
             var taskLinks = taskResourcesDTO.URLs
                 .Select(url => new TaskCompletionResources
@@ -711,13 +679,14 @@ namespace Infrastructure.Services.NewFolder
 
                 await emailService.SendEmailWithTemplateAsync(task.Employee.Email, "Task Completion", "TaskCompletion", replacements);
             }
-            string channel = task.ClientService.Client.DiscordChannelId ?? string.Empty;
+            string? channel = task.ClientService?.Client?.DiscordChannelId;
             if (!string.IsNullOrEmpty(channel))
             {
                 TaskDTO mappedTask = mapper.Map<TaskDTO>(task);
-                await discordService.NewTask(channel, mappedTask);
+                await discordService.CompleteTask(channel, mappedTask);
             }
-            return await context.SaveChangesAsync() > 0;
+            await context.SaveChangesAsync();
+            return mapper.Map<TaskDTO>(task);
         }
     }
 }

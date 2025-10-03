@@ -50,14 +50,11 @@ namespace Infrastructure.Services.Clients
 
             return clients;
         }
-
         public async Task<ClientDTO> GetClientByIdAsync(int clientId)
         {
             var client = await GetClientOrThrow(clientId);
-
             return mapper.Map<ClientDTO>(client);
         }
-
         public async Task<ClientDTO> AddClientAsync(CreateClientDTO clientDTO)
         {
             if (clientDTO is null)
@@ -148,11 +145,13 @@ namespace Infrastructure.Services.Clients
                                     {"TimeStamp", $"{DateTime.UtcNow}" }
                                 };
                                 await emailService.SendEmailWithTemplateAsync(task.Employee.Email, "New Client Assigned To You", "NewClientAssignment", replacements);
-                                string channelId = clientDTO.DiscordChannelId ?? string.Empty;
-                                var mappedTask = mapper.Map<TaskDTO>(task);
-                                await discordService.NewTask(channelId, mappedTask);
+                                string? channelId = clientDTO?.DiscordChannelId;
+                                if (channelId != null)
+                                {
+                                    var mappedTask = mapper.Map<TaskDTO>(task);
+                                    await discordService.NewTask(channelId, mappedTask);
+                                }
                             }
-
                         }
                     }
                 }
@@ -170,14 +169,12 @@ namespace Infrastructure.Services.Clients
                 throw new NotImplementedOperationException("خطأ في اضافة العميل, حاول مرة اخرى");
             }
         }
-
         public async Task<bool> DeleteClientAsync(int clientId)
         {
             var client = await GetClientOrThrow(clientId);
             dbContext.Remove(client);
             return await dbContext.SaveChangesAsync() > 0;
         }
-
         public async Task<ClientDTO> UpdateClientAsync(int clientId, UpdateClientDTO updateClientDTO)
         {
             if (clientId == 0 || updateClientDTO is null)
@@ -200,16 +197,15 @@ namespace Infrastructure.Services.Clients
             await dbContext.SaveChangesAsync();
             return mapper.Map<ClientDTO>(client);
         }
-
         private async Task<Client> GetClientOrThrow(int clientId)
         {
             var client = await dbContext.Clients
             .Include(c => c.ClientServices)
-                .ThenInclude(cs => cs.Service)  // Include the Service entity
+                .ThenInclude(cs => cs.Service)
             .Include(c => c.ClientServices)
-                .ThenInclude(cs => cs.TaskGroups)  // Include TaskGroups from ClientService
-                    .ThenInclude(tg => tg.Tasks)   // Include Tasks from TaskGroup
-                        .ThenInclude(t => t.Employee)  // Include Employee from Task
+                .ThenInclude(cs => cs.TaskGroups)
+                    .ThenInclude(tg => tg.Tasks)
+                        .ThenInclude(t => t.Employee)
             .FirstOrDefaultAsync(c => c.Id == clientId)
                 ?? throw new InvalidObjectException("لا يوجد عميل بهذه البيانات");
 

@@ -26,9 +26,6 @@ namespace Infrastructure.Services.Services
         }
         public async Task<ServiceDTO> AddServiceAsync(CreateServiceDTO newService)
         {
-            if (newService is null)
-                throw new InvalidObjectException("بيانات الخدمة غير صحيحة");
-
             var existingService = await dbContext.Services
                 .AnyAsync(s => s.Title == newService.Title);
 
@@ -55,7 +52,6 @@ namespace Infrastructure.Services.Services
                 throw new InvalidObjectException($"Error adding service: {ex.Message}");
             }
         }
-
         public async Task<bool> DeleteServiceAsync(int serviceId)
         {
             var service = await GetServiceOrThrow(serviceId);
@@ -63,7 +59,6 @@ namespace Infrastructure.Services.Services
             dbContext.Services.Remove(service);
             return await dbContext.SaveChangesAsync() > 0;
         }
-
         public async Task<List<ServiceDTO>> GetAllServicesAsync()
         {
             var services = await dbContext.Services.ToListAsync()
@@ -73,25 +68,22 @@ namespace Infrastructure.Services.Services
 
             return mapper.Map<List<ServiceDTO>>(services);
         }
-
         public async Task<ServiceDTO> GetServiceByIdAsync(int serviceId)
         {
             var service = await GetServiceOrThrow(serviceId);
 
             return mapper.Map<ServiceDTO>(service);
         }
-
         public async Task<ServiceDTO> ToggleVisibilityAsync(int serviceId)
         {
             var service = await dbContext.Services.FirstOrDefaultAsync(s => s.Id == serviceId)
-                ?? throw new InvalidObjectException("بيانات الخدمة غير صحيحة");
+                ?? throw new InvalidObjectException("لم يتم العثور على هذه الخدمة");
 
             service.IsDeleted = !service.IsDeleted;
             dbContext.Services.Update(service);
             await dbContext.SaveChangesAsync();
             return mapper.Map<ServiceDTO>(service);
         }
-
         public async Task<ServiceDTO> UpdateServiceAsync(UpdateServiceDTO serviceDTO)
         {
             var service = await GetServiceOrThrow(serviceDTO.Id);
@@ -105,14 +97,13 @@ namespace Infrastructure.Services.Services
             await dbContext.SaveChangesAsync();
             return mapper.Map<ServiceDTO>(service);
         }
-
         private async Task<Service> GetServiceOrThrow(int serviceId)
         {
             var service = await dbContext.Services
                 .Include(s => s.ClientServices)
                     .ThenInclude(c => c.Client)
                 .FirstOrDefaultAsync(s => s.Id == serviceId)
-                 ?? throw new InvalidObjectException("بيانات الخدمة غير صحيحة");
+                 ?? throw new InvalidObjectException("لم يتم العثور على هذه الخدمة");
             return service;
         }
     }

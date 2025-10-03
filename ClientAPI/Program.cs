@@ -110,19 +110,12 @@ namespace ClientAPI
                 cfg.AddProfile<ComplaintProfile>();
                 cfg.AddProfile<KPIIncedintProfile>();
                 cfg.AddProfile<TaskHistoryProfile>();
+                cfg.AddProfile<TaskResourcesProfile>();
             });
 
             builder.Services.AddControllers();
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
             builder.Services.AddOpenApi();
-            //builder.Services.AddSwaggerGen( c =>
-            //{
-            //    c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
-            //    {
-            //        Title = "My API",
-            //        Version = "v1"
-            //    });
-            //});
 
             builder.Services.AddSwaggerGen(c =>
             {

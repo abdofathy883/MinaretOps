@@ -39,16 +39,13 @@ namespace Infrastructure.Services.Attendance
             if (!await userManager.IsInRoleAsync(admin, "Admin"))
                 throw new UnauthorizedAccessException("User is not authorized to perform this action.");
 
-            var record = await context.AttendanceRecords
-                .FirstOrDefaultAsync(r => r.Id == recordId)
-                ?? throw new InvalidObjectException($"Attendance record with Id {recordId} not found.");                
+            var record = await GetRecordOrThrow(recordId);               
 
             record.Status = newStatus;
             context.Update(record);
             await context.SaveChangesAsync();
             return mapper.Map<AttendanceRecordDTO>(record);
         }
-
         public async Task<List<AttendanceRecordDTO>> GetAllAttendanceRecords()
         {
             var records = await context.AttendanceRecords
@@ -66,19 +63,19 @@ namespace Infrastructure.Services.Attendance
             return mapper.Map<List<AttendanceRecordDTO>>(records);
         }
 
-        public async Task<List<AttendanceRecordDTO>> GetAttendanceRecordsByEmployee(string employeeId)
-        {
-            var emp = await GetUserOrThrow(employeeId);
+        //public async Task<List<AttendanceRecordDTO>> GetAttendanceRecordsByEmployee(string employeeId)
+        //{
+        //    var emp = await GetUserOrThrow(employeeId);
 
-            var records = await context.AttendanceRecords
-                .Where(r => r.EmployeeId == employeeId)
-                .OrderByDescending(r => r.CheckInTime)
-                .ToListAsync();
+        //    var records = await context.AttendanceRecords
+        //        .Where(r => r.EmployeeId == employeeId)
+        //        .OrderByDescending(r => r.CheckInTime)
+        //        .ToListAsync();
 
-            logger.LogInformation("Fetched {Count} attendance records for employee {EmployeeId}", records.Count, employeeId);
+        //    logger.LogInformation("Fetched {Count} attendance records for employee {EmployeeId}", records.Count, employeeId);
 
-            return mapper.Map<List<AttendanceRecordDTO>>(records);
-        }
+        //    return mapper.Map<List<AttendanceRecordDTO>>(records);
+        //}
 
         public async Task<AttendanceRecordDTO> GetTodayAttendanceForEmployeeAsync(string empId)
         {
@@ -133,19 +130,13 @@ namespace Infrastructure.Services.Attendance
 
         public async Task<AttendanceRecordDTO> NewAttendanceRecord(CreateAttendanceRecordDTO recordDTO)
         {
-            if (recordDTO is null)
-            {
-                logger.LogError("Attendance Record Coming From Frontend is Null");
-                throw new InvalidObjectException("Attendance Record Coming From Frontend is Empty");
-            }
-
             var user = await GetUserOrThrow(recordDTO.EmployeeId);
 
             var existingRecord = await context.AttendanceRecords
                 .FirstOrDefaultAsync(r => r.EmployeeId == recordDTO.EmployeeId && r.CheckInTime.Date == DateTime.UtcNow.Date);
 
             if (existingRecord != null)
-                throw new InvalidObjectException("Attendance record for today already exists.");
+                throw new InvalidObjectException("تم تسجيل الحضور اليوم بالفعل.");
 
             var otherEmpsWithSameIp = await context.AttendanceRecords
                 .Where(r => r.IpAddress == recordDTO.IpAddress && 
@@ -200,16 +191,23 @@ namespace Infrastructure.Services.Attendance
             {
                 logger.LogError("Error occurred while creating attendance record for employee {EmployeeId}, with error message: {ex}", recordDTO.EmployeeId, ex.Message);
                 await transaction.RollbackAsync();
-                throw;
+                throw new Exception(ex.Message);
             }
         }
 
         private async Task<ApplicationUser> GetUserOrThrow(string userId)
         {
-            var user = await userManager.FindByIdAsync(userId);
-            if (user == null)
-                throw new InvalidObjectException($"User with Id {userId} not found");
+            var user = await userManager.FindByIdAsync(userId)
+                ?? throw new InvalidObjectException($"لم يتم العثور على الموظف بهذا المعرف {userId}");
             return user;
+        }
+        private async Task<AttendanceRecord> GetRecordOrThrow(int recordId)
+        {
+            var record = await context.AttendanceRecords
+                .Include(r => r.Employee)
+                .FirstOrDefaultAsync()
+                ?? throw new InvalidObjectException($"لم يتم العثور على الحضور بهذا المعرف {recordId}");
+            return record;
         }
     }
 }

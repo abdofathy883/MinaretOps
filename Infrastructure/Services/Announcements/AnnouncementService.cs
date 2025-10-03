@@ -4,6 +4,7 @@ using Core.DTOs.Notifications;
 using Core.Interfaces;
 using Core.Models;
 using Infrastructure.Data;
+using Infrastructure.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -34,14 +35,11 @@ namespace Infrastructure.Services.Announcements
 
         public async Task<AnnouncementDTO> CreateAnnouncementAsync(CreateAnnouncementDTO dto)
         {
-            if (dto is null)
-                throw new ArgumentNullException(nameof(dto));
-
             var existingAnnouncement = await context.Announcements
                 .FirstOrDefaultAsync(a => a.Title == dto.Title);
 
             if (existingAnnouncement is not null)
-                throw new Exception();
+                throw new AlreadyExistObjectException("اعلان بهذا العنوان موجود بالفعل");
 
             using var transaction = await context.Database.BeginTransactionAsync();
             try
@@ -67,21 +65,26 @@ namespace Infrastructure.Services.Announcements
                 await context.SaveChangesAsync();
                 Dictionary<string, string> replacements = new Dictionary<string, string>
                 {
-                    { "{{AnnouncementTitle}}", dto.Title },
-                    { "{{AnnouncementContent}}", dto.Message },
+                    { "AnnouncementTitle", announcement.Title },
+                    { "AnnouncementContent", announcement.Message },
+                    { "AnnouncementId", $"{announcement.Id}" },
                     { "{{TimeStamp}}", announcement.CreatedAt.ToString("f") }
                 };
                 foreach (var emp in employees)
                 {
-                    await emailService.SendEmailWithTemplateAsync(emp.Email ?? string.Empty, "New Announcement", "NewAnnouncement", replacements);
-                    var notification = new CreateNotificationDTO
+                    if (!string.IsNullOrEmpty(emp.Email))
                     {
-                        Title = $"New Announcement - {dto.Title}",
-                        Body = dto.Message,
-                        UserId = emp.Id,
-                        Url = "https://internal.theminaretagency.com/announcements"
-                    };
-                    await notificationService.CreateAsync(notification);
+                        await emailService.SendEmailWithTemplateAsync(emp.Email ?? string.Empty, "New Announcement", "NewAnnouncement", replacements);
+                        
+                    }
+                    //var notification = new CreateNotificationDTO
+                    //{
+                    //    Title = $"New Announcement - {dto.Title}",
+                    //    Body = dto.Message,
+                    //    UserId = emp.Id,
+                    //    Url = "https://internal.theminaretagency.com/announcements"
+                    //};
+                    //await notificationService.CreateAsync(notification);
                 }
                 await transaction.CommitAsync();
                 return mapper.Map<AnnouncementDTO>(announcement);
@@ -104,9 +107,9 @@ namespace Infrastructure.Services.Announcements
             return mapper.Map<List<AnnouncementDTO>>(announcements);
         }
 
-        public Task<AnnouncementDTO> MarkAsReadAsync(int announcementId)
-        {
-            throw new NotImplementedException();
-        }
+        //public Task<AnnouncementDTO> MarkAsReadAsync(int announcementId)
+        //{
+        //    throw new NotImplementedException();
+        //}
     }
 }

@@ -51,7 +51,7 @@ namespace ClientAPI.Controllers
             }
             try
             {
-                var records = await attendanceService.GetAttendanceRecordsByEmployee(employeeId);
+                var records = await attendanceService.GetTodayAttendanceForEmployeeAsync(employeeId);
                 return Ok(records);
             }
             catch (Exception ex)

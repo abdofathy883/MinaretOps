@@ -15,20 +15,6 @@ namespace ClientAPI.Controllers
             taskService = service;
         }
 
-        [HttpGet("un-archived-tasks")]
-        public async Task<IActionResult> GetAllTasksAsync()
-        {
-            try
-            {
-                var tasks = await taskService.GetAllUnArchivedTasksAsync();
-                return Ok(tasks);
-            }
-            catch(Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
-        }
-
         [HttpGet("archived-tasks")]
         public async Task<IActionResult> GetAllArchivedTasksAsync()
         {
@@ -106,9 +92,7 @@ namespace ClientAPI.Controllers
             try
             {
                 var result = await taskService.ToggleArchiveTaskAsync(taskId);
-                if (result)
-                    return Ok(new { message = "Task archived successfully" });
-                return NotFound("Task not found");
+                return Ok(new { message = "Task archived successfully" });
             }
             catch (Exception ex)
             {
@@ -196,6 +180,16 @@ namespace ClientAPI.Controllers
             {
                 return BadRequest(ex.Message);
             }
+        }
+
+        [HttpPatch("complete/{taskId}/{userId}")]
+        public async Task<IActionResult> CompleteTaskAsync(int taskId, string userId, CreateTaskResourcesDTO createTaskResourcesDTO)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest();
+
+            var result = await taskService.CompleteTaskAsync(taskId, createTaskResourcesDTO, userId);
+            return Ok(result);
         }
     }
 }

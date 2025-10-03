@@ -31,7 +31,9 @@ namespace Infrastructure.MappingProfiles
                     opt.MapFrom(src => src.ClientService.Client.Name))
                 .ForMember(dest => dest.ClientId, opt => opt.MapFrom(src => src.ClientService.Client.Id))
                 .ForMember(dest => dest.ServiceId, opt => opt.MapFrom(src => src.ClientService.ServiceId))
-                .ForMember(dest => dest.TaskHistory, opt => opt.MapFrom(src => src.TaskHistory));
+                .ForMember(dest => dest.TaskHistory, opt => opt.MapFrom(src => src.TaskHistory))
+                .ForMember(dest => dest.TaskResources, opt => opt.MapFrom(src => src.CompletionResources))
+                .ForMember(dest => dest.CompletionNotes, opt => opt.MapFrom(src => src.CompletionNotes));
         }
     }
 }

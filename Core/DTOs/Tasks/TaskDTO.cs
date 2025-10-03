@@ -23,6 +23,8 @@ namespace Core.DTOs.Tasks
             CompletedAt.Value.Date <= Deadline.Date;
         public int TaskGroupId { get; set; }
         public List<TaskHistoryDTO> TaskHistory { get; set; } = new();
+        public List<TaskResourcesDTO> TaskResources { get; set; } = new();
+        public string? CompletionNotes { get; set; }
         public int ServiceId { get; set; }
         public string? ServiceName { get; set; }
         public int ClientId { get; set; }

@@ -30,11 +30,10 @@ namespace Infrastructure.Services.InternalTasks
             mapper = _mapper;
             userManager = manager;
         }
-
         public async Task<bool> ChangeTaskStatusAsync(int taskId, CustomTaskStatus status)
         {
             var task = await context.InternalTasks.FirstOrDefaultAsync(t => t.Id == taskId)
-                ?? throw new InvalidObjectException("بيانات التاسك غير صحيحة");
+                ?? throw new InvalidObjectException("لم يتم العثور على تاسك بهذا المعرف");
 
             using var transaction = await context.Database.BeginTransactionAsync();
             try
@@ -44,7 +43,8 @@ namespace Infrastructure.Services.InternalTasks
                 {
                     task.CompletedAt = DateTime.UtcNow;
                 }
-
+                context.Update(task);
+                await context.SaveChangesAsync();
                 foreach (var ass in task.Assignments)
                 {
                     if (!string.IsNullOrEmpty(ass.User.Email))
@@ -60,12 +60,8 @@ namespace Infrastructure.Services.InternalTasks
                         await emailService.SendEmailWithTemplateAsync(ass.User.Email, "Task Status Changes", "ChangeTaskStatus", replacements);
                     }
                 }
-
-                context.Update(task);
-                await context.SaveChangesAsync();
                 await transaction.CommitAsync();
                 return true;
-
             }
             catch(Exception ex)
             {
@@ -74,13 +70,8 @@ namespace Infrastructure.Services.InternalTasks
             }
 
         }
-
         public async Task<InternalTaskDTO> CreateInternalTaskAsync(CreateInternalTaskDTO internalTaskDTO)
         {
-            if (internalTaskDTO is null)
-                throw new InvalidObjectException(nameof(internalTaskDTO));
-
-            // Validate users existence
             var userIds = internalTaskDTO.Assignments.Select(a => a.UserId).Distinct().ToList();
             var existingUserIds = await context.Users
                 .Where(u => userIds.Contains(u.Id))
@@ -105,7 +96,6 @@ namespace Infrastructure.Services.InternalTasks
             }
 
             using var transaction = await context.Database.BeginTransactionAsync();
-
             try
             {
                 var task = new InternalTask
@@ -146,7 +136,7 @@ namespace Infrastructure.Services.InternalTasks
 
                 foreach (var ass in assignmentsWithUsers)
                 {
-                    if (!string.IsNullOrEmpty(ass.User?.Email))
+                    if (!string.IsNullOrEmpty(ass.User.Email))
                     {
                         Dictionary<string, string> replacements = new()
                         {
@@ -174,7 +164,6 @@ namespace Infrastructure.Services.InternalTasks
             }
 
         }
-
         public async Task<bool> DeleteInternalTaskAsync(int taskId)
         {
             var task = await context.InternalTasks
@@ -193,18 +182,6 @@ namespace Infrastructure.Services.InternalTasks
             context.Remove(task);
             return await context.SaveChangesAsync() > 0;
         }
-
-        public async Task<List<InternalTaskDTO>> GetAllUnArchivedInternalTasksAsync()
-        {
-            var tasks = await context.InternalTasks
-                .Where(t => !t.IsArchived)
-                .Include(t => t.Assignments)
-                    .ThenInclude(a => a.User)
-                .OrderByDescending(t => t.CreatedAt)
-                .ToListAsync();
-
-            return mapper.Map<List<InternalTaskDTO>>(tasks);
-        }
         public async Task<List<InternalTaskDTO>> GetAllArchivedInternalTasksAsync()
         {
             var tasks = await context.InternalTasks
@@ -216,7 +193,6 @@ namespace Infrastructure.Services.InternalTasks
 
             return mapper.Map<List<InternalTaskDTO>>(tasks);
         }
-
         public async Task<InternalTaskDTO> GetInternalTaskById(int taskId)
         {
             var task = await context.InternalTasks
@@ -227,16 +203,10 @@ namespace Infrastructure.Services.InternalTasks
 
             return mapper.Map<InternalTaskDTO>(task);
         }
-
         public async Task<List<InternalTaskDTO>> GetInternalTasksByEmpAsync(string empId)
         {
             var emp = await userManager.FindByIdAsync(empId)
-                ?? throw new Exception("Employee not found.");
-
-            //IQueryable<InternalTask> query = context.InternalTasks
-            //    .Where(t => !t.IsArchived)
-            //    .Include(t => t.Assignments)
-            //        .ThenInclude(a => a.User);
+                ?? throw new Exception("لم يتم العثور على موظف بهذا المعرف");
 
             var tasks = await context.InternalTasks
                 .Where(it => !it.IsArchived)
@@ -247,7 +217,6 @@ namespace Infrastructure.Services.InternalTasks
 
             return mapper.Map<List<InternalTaskDTO>>(tasks);
         }
-
         public async Task<List<InternalTaskDTO>> SearchByTitleAsync(string query, string empId)
         {
             if (string.IsNullOrWhiteSpace(query))
@@ -270,12 +239,8 @@ namespace Infrastructure.Services.InternalTasks
 
             return mapper.Map<List<InternalTaskDTO>>(tasks);
         }
-
         public async Task<InternalTaskDTO> UpdateInternalTaskAsync(int taskId, UpdateInternalTaskDTO internalTaskDTO)
         {
-            if (internalTaskDTO is null)
-                throw new InvalidObjectException(nameof(internalTaskDTO));
-
             var task = await context.InternalTasks
                 .Include(t => t.Assignments)
                 .SingleOrDefaultAsync(t => t.Id == taskId) ??
@@ -403,20 +368,19 @@ namespace Infrastructure.Services.InternalTasks
                 throw new NotImplementedOperationException($"حدث خطأ أثناء تحديث التاسك: {ex.Message}");
             }
         }
-
-        public async Task<bool> ToggleArchiveInternalTaskAsync(int taskId)
+        public async Task<InternalTaskDTO> ToggleArchiveInternalTaskAsync(int taskId)
         {
             var task = await GetTaskOrThrow(taskId);
 
             task.IsArchived = !task.IsArchived;
             context.Update(task);
-            return await context.SaveChangesAsync() > 0;
+            await context.SaveChangesAsync();
+            return mapper.Map<InternalTaskDTO>(task);
         }
-
         private async Task<InternalTask> GetTaskOrThrow(int taskId)
         {
             var task = await context.InternalTasks.FirstOrDefaultAsync(t => t.Id == taskId)
-                ?? throw new Exception();
+                ?? throw new InvalidObjectException("لم يتم العثور على تاسك بهذا المعرف");
             return task;
         }
     }

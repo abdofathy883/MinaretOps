@@ -3,6 +3,7 @@ using Core.Enums;
 using Core.Settings;
 using Discord;
 using Discord.WebSocket;
+using Infrastructure.Exceptions;
 using Microsoft.Extensions.Options;
 using System.ComponentModel;
 using System.Reflection;
@@ -34,13 +35,12 @@ namespace Infrastructure.Services.Discord
             await client.LoginAsync(TokenType.Bot, options.Value.BotToken);
             await client.StartAsync();
         }
-
         public async Task NewTask(string channelId, TaskDTO task)
         {
             var parsedChannel = ulong.Parse(channelId);
             var channel = client.GetChannel(parsedChannel) as IMessageChannel;
             if (channel is null)
-                throw new Exception();
+                throw new InvalidObjectException("لم يتم العثور على قناة ديسكورد لهذا المعرف");
 
             var embed = new EmbedBuilder
             {
@@ -69,7 +69,7 @@ namespace Infrastructure.Services.Discord
             var parsedChannel = ulong.Parse(channelId);
             var channel = client.GetChannel(parsedChannel) as IMessageChannel;
             if (channel is null)
-                throw new Exception();
+                throw new InvalidObjectException("لم يتم العثور على قناة ديسكورد لهذا المعرف");
 
             var embed = new EmbedBuilder
             {
@@ -98,11 +98,32 @@ namespace Infrastructure.Services.Discord
             var parsedChannel = ulong.Parse(channelId);
             var channel = client.GetChannel(parsedChannel) as IMessageChannel;
             if (channel is null)
-                throw new Exception();
+                throw new InvalidObjectException("لم يتم العثور على قناة ديسكورد لهذا المعرف");
 
             var embed = new EmbedBuilder
             {
                 Title = $"Task Deleted: {task.Title}",
+                Color = new Color(145, 240, 11), // RGB for lime
+                Timestamp = DateTimeOffset.UtcNow
+            };
+
+            embed.AddField("Assigned To", task.EmployeeName ?? "Unknown", inline: true);
+            embed.AddField("Task Id", task.Id, inline: true);
+
+            embed.WithFooter("The Minaret Agency Task Management");
+
+            await channel.SendMessageAsync(embed: embed.Build());
+        }
+        public async Task CompleteTask(string channelId, TaskDTO task)
+        {
+            var parsedChannel = ulong.Parse(channelId);
+            var channel = client.GetChannel(parsedChannel) as IMessageChannel;
+            if (channel is null)
+                throw new InvalidObjectException("لم يتم العثور على قناة ديسكورد لهذا المعرف");
+
+            var embed = new EmbedBuilder
+            {
+                Title = $"Task Completed: {task.Title}",
                 Color = new Color(145, 240, 11), // RGB for lime
                 Timestamp = DateTimeOffset.UtcNow
             };
@@ -119,7 +140,7 @@ namespace Infrastructure.Services.Discord
             var parsedChannel = ulong.Parse(channelId);
             var channel = client.GetChannel(parsedChannel) as IMessageChannel;
             if (channel is null)
-                throw new Exception();
+                throw new InvalidObjectException("لم يتم العثور على قناة ديسكورد لهذا المعرف");
 
             var embed = new EmbedBuilder
             {
@@ -140,7 +161,6 @@ namespace Infrastructure.Services.Discord
 
             await channel.SendMessageAsync(embed: embed.Build());
         }
-
     }
 
     public static class EnumToString

@@ -6,7 +6,7 @@ namespace Core.Interfaces
     {
         Task<List<AnnouncementDTO>> GetAllAnnouncementsAsync();
         Task<AnnouncementDTO> CreateAnnouncementAsync(CreateAnnouncementDTO dto);
-        Task<AnnouncementDTO> MarkAsReadAsync(int announcementId);
+        //Task<AnnouncementDTO> MarkAsReadAsync(int announcementId);
 
     }
 }

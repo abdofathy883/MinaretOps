@@ -3,6 +3,7 @@ using Core.DTOs.Complaints;
 using Core.Interfaces;
 using Core.Models;
 using Infrastructure.Data;
+using Infrastructure.Exceptions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -26,20 +27,16 @@ namespace Infrastructure.Services.Complaints
             userManager = user;
             mapper = _mapper;
         }
-
         public async Task<ComplaintDTO> CreateComplaintAsync(CreateComplaintDTO complaintDTO)
         {
-            if (complaintDTO is null)
-                throw new Exception();
-
             var existingComplaint = await context.Complaints
                 .FirstOrDefaultAsync(c => c.Subject == complaintDTO.Subject && c.Content == complaintDTO.Content);
 
             if (existingComplaint is not null)
-                throw new Exception();
+                throw new AlreadyExistObjectException("شكوى او مقترح بهذا العنوان والرسالة موجودين بالفعل");
 
             var emp = await userManager.FindByIdAsync(complaintDTO.EmployeeId)
-                ?? throw new Exception();
+                ?? throw new InvalidObjectException("لم يتم العثور على هذا الموظف");
 
             using var transaction = await context.Database.BeginTransactionAsync();
             try
@@ -54,14 +51,17 @@ namespace Infrastructure.Services.Complaints
                 };
                 await context.Complaints.AddAsync(complaint);
                 await context.SaveChangesAsync();
-                Dictionary<string, string> replacements = new Dictionary<string, string>
+                if (!string.IsNullOrEmpty(emp.Email))
                 {
-                    { "Subject", complaintDTO.Subject },
-                    { "SubmissionMessage", complaintDTO.Content },
-                    { "SubmittedBy", $"{emp.FirstName} {emp.LastName}" },
-                    { "TimeStamp", complaint.CreatedAt.ToString() }
-                };
-                await emailService.SendEmailWithTemplateAsync(emp.Email ?? string.Empty, "New Complaint Received", "Complaint", replacements);
+                    Dictionary<string, string> replacements = new Dictionary<string, string>
+                    {
+                        { "Subject", complaintDTO.Subject },
+                        { "SubmissionMessage", complaintDTO.Content },
+                        { "SubmittedBy", $"{emp.FirstName} {emp.LastName}" },
+                        { "TimeStamp", complaint.CreatedAt.ToString() }
+                    };
+                    await emailService.SendEmailWithTemplateAsync(emp.Email, "New Complaint Received", "Complaint", replacements);
+                }
                 await transaction.CommitAsync();
                 return mapper.Map<ComplaintDTO>(complaint);
             }
@@ -71,7 +71,6 @@ namespace Infrastructure.Services.Complaints
                 throw new Exception(ex.Message);
             }
         }
-
         public async Task<List<ComplaintDTO>> GetAllComplaintsAsync()
         {
             var complaints = await context.Complaints
