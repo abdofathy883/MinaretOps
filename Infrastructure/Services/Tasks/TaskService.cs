@@ -486,9 +486,6 @@ namespace Infrastructure.Services.NewFolder
                 {
                     foreach (var taskDto in createTaskGroup.Tasks)
                     {
-                        var employee = await userManager.FindByIdAsync(taskDto.EmployeeId)
-                            ?? throw new InvalidObjectException($"Employee with ID {taskDto.EmployeeId} not found");
-
                         var task = new TaskItem
                         {
                             Title = taskDto.Title,
@@ -506,11 +503,13 @@ namespace Infrastructure.Services.NewFolder
                         context.Tasks.Add(task);
                         await context.SaveChangesAsync();
 
-                        if (!string.IsNullOrEmpty(task.Employee.Email) && !string.IsNullOrEmpty(task.EmployeeId))
+                        if (!string.IsNullOrEmpty(task.EmployeeId))
                         {
+                            var employee = await userManager.FindByIdAsync(taskDto.EmployeeId)
+                                ?? throw new InvalidObjectException($"Employee with ID {taskDto.EmployeeId} not found");
                             Dictionary<string, string> replacements = new Dictionary<string, string>
                             {
-                                {"FullName", $"{task.Employee.FirstName} {task.Employee.LastName}" },
+                                {"FullName", $"{employee.FirstName} {employee.LastName}" },
                                 {"Email", $"{task.Employee.Email}" },
                                 {"TaskTitle", $"{task.Title}" },
                                 {"TaskType", $"{task.TaskType}" },
@@ -518,13 +517,16 @@ namespace Infrastructure.Services.NewFolder
                                 {"Client", $"{task.ClientService.Client.Name}" },
                                 {"TimeStamp", $"{DateTime.UtcNow}" }
                             };
-                            await emailService.SendEmailWithTemplateAsync(task.Employee.Email, "New Task Has been Assigned To You", "NewTaskAssignment", replacements);
+                            await emailService.SendEmailWithTemplateAsync(employee.Email, "New Task Has been Assigned To You", "NewTaskAssignment", replacements);
+
                         }
 
                         string? channel = task.ClientService?.Client?.DiscordChannelId;
-                        TaskDTO mappedTask = mapper.Map<TaskDTO>(task);
-
-                        await discordService.NewTask(channel, mappedTask);                        
+                        if (!string.IsNullOrEmpty(channel))
+                        {
+                            TaskDTO mappedTask = mapper.Map<TaskDTO>(task);
+                            await discordService.NewTask(channel, mappedTask);                        
+                        }
                     }
                 }
 
