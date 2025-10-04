@@ -1,4 +1,5 @@
-﻿using Core.Interfaces;
+﻿using Core.DTOs.Blog;
+using Core.Interfaces;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -25,8 +26,8 @@ namespace ClientAPI.Controllers
             return NotFound("No blog categories found.");
         }
 
-        [HttpPost("category")]
-        public async Task<IActionResult> CreateBlogCategoryAsync([FromBody] Core.DTOs.Blog.CreateBlogCategoryDTO newCategory)
+        [HttpPost("add-category")]
+        public async Task<IActionResult> CreateBlogCategoryAsync(CreateBlogCategoryDTO newCategory)
         {
             if (newCategory is null)
                 return BadRequest("Invalid category data.");

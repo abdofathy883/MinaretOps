@@ -1,4 +1,5 @@
-﻿using Core.Models;
+﻿using Core.Enums;
+using Core.Models;
 using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
@@ -16,5 +17,9 @@ namespace Core.DTOs.Blog
         public string? ImageAltText { get; set; }
         public int CategoryId { get; set; }
         public string? Author { get; set; }
+        public bool IsFeatured { get; set; }
+        public int? ContentLanguageId { get; set; }
+        public ContentLanguage Language { get; set; }
+
     }
 }

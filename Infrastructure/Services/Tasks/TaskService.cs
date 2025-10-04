@@ -384,6 +384,9 @@ namespace Infrastructure.Services.NewFolder
                 .FirstOrDefaultAsync(cs => cs.Id == createTask.ClientServiceId)
                 ?? throw new InvalidObjectException("العميل غير مشترك في هذه الخدمة");
 
+            var emp = await userManager.FindByIdAsync(createTask.EmployeeId)
+                ?? throw new Exception();
+
             using var transaction = await context.Database.BeginTransactionAsync();
             try
             {
@@ -404,7 +407,7 @@ namespace Infrastructure.Services.NewFolder
                 await context.Tasks.AddAsync(task);
                 await context.SaveChangesAsync();
 
-                if (!string.IsNullOrEmpty(task.Employee.Email) && !string.IsNullOrEmpty(task.EmployeeId))
+                if (!string.IsNullOrEmpty(emp.Email) && !string.IsNullOrEmpty(task.EmployeeId))
                 {
                     Dictionary<string, string> replacements = new Dictionary<string, string>
                     {
@@ -415,7 +418,7 @@ namespace Infrastructure.Services.NewFolder
                         {"TaskId", $"{task.Id}" },
                         {"TimeStamp", $"{DateTime.UtcNow}" }
                     };
-                    await emailService.SendEmailWithTemplateAsync(task.Employee.Email, "New Task Has Been Assigned To You", "NewTaskAssignment", replacements);
+                    await emailService.SendEmailWithTemplateAsync(emp.Email, "New Task Has Been Assigned To You", "NewTaskAssignment", replacements);
                 }
                 string? channel = task.ClientService?.Client?.DiscordChannelId;
                 if (!string.IsNullOrEmpty(channel))

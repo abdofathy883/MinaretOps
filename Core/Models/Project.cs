@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Core.Enums;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -26,5 +27,7 @@ namespace Core.Models
         public string? ImageAltText { get; set; }
         public int CategoryId { get; set; }
         public ProjectCategory Category { get; set; } = default!;
+        public int ContentLanguageId { get; set; }
+        public ContentLanguage Language { get; set; }
     }
 }

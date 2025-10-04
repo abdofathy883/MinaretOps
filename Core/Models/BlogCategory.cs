@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Core.Enums;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Core.Models
@@ -11,5 +12,7 @@ namespace Core.Models
         [Required]
         public required string Title { get; set; }
         public List<Post> Posts { get; set; } = new();
+        public int ContentLanguageId { get; set; }
+        public ContentLanguage Language { get; set; }
     }
 }

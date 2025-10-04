@@ -1,4 +1,5 @@
-﻿using Core.Models;
+﻿using Core.Enums;
+using Core.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,5 +18,9 @@ namespace Core.DTOs.Blog
         public int CategoryId { get; set; }
         public string? CategoryName { get; set; }
         public string? Author { get; set; }
+        public bool IsFeatured { get; set; }
+        public DateOnly CreatedAt { get; set; }
+        public int ContentLanguageId { get; set; }
+        public ContentLanguage Language { get; set; }
     }
 }

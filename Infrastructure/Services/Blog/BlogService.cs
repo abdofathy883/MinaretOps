@@ -3,6 +3,7 @@ using Core.DTOs.Blog;
 using Core.Interfaces;
 using Core.Models;
 using Infrastructure.Data;
+using Infrastructure.Exceptions;
 using Infrastructure.Services.MediaUploads;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -31,28 +32,69 @@ namespace Infrastructure.Services.Blog
 
         public async Task<BlogCategoryDTO> CreateBlogCategoryAsync(CreateBlogCategoryDTO newCategory)
         {
-            if (newCategory is null)
-                throw new Exception("Invalid category data.");
-
             var existingCategory = context.BlogCategories
                 .FirstOrDefault(c => c.Title == newCategory.Title);
 
             if (existingCategory is not null)
                 throw new Exception("Category with the same title already exists.");
 
-            var cat = new BlogCategory
+            using var transaction = await context.Database.BeginTransactionAsync();
+            try
             {
-                Title = newCategory.Title
-            };
+                int contentId;
+                if (newCategory.ContentLanguageId.HasValue && newCategory.ContentLanguageId.Value != 0)
+                {
+                    contentId = newCategory.ContentLanguageId.Value;
+                }
+                else
+                {
+                    contentId = await context.BlogCategories.AnyAsync()
+                        ? await context.BlogCategories.MaxAsync(c => c.ContentLanguageId) + 1
+                        : 1;
+                }
+                var cat = new BlogCategory
+                {
+                    Title = newCategory.Title,
+                    Language = newCategory.Language,
+                    ContentLanguageId = contentId
+                };
 
-            await context.BlogCategories.AddAsync(cat);
-            await context.SaveChangesAsync();
-            return mapper.Map<BlogCategoryDTO>(cat);
+                await context.BlogCategories.AddAsync(cat);
+                await context.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return mapper.Map<BlogCategoryDTO>(cat);
+            }
+            catch(Exception ex)
+            {
+                await transaction.RollbackAsync();
+                throw new Exception(ex.Message);
+            }
         }
 
-        public Task<PostDTO> CreatePostAsync(CreatePostDTO newPost)
+        public async Task<PostDTO> CreatePostAsync(CreatePostDTO newPost)
         {
-            throw new NotImplementedException();
+            var existingPost = await context.BlogPosts
+                .FirstOrDefaultAsync(p => p.Title == newPost.Title);
+
+            if (existingPost is not null)
+                throw new AlreadyExistObjectException("مقال بهذا العنوان موجود بالفعل");
+
+            var imageUrl = await mediaUploadService.UploadImageWithPath(newPost.FeaturedImage, newPost.Title);
+
+            var post = new Post
+            {
+                Title = newPost.Title,
+                Content = newPost.Content,
+                FeaturedImage = imageUrl.Url,
+                ImageAltText = newPost.ImageAltText ?? string.Empty,
+                CategoryId = newPost.CategoryId,
+                Author = newPost.Author,
+                IsFeatured = newPost.IsFeatured,
+            };
+
+            await context.AddAsync(post);
+            await context.SaveChangesAsync();
+            return mapper.Map<PostDTO>(post);
         }
 
         public async Task<bool> DeleteBlogCategoryAsync(int id)

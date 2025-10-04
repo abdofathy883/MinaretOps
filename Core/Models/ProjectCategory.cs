@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Core.Enums;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -16,5 +17,7 @@ namespace Core.Models
         [Required]
         public required string Title { get; set; }
         public List<Project> Projects { get; set; } = new();
+        public int ContentLanguageId { get; set; }
+        public ContentLanguage Language { get; set; }
     }
 }
