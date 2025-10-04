@@ -20,8 +20,8 @@ namespace Infrastructure.Services.Discord
             this.options = options;
             client = new DiscordSocketClient(new DiscordSocketConfig
             {
-                GatewayIntents = GatewayIntents.AllUnprivileged
-                //GatewayIntents = GatewayIntents.Guilds | GatewayIntents.GuildMessages
+                //GatewayIntents = GatewayIntents.AllUnprivileged
+                GatewayIntents = GatewayIntents.Guilds | GatewayIntents.GuildMessages
             });
         }
 
