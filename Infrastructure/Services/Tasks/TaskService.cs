@@ -517,29 +517,29 @@ namespace Infrastructure.Services.NewFolder
                         context.Tasks.Add(task);
                         await context.SaveChangesAsync();
 
-                        if (task.Employee is not null)
-                        {
+                        //if (task.Employee is not null)
+                        //{
                             
-                            Dictionary<string, string> replacements = new Dictionary<string, string>
-                            {
-                                {"FullName", $"{task.Employee.FirstName} {task.Employee.LastName}" },
-                                {"Email", $"{task.Employee.Email}" },
-                                {"TaskTitle", $"{task.Title}" },
-                                {"TaskType", $"{task.TaskType}" },
-                                {"TaskId", $"{task.Id}" },
-                                {"Client", $"{task.ClientService.Client.Name}" },
-                                {"TimeStamp", $"{DateTime.UtcNow}" }
-                            };
-                            await emailService.SendEmailWithTemplateAsync(task.Employee.Email, "New Task Has been Assigned To You", "NewTaskAssignment", replacements);
+                        //    Dictionary<string, string> replacements = new Dictionary<string, string>
+                        //    {
+                        //        {"FullName", $"{task.Employee.FirstName} {task.Employee.LastName}" },
+                        //        {"Email", $"{task.Employee.Email}" },
+                        //        {"TaskTitle", $"{task.Title}" },
+                        //        {"TaskType", $"{task.TaskType}" },
+                        //        {"TaskId", $"{task.Id}" },
+                        //        {"Client", $"{task.ClientService.Client.Name}" },
+                        //        {"TimeStamp", $"{DateTime.UtcNow}" }
+                        //    };
+                        //    await emailService.SendEmailWithTemplateAsync(task.Employee.Email, "New Task Has been Assigned To You", "NewTaskAssignment", replacements);
 
-                        }
+                        //}
 
-                        string? channel = task.ClientService?.Client?.DiscordChannelId;
-                        if (!string.IsNullOrEmpty(channel))
-                        {
-                            TaskDTO mappedTask = mapper.Map<TaskDTO>(task);
-                            await discordService.NewTask(channel, mappedTask);
-                        }
+                        //string? channel = task.ClientService?.Client?.DiscordChannelId;
+                        //if (!string.IsNullOrEmpty(channel))
+                        //{
+                        //    TaskDTO mappedTask = mapper.Map<TaskDTO>(task);
+                        //    await discordService.NewTask(channel, mappedTask);
+                        //}
                     }
                 }
 
