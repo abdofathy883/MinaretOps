@@ -510,30 +510,30 @@ namespace Infrastructure.Services.NewFolder
                         context.Tasks.Add(task);
                         await context.SaveChangesAsync();
 
-                        //if (!string.IsNullOrEmpty(task.EmployeeId))
-                        //{
-                        //    var employee = await userManager.FindByIdAsync(taskDto.EmployeeId)
-                        //        ?? throw new InvalidObjectException($"Employee with ID {taskDto.EmployeeId} not found");
-                        //    Dictionary<string, string> replacements = new Dictionary<string, string>
-                        //    {
-                        //        {"FullName", $"{employee.FirstName} {employee.LastName}" },
-                        //        {"Email", $"{task.Employee.Email}" },
-                        //        {"TaskTitle", $"{task.Title}" },
-                        //        {"TaskType", $"{task.TaskType}" },
-                        //        {"TaskId", $"{task.Id}" },
-                        //        {"Client", $"{task.ClientService.Client.Name}" },
-                        //        {"TimeStamp", $"{DateTime.UtcNow}" }
-                        //    };
-                        //    await emailService.SendEmailWithTemplateAsync(employee.Email, "New Task Has been Assigned To You", "NewTaskAssignment", replacements);
+                        if (!string.IsNullOrEmpty(task.EmployeeId))
+                        {
+                            var employee = await userManager.FindByIdAsync(task.EmployeeId)
+                                ?? throw new InvalidObjectException($"Employee with ID {task.EmployeeId} not found");
+                            Dictionary<string, string> replacements = new Dictionary<string, string>
+                            {
+                                {"FullName", $"{employee.FirstName} {employee.LastName}" },
+                                {"Email", $"{task.Employee.Email}" },
+                                {"TaskTitle", $"{task.Title}" },
+                                {"TaskType", $"{task.TaskType}" },
+                                {"TaskId", $"{task.Id}" },
+                                {"Client", $"{task.ClientService.Client.Name}" },
+                                {"TimeStamp", $"{DateTime.UtcNow}" }
+                            };
+                            await emailService.SendEmailWithTemplateAsync(employee.Email, "New Task Has been Assigned To You", "NewTaskAssignment", replacements);
 
-                        //}
+                        }
 
                         string? channel = task.ClientService?.Client?.DiscordChannelId;
-                        //if (!string.IsNullOrEmpty(channel))
-                        //{
-                        //    TaskDTO mappedTask = mapper.Map<TaskDTO>(task);
-                        //    await discordService.NewTask(channel, mappedTask);                        
-                        //}
+                        if (!string.IsNullOrEmpty(channel))
+                        {
+                            TaskDTO mappedTask = mapper.Map<TaskDTO>(task);
+                            await discordService.NewTask(channel, mappedTask);
+                        }
                     }
                 }
 
