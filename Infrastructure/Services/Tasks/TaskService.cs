@@ -451,28 +451,36 @@ namespace Infrastructure.Services.NewFolder
         }
         public async Task<TaskGroupDTO> CreateTaskGroupAsync(CreateTaskGroupDTO createTaskGroup)
         {
-            // Validate that the client service exists
-            var clientService = await context.ClientServices
-                .Include(cs => cs.Client)
-                .Include(cs => cs.Service)
-                .FirstOrDefaultAsync(cs => cs.Id == createTaskGroup.ClientServiceId)
-                ?? throw new InvalidObjectException("العميل غير مشترك في هذه الخدمة");
-
-            // Check if task group already exists for this month/year
-            var existingGroup = await context.TaskGroups
-                .FirstOrDefaultAsync(tg => tg.ClientServiceId == createTaskGroup.ClientServiceId 
-                && tg.Month == DateTime.Now.Month 
-                && tg.Year == DateTime.Now.Year);
-
-            if (existingGroup != null)
-                throw new AlreadyExistObjectException("مجموعة التاسكات لهذا الشهر موجودة بالفعل");
-
             using var transaction = await context.Database.BeginTransactionAsync();
             try
             {
+                // Validate that the client service exists
+                var clientService = await context.ClientServices
+                    .FirstOrDefaultAsync(cs => cs.ClientId == createTaskGroup.ClientId
+                    && cs.ServiceId == createTaskGroup.ServiceId);
+
+                if (clientService is null)
+                {
+                    clientService = new ClientService
+                    {
+                        ClientId = createTaskGroup.ClientId,
+                        ServiceId = createTaskGroup.ServiceId
+                    };
+                    await context.AddAsync(clientService);
+                    await context.SaveChangesAsync();
+                }
+
+                // Check if task group already exists for this month/year
+                var existingGroup = await context.TaskGroups
+                    .FirstOrDefaultAsync(tg => tg.ClientServiceId == clientService.Id
+                    && tg.Month == DateTime.Now.Month
+                    && tg.Year == DateTime.Now.Year);
+
+                if (existingGroup != null)
+                    throw new AlreadyExistObjectException("مجموعة التاسكات لهذا الشهر موجودة بالفعل");
                 var taskGroup = new TaskGroup
                 {
-                    ClientServiceId = createTaskGroup.ClientServiceId,
+                    ClientServiceId = clientService.Id,
                     Month = DateTime.Now.Month,
                     Year = DateTime.Now.Year,
                     MonthLabel = $"{DateTime.Now.ToString("MMMM")} {DateTime.Now.ToString("yyyy")}"
@@ -491,8 +499,7 @@ namespace Infrastructure.Services.NewFolder
                             Title = taskDto.Title,
                             TaskType = taskDto.TaskType,
                             Description = taskDto.Description,
-                            Status = taskDto.Status,
-                            ClientServiceId = createTaskGroup.ClientServiceId,
+                            ClientServiceId = clientService.Id,
                             Deadline = taskDto.Deadline,
                             Priority = taskDto.Priority,
                             Refrence = taskDto.Refrence,
@@ -503,30 +510,30 @@ namespace Infrastructure.Services.NewFolder
                         context.Tasks.Add(task);
                         await context.SaveChangesAsync();
 
-                        if (!string.IsNullOrEmpty(task.EmployeeId))
-                        {
-                            var employee = await userManager.FindByIdAsync(taskDto.EmployeeId)
-                                ?? throw new InvalidObjectException($"Employee with ID {taskDto.EmployeeId} not found");
-                            Dictionary<string, string> replacements = new Dictionary<string, string>
-                            {
-                                {"FullName", $"{employee.FirstName} {employee.LastName}" },
-                                {"Email", $"{task.Employee.Email}" },
-                                {"TaskTitle", $"{task.Title}" },
-                                {"TaskType", $"{task.TaskType}" },
-                                {"TaskId", $"{task.Id}" },
-                                {"Client", $"{task.ClientService.Client.Name}" },
-                                {"TimeStamp", $"{DateTime.UtcNow}" }
-                            };
-                            await emailService.SendEmailWithTemplateAsync(employee.Email, "New Task Has been Assigned To You", "NewTaskAssignment", replacements);
+                        //if (!string.IsNullOrEmpty(task.EmployeeId))
+                        //{
+                        //    var employee = await userManager.FindByIdAsync(taskDto.EmployeeId)
+                        //        ?? throw new InvalidObjectException($"Employee with ID {taskDto.EmployeeId} not found");
+                        //    Dictionary<string, string> replacements = new Dictionary<string, string>
+                        //    {
+                        //        {"FullName", $"{employee.FirstName} {employee.LastName}" },
+                        //        {"Email", $"{task.Employee.Email}" },
+                        //        {"TaskTitle", $"{task.Title}" },
+                        //        {"TaskType", $"{task.TaskType}" },
+                        //        {"TaskId", $"{task.Id}" },
+                        //        {"Client", $"{task.ClientService.Client.Name}" },
+                        //        {"TimeStamp", $"{DateTime.UtcNow}" }
+                        //    };
+                        //    await emailService.SendEmailWithTemplateAsync(employee.Email, "New Task Has been Assigned To You", "NewTaskAssignment", replacements);
 
-                        }
+                        //}
 
                         string? channel = task.ClientService?.Client?.DiscordChannelId;
-                        if (!string.IsNullOrEmpty(channel))
-                        {
-                            TaskDTO mappedTask = mapper.Map<TaskDTO>(task);
-                            await discordService.NewTask(channel, mappedTask);                        
-                        }
+                        //if (!string.IsNullOrEmpty(channel))
+                        //{
+                        //    TaskDTO mappedTask = mapper.Map<TaskDTO>(task);
+                        //    await discordService.NewTask(channel, mappedTask);                        
+                        //}
                     }
                 }
 

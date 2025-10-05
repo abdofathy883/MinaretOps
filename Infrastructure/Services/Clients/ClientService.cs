@@ -57,9 +57,6 @@ namespace Infrastructure.Services.Clients
         }
         public async Task<ClientDTO> AddClientAsync(CreateClientDTO clientDTO)
         {
-            if (clientDTO is null)
-                throw new InvalidObjectException("بيانات العميل غير كاملة, برجاء ادخال كافة البيانات المطلوبة واعادة المحاولة");
-
             var existingClient = await dbContext.Clients
                 .AnyAsync(c => c.Name == clientDTO.Name);
 

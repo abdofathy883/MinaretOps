@@ -2,7 +2,9 @@
 {
     public class CreateTaskGroupDTO
     {
+        public int ClientId { get; set; }
+        public int ServiceId { get; set; }
         public int ClientServiceId { get; set; }
-        public List<CreateTaskForGroupDTO> Tasks { get; set; } = new();
+        public List<CreateTaskDTO> Tasks { get; set; } = new();
     }
 }
