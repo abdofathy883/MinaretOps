@@ -124,7 +124,7 @@ namespace ClientAPI.Controllers
             try
             {
                 var createdTaskGroup = await taskService.CreateTaskGroupAsync(createTaskGroupDTO);
-                return CreatedAtAction(nameof(GetTaskById), new { taskId = createdTaskGroup.Id }, createdTaskGroup);
+                return Ok(createdTaskGroup);
             }
             catch (Exception ex)
             {

@@ -461,9 +461,12 @@ namespace Infrastructure.Services.NewFolder
 
                 if (clientService is null)
                 {
+                    var client = await context.Clients.FindAsync(createTaskGroup.ClientId)
+                        ?? throw new Exception();
                     clientService = new ClientService
                     {
                         ClientId = createTaskGroup.ClientId,
+                        Client = client,
                         ServiceId = createTaskGroup.ServiceId
                     };
                     await context.AddAsync(clientService);
@@ -494,29 +497,32 @@ namespace Infrastructure.Services.NewFolder
                 {
                     foreach (var taskDto in createTaskGroup.Tasks)
                     {
+                        var employee = await userManager.FindByIdAsync(taskDto.EmployeeId)
+                                ?? throw new InvalidObjectException($"Employee with ID {taskDto.EmployeeId} not found");
                         var task = new TaskItem
                         {
                             Title = taskDto.Title,
                             TaskType = taskDto.TaskType,
                             Description = taskDto.Description,
                             ClientServiceId = clientService.Id,
+                            ClientService = clientService,
                             Deadline = taskDto.Deadline,
                             Priority = taskDto.Priority,
                             Refrence = taskDto.Refrence,
                             EmployeeId = taskDto.EmployeeId ?? string.Empty,
+                            Employee = employee,
                             TaskGroupId = taskGroup.Id
                         };
 
                         context.Tasks.Add(task);
                         await context.SaveChangesAsync();
 
-                        if (!string.IsNullOrEmpty(task.EmployeeId))
+                        if (task.Employee is not null)
                         {
-                            var employee = await userManager.FindByIdAsync(task.EmployeeId)
-                                ?? throw new InvalidObjectException($"Employee with ID {task.EmployeeId} not found");
+                            
                             Dictionary<string, string> replacements = new Dictionary<string, string>
                             {
-                                {"FullName", $"{employee.FirstName} {employee.LastName}" },
+                                {"FullName", $"{task.Employee.FirstName} {task.Employee.LastName}" },
                                 {"Email", $"{task.Employee.Email}" },
                                 {"TaskTitle", $"{task.Title}" },
                                 {"TaskType", $"{task.TaskType}" },
@@ -524,7 +530,7 @@ namespace Infrastructure.Services.NewFolder
                                 {"Client", $"{task.ClientService.Client.Name}" },
                                 {"TimeStamp", $"{DateTime.UtcNow}" }
                             };
-                            await emailService.SendEmailWithTemplateAsync(employee.Email, "New Task Has been Assigned To You", "NewTaskAssignment", replacements);
+                            await emailService.SendEmailWithTemplateAsync(task.Employee.Email, "New Task Has been Assigned To You", "NewTaskAssignment", replacements);
 
                         }
 
