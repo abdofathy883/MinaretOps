@@ -21,8 +21,14 @@ namespace Infrastructure.Data.Model_Configurations
             builder.Property(ar => ar.EmployeeId)
                 .IsRequired();
 
-            builder.Property(ar => ar.CheckInTime)
+            builder.Property(ar => ar.ClockIn)
                 .IsRequired();
+
+            builder.Property(ar => ar.ClockOut)
+                .IsRequired(false);
+
+            builder.Property(ar => ar.MissingClockOut)
+                .IsRequired(false);
 
             builder.Property(ar => ar.Status)
                 .IsRequired()
@@ -39,7 +45,7 @@ namespace Infrastructure.Data.Model_Configurations
                 .HasForeignKey(ar => ar.EmployeeId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            builder.HasIndex(ar => new { ar.EmployeeId, ar.CheckInTime })
+            builder.HasIndex(ar => new { ar.EmployeeId, ar.ClockIn })
                 .IsUnique();
         }
     }

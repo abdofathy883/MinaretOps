@@ -100,14 +100,14 @@ namespace ClientAPI.Controllers
             }
         }
 
-        [HttpPost("create-task")]
-        public async Task<IActionResult> CreateTaskAsync(CreateTaskDTO createTaskDTO)
+        [HttpPost("create-task/{userId}")]
+        public async Task<IActionResult> CreateTaskAsync(string userId, CreateTaskDTO createTaskDTO)
         {
             if (createTaskDTO is null)
                 return BadRequest("New Task Object Is Null");
             try
             {
-                var createdTask = await taskService.CreateTaskAsync(createTaskDTO);
+                var createdTask = await taskService.CreateTaskAsync(userId, createTaskDTO);
                 return CreatedAtAction(nameof(GetTaskById), new { taskId = createdTask.Id }, createdTask);
             }
             catch (Exception ex)

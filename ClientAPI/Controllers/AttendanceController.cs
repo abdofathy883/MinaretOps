@@ -24,7 +24,7 @@ namespace ClientAPI.Controllers
             }
             try
             {
-                var newRecord = await attendanceService.NewAttendanceRecord(recordDTO);
+                var newRecord = await attendanceService.ClockInAsync(recordDTO);
                 return Ok(newRecord);
             }
             catch (Exception ex)

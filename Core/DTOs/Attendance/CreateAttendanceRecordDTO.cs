@@ -11,6 +11,8 @@ namespace Core.DTOs.Attendance
     public class CreateAttendanceRecordDTO
     {
         public required string EmployeeId { get; set; }
+        public DateTime? ClockIn { get; set; }
+        public DateTime? ClockOut { get; set; }
         public required string DeviceId { get; set; }
         public required string IpAddress { get; set; }
     }

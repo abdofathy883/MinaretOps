@@ -52,16 +52,16 @@ namespace Infrastructure.Services.Announcements
                 };
                 await context.Announcements.AddAsync(announcement);
                 var employees = await context.Users.ToListAsync();
-                foreach (var emp in employees)
-                {
-                    var ea = new EmployeeAnnouncement
-                    {
-                        Announcement = announcement,
-                        Employee = emp,
-                        IsRead = false
-                    };
-                    await context.EmployeeAnnouncements.AddAsync(ea);
-                }
+                //foreach (var emp in employees)
+                //{
+                //    var ea = new EmployeeAnnouncement
+                //    {
+                //        Announcement = announcement,
+                //        Employee = emp,
+                //        IsRead = false
+                //    };
+                //    await context.EmployeeAnnouncements.AddAsync(ea);
+                //}
                 await context.SaveChangesAsync();
                 Dictionary<string, string> replacements = new Dictionary<string, string>
                 {

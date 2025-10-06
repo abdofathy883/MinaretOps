@@ -371,8 +371,10 @@ namespace Infrastructure.Services.NewFolder
             return mappedTask;
         }
 
-        public async Task<TaskDTO> CreateTaskAsync(CreateTaskDTO createTask)
+        public async Task<TaskDTO> CreateTaskAsync(string userId, CreateTaskDTO createTask)
         {
+            var user = await userManager.FindByIdAsync(userId)
+                ?? throw new InvalidObjectException("لم يتم العثور على المستخدم الحالي");
             // Validate that the task group exists
             var taskGroup = await context.TaskGroups
                 .FirstOrDefaultAsync(tg => tg.Id == createTask.TaskGroupId)
@@ -405,6 +407,18 @@ namespace Infrastructure.Services.NewFolder
                 };
 
                 await context.Tasks.AddAsync(task);
+                await context.SaveChangesAsync();
+
+                var taskHistory = new TaskItemHistory
+                {
+                    TaskItemId = task.Id,
+                    PropertyName = "انشاء التاسك",
+                    UpdatedById = user.Id,
+                    UpdatedBy = user,
+                    UpdatedAt = DateTime.UtcNow
+                };
+
+                await context.AddAsync(taskHistory);
                 await context.SaveChangesAsync();
 
                 if (!string.IsNullOrEmpty(emp.Email) && !string.IsNullOrEmpty(task.EmployeeId))
@@ -517,29 +531,29 @@ namespace Infrastructure.Services.NewFolder
                         context.Tasks.Add(task);
                         await context.SaveChangesAsync();
 
-                        //if (task.Employee is not null)
-                        //{
-                            
-                        //    Dictionary<string, string> replacements = new Dictionary<string, string>
-                        //    {
-                        //        {"FullName", $"{task.Employee.FirstName} {task.Employee.LastName}" },
-                        //        {"Email", $"{task.Employee.Email}" },
-                        //        {"TaskTitle", $"{task.Title}" },
-                        //        {"TaskType", $"{task.TaskType}" },
-                        //        {"TaskId", $"{task.Id}" },
-                        //        {"Client", $"{task.ClientService.Client.Name}" },
-                        //        {"TimeStamp", $"{DateTime.UtcNow}" }
-                        //    };
-                        //    await emailService.SendEmailWithTemplateAsync(task.Employee.Email, "New Task Has been Assigned To You", "NewTaskAssignment", replacements);
+                        if (task.Employee is not null)
+                        {
 
-                        //}
+                            Dictionary<string, string> replacements = new Dictionary<string, string>
+                            {
+                                {"FullName", $"{task.Employee.FirstName} {task.Employee.LastName}" },
+                                {"Email", $"{task.Employee.Email}" },
+                                {"TaskTitle", $"{task.Title}" },
+                                {"TaskType", $"{task.TaskType}" },
+                                {"TaskId", $"{task.Id}" },
+                                {"Client", $"{task.ClientService.Client.Name}" },
+                                {"TimeStamp", $"{DateTime.UtcNow}" }
+                            };
+                            await emailService.SendEmailWithTemplateAsync(task.Employee.Email, "New Task Has been Assigned To You", "NewTaskAssignment", replacements);
 
-                        //string? channel = task.ClientService?.Client?.DiscordChannelId;
-                        //if (!string.IsNullOrEmpty(channel))
-                        //{
-                        //    TaskDTO mappedTask = mapper.Map<TaskDTO>(task);
-                        //    await discordService.NewTask(channel, mappedTask);
-                        //}
+                        }
+
+                        string? channel = task.ClientService?.Client?.DiscordChannelId;
+                        if (!string.IsNullOrEmpty(channel))
+                        {
+                            TaskDTO mappedTask = mapper.Map<TaskDTO>(task);
+                            await discordService.NewTask(channel, mappedTask);
+                        }
                     }
                 }
 

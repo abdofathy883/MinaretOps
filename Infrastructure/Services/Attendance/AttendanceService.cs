@@ -50,45 +50,31 @@ namespace Infrastructure.Services.Attendance
         {
             var records = await context.AttendanceRecords
                 .Include(r => r.Employee)
-                .OrderBy(r => r.CheckInTime)
+                .OrderBy(r => r.ClockIn)
                 .ToListAsync();
 
             var tz = TimeZoneInfo.FindSystemTimeZoneById("Egypt Standard Time");
 
             foreach (var record in records)
             {
-                record.CheckInTime = TimeZoneInfo.ConvertTimeFromUtc(record.CheckInTime, tz);
+                record.ClockIn = TimeZoneInfo.ConvertTimeFromUtc(record.ClockIn, tz);
             }
 
             return mapper.Map<List<AttendanceRecordDTO>>(records);
         }
-
-        //public async Task<List<AttendanceRecordDTO>> GetAttendanceRecordsByEmployee(string employeeId)
-        //{
-        //    var emp = await GetUserOrThrow(employeeId);
-
-        //    var records = await context.AttendanceRecords
-        //        .Where(r => r.EmployeeId == employeeId)
-        //        .OrderByDescending(r => r.CheckInTime)
-        //        .ToListAsync();
-
-        //    logger.LogInformation("Fetched {Count} attendance records for employee {EmployeeId}", records.Count, employeeId);
-
-        //    return mapper.Map<List<AttendanceRecordDTO>>(records);
-        //}
 
         public async Task<AttendanceRecordDTO> GetTodayAttendanceForEmployeeAsync(string empId)
         {
             var emp = await GetUserOrThrow(empId);
 
             var attendanceRecord = await context.AttendanceRecords
-                .Where(a => a.CheckInTime >= DateTime.UtcNow.Date && a.EmployeeId == empId)
+                .Where(a => a.ClockIn >= DateTime.UtcNow.Date && a.EmployeeId == empId)
                 .FirstOrDefaultAsync();
 
             if (attendanceRecord is not null)
             {
                 var tz = TimeZoneInfo.FindSystemTimeZoneById("Egypt Standard Time");
-                attendanceRecord.CheckInTime = TimeZoneInfo.ConvertTimeFromUtc(attendanceRecord.CheckInTime, tz);
+                attendanceRecord.ClockIn = TimeZoneInfo.ConvertTimeFromUtc(attendanceRecord.ClockIn, tz);
             }
 
             return mapper.Map<AttendanceRecordDTO>(attendanceRecord);
@@ -105,7 +91,7 @@ namespace Infrastructure.Services.Attendance
             foreach (var emp in employees)
             {
                 bool hasRecord = await context.AttendanceRecords
-                    .AnyAsync(a => a.EmployeeId == emp.Id && a.CheckInTime.Date == today);
+                    .AnyAsync(a => a.EmployeeId == emp.Id && a.ClockIn.Date == today);
 
                 if (hasRecord) continue;
 
@@ -118,7 +104,7 @@ namespace Infrastructure.Services.Attendance
                 var record = new AttendanceRecord
                 {
                     EmployeeId = emp.Id,
-                    CheckInTime = today,
+                    ClockIn = today,
                     Status = hasApprovedLeave ? AttendanceStatus.Leave : AttendanceStatus.Absent,
                     DeviceId = "System",
                     IpAddress = "System"
@@ -128,12 +114,13 @@ namespace Infrastructure.Services.Attendance
             await context.SaveChangesAsync();
         }
 
-        public async Task<AttendanceRecordDTO> NewAttendanceRecord(CreateAttendanceRecordDTO recordDTO)
+        public async Task<AttendanceRecordDTO> ClockInAsync(CreateAttendanceRecordDTO recordDTO)
         {
             var user = await GetUserOrThrow(recordDTO.EmployeeId);
 
             var existingRecord = await context.AttendanceRecords
-                .FirstOrDefaultAsync(r => r.EmployeeId == recordDTO.EmployeeId && r.CheckInTime.Date == DateTime.UtcNow.Date);
+                .FirstOrDefaultAsync(r => r.EmployeeId == recordDTO.EmployeeId 
+                && r.ClockIn.Date == DateTime.UtcNow.Date);
 
             if (existingRecord != null)
                 throw new InvalidObjectException("تم تسجيل الحضور اليوم بالفعل.");
@@ -142,7 +129,7 @@ namespace Infrastructure.Services.Attendance
                 .Where(r => r.IpAddress == recordDTO.IpAddress && 
                 r.DeviceId == recordDTO.DeviceId &&
                 r.EmployeeId != recordDTO.EmployeeId && 
-                r.CheckInTime.Date == DateTime.UtcNow.Date)
+                r.ClockIn.Date == DateTime.UtcNow.Date)
                 .Include(r => r.Employee)
                 .ToListAsync();
 
@@ -152,13 +139,13 @@ namespace Infrastructure.Services.Attendance
                 var attendanceRecord = new AttendanceRecord
                 {
                     EmployeeId = recordDTO.EmployeeId,
-                    CheckInTime = DateTime.UtcNow,
+                    ClockIn = DateTime.UtcNow,
                     DeviceId = recordDTO.DeviceId,
                     IpAddress = recordDTO.IpAddress,
                     Status = AttendanceStatus.Present
                 };
 
-                logger.LogInformation("Creating new attendance record for employee {EmployeeId} at {CheckInTime}", recordDTO.EmployeeId, attendanceRecord.CheckInTime);
+                logger.LogInformation("Creating new attendance record for employee {EmployeeId} at {CheckInTime}", recordDTO.EmployeeId, attendanceRecord.ClockIn);
                 await context.AddAsync(attendanceRecord);
                 await context.SaveChangesAsync();
 
@@ -175,7 +162,7 @@ namespace Infrastructure.Services.Attendance
                         { "CurrentEmpEmail", user.Email ?? string.Empty },
                         { "CurrentEmpId", user.Id },
                         { "SuspiciousIp", recordDTO.IpAddress },
-                        { "CheckInTime", attendanceRecord.CheckInTime.ToString("u") },
+                        { "CheckInTime", attendanceRecord.ClockIn.ToString("u") },
                         { "DeviceId", recordDTO.DeviceId },
                         { "OtherEmployees", otherEmployeesNames },
                         { "TotalEmployeesOnIp", (otherEmpsWithSameIp.Count + 1).ToString() },
@@ -186,6 +173,69 @@ namespace Infrastructure.Services.Attendance
 
                 await transaction.CommitAsync();
                 return mapper.Map<AttendanceRecordDTO>(attendanceRecord);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError("Error occurred while creating attendance record for employee {EmployeeId}, with error message: {ex}", recordDTO.EmployeeId, ex.Message);
+                await transaction.RollbackAsync();
+                throw new Exception(ex.Message);
+            }
+        }
+        public async Task<AttendanceRecordDTO> ClockOutAsync(CreateAttendanceRecordDTO recordDTO)
+        {
+            var user = await GetUserOrThrow(recordDTO.EmployeeId);
+
+            var existingRecord = await context.AttendanceRecords
+                .FirstOrDefaultAsync(r => r.EmployeeId == recordDTO.EmployeeId && r.ClockIn.Date == DateTime.UtcNow.Date);
+
+            if (existingRecord == null)
+                throw new InvalidObjectException("لم يتم تسجيل الحضور بعد اليوم.");
+
+            if (existingRecord.ClockOut != null)
+                throw new InvalidObjectException("تم تسجيل الانصراف بافعل");
+
+            var otherEmpsWithSameIp = await context.AttendanceRecords
+                .Where(r => r.IpAddress == recordDTO.IpAddress && 
+                r.DeviceId == recordDTO.DeviceId &&
+                r.EmployeeId != recordDTO.EmployeeId && 
+                r.ClockIn.Date == DateTime.UtcNow.Date)
+                .Include(r => r.Employee)
+                .ToListAsync();
+
+            using var transaction = await context.Database.BeginTransactionAsync();
+            try
+            {
+                existingRecord.ClockOut = DateTime.UtcNow;
+
+
+                //logger.LogInformation("Creating new attendance record for employee {EmployeeId} at {CheckInTime}", recordDTO.EmployeeId, attendanceRecord.ClockIn);
+                context.Update(existingRecord);
+                await context.SaveChangesAsync();
+
+                //logger.LogInformation("Attendance record created with Id {RecordId}", attendanceRecord.Id);
+
+                if (otherEmpsWithSameIp.Any())
+                {
+                    var otherEmployeesNames = string.Join(", ",
+                        otherEmpsWithSameIp.Select(r => $"{r.Employee.FirstName} {r.Employee.LastName}"));
+
+                    Dictionary<string, string> replacements = new Dictionary<string, string>
+                    {
+                        { "CurrentEmpName", $"{user.FirstName} {user.LastName}" },
+                        { "CurrentEmpEmail", user.Email ?? string.Empty },
+                        { "CurrentEmpId", user.Id },
+                        { "SuspiciousIp", recordDTO.IpAddress },
+                        { "CheckInTime", existingRecord.ClockIn.ToString("u") },
+                        { "DeviceId", recordDTO.DeviceId },
+                        { "OtherEmployees", otherEmployeesNames },
+                        { "TotalEmployeesOnIp", (otherEmpsWithSameIp.Count + 1).ToString() },
+                    };
+
+                    await emailService.SendEmailWithTemplateAsync("zminaretagency@gmail.com", "Attendance Alert : Multiple Employees Using Same Device", "AttendanceAlert", replacements);
+                }
+
+                await transaction.CommitAsync();
+                return mapper.Map<AttendanceRecordDTO>(existingRecord);
             }
             catch (Exception ex)
             {
@@ -209,5 +259,6 @@ namespace Infrastructure.Services.Attendance
                 ?? throw new InvalidObjectException($"لم يتم العثور على الحضور بهذا المعرف {recordId}");
             return record;
         }
+
     }
 }
