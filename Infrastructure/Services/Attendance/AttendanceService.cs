@@ -58,6 +58,10 @@ namespace Infrastructure.Services.Attendance
             foreach (var record in records)
             {
                 record.ClockIn = TimeZoneInfo.ConvertTimeFromUtc(record.ClockIn, tz);
+                if (record.ClockOut.HasValue)
+                {
+                    record.ClockOut = TimeZoneInfo.ConvertTimeFromUtc((DateTime)record.ClockOut, tz);
+                }
             }
 
             return mapper.Map<List<AttendanceRecordDTO>>(records);
@@ -75,6 +79,7 @@ namespace Infrastructure.Services.Attendance
             {
                 var tz = TimeZoneInfo.FindSystemTimeZoneById("Egypt Standard Time");
                 attendanceRecord.ClockIn = TimeZoneInfo.ConvertTimeFromUtc(attendanceRecord.ClockIn, tz);
+                attendanceRecord.ClockOut = TimeZoneInfo.ConvertTimeFromUtc((DateTime)attendanceRecord.ClockOut, tz);
             }
 
             return mapper.Map<AttendanceRecordDTO>(attendanceRecord);
@@ -181,12 +186,12 @@ namespace Infrastructure.Services.Attendance
                 throw new Exception(ex.Message);
             }
         }
-        public async Task<AttendanceRecordDTO> ClockOutAsync(CreateAttendanceRecordDTO recordDTO)
+        public async Task<AttendanceRecordDTO> ClockOutAsync(string empId)
         {
-            var user = await GetUserOrThrow(recordDTO.EmployeeId);
+            var user = await GetUserOrThrow(empId);
 
             var existingRecord = await context.AttendanceRecords
-                .FirstOrDefaultAsync(r => r.EmployeeId == recordDTO.EmployeeId && r.ClockIn.Date == DateTime.UtcNow.Date);
+                .FirstOrDefaultAsync(r => r.EmployeeId == empId && r.ClockIn.Date == DateTime.UtcNow.Date);
 
             if (existingRecord == null)
                 throw new InvalidObjectException("لم يتم تسجيل الحضور بعد اليوم.");
@@ -195,9 +200,9 @@ namespace Infrastructure.Services.Attendance
                 throw new InvalidObjectException("تم تسجيل الانصراف بافعل");
 
             var otherEmpsWithSameIp = await context.AttendanceRecords
-                .Where(r => r.IpAddress == recordDTO.IpAddress && 
-                r.DeviceId == recordDTO.DeviceId &&
-                r.EmployeeId != recordDTO.EmployeeId && 
+                .Where(r => r.IpAddress == existingRecord.IpAddress && 
+                r.DeviceId == existingRecord.DeviceId &&
+                r.EmployeeId != existingRecord.EmployeeId && 
                 r.ClockIn.Date == DateTime.UtcNow.Date)
                 .Include(r => r.Employee)
                 .ToListAsync();
@@ -224,9 +229,9 @@ namespace Infrastructure.Services.Attendance
                         { "CurrentEmpName", $"{user.FirstName} {user.LastName}" },
                         { "CurrentEmpEmail", user.Email ?? string.Empty },
                         { "CurrentEmpId", user.Id },
-                        { "SuspiciousIp", recordDTO.IpAddress },
+                        { "SuspiciousIp", existingRecord.IpAddress },
                         { "CheckInTime", existingRecord.ClockIn.ToString("u") },
-                        { "DeviceId", recordDTO.DeviceId },
+                        { "DeviceId", existingRecord.DeviceId },
                         { "OtherEmployees", otherEmployeesNames },
                         { "TotalEmployeesOnIp", (otherEmpsWithSameIp.Count + 1).ToString() },
                     };
@@ -239,7 +244,7 @@ namespace Infrastructure.Services.Attendance
             }
             catch (Exception ex)
             {
-                logger.LogError("Error occurred while creating attendance record for employee {EmployeeId}, with error message: {ex}", recordDTO.EmployeeId, ex.Message);
+                logger.LogError("Error occurred while creating attendance record for employee {EmployeeId}, with error message: {ex}", existingRecord.EmployeeId, ex.Message);
                 await transaction.RollbackAsync();
                 throw new Exception(ex.Message);
             }
@@ -255,7 +260,7 @@ namespace Infrastructure.Services.Attendance
         {
             var record = await context.AttendanceRecords
                 .Include(r => r.Employee)
-                .FirstOrDefaultAsync()
+                .FirstOrDefaultAsync(r => r.Id == recordId)
                 ?? throw new InvalidObjectException($"لم يتم العثور على الحضور بهذا المعرف {recordId}");
             return record;
         }

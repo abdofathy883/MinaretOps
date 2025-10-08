@@ -15,6 +15,7 @@ namespace ClientAPI.Controllers
             leaveRequestService = service;
         }
         [HttpPost("submit-leave-request")]
+        [Consumes("multipart/form-data")]
         public async Task<IActionResult> SubmitLeaveRequestAsync(CreateLeaveRequestDTO leaveRequestDTO)
         {
             if (!ModelState.IsValid)

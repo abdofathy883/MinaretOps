@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Core.DTOs.Payloads;
 using Core.DTOs.Tasks;
 using Core.Enums;
 using Core.Interfaces;
@@ -9,6 +10,7 @@ using Infrastructure.Services.Discord;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace Infrastructure.Services.NewFolder
@@ -185,6 +187,8 @@ namespace Infrastructure.Services.NewFolder
                 .Include(t => t.ClientService)
                     .ThenInclude(cs => cs.Client)
                 .Include(t => t.Employee);
+
+            
 
             if (roles.Contains(UserRoles.Admin.ToString()) || roles.Contains(UserRoles.AccountManager.ToString()))
             {
@@ -421,28 +425,33 @@ namespace Infrastructure.Services.NewFolder
                 await context.AddAsync(taskHistory);
                 await context.SaveChangesAsync();
 
-                if (!string.IsNullOrEmpty(emp.Email) && !string.IsNullOrEmpty(task.EmployeeId))
+                if (!string.IsNullOrEmpty(task.Employee.Email))
                 {
-                    Dictionary<string, string> replacements = new Dictionary<string, string>
+                    var emailPayload = new
                     {
-                        {"FullName", $"{task.Employee.FirstName} {task.Employee.LastName}" },
-                        {"Email", $"{task.Employee.Email}" },
-                        {"TaskTitle", $"{task.Title}" },
-                        {"TaskType", $"{task.TaskType}" },
-                        {"TaskId", $"{task.Id}" },
-                        {"TimeStamp", $"{DateTime.UtcNow}" }
+                        To = task.Employee.Email,
+                        Subject = "New Task Has Been Assigned To You",
+                        Template = "NewTaskAssignment",
+                        Replacements = new Dictionary<string, string>
+                        {
+                            {"TaskTitle", $"{task.Title}" },
+                            {"TaskType", $"{task.TaskType}" },
+                            {"TaskId", $"{task.Id}" },
+                            {"TimeStamp", $"{DateTime.UtcNow}" }
+                        }
                     };
-                    await emailService.SendEmailWithTemplateAsync(emp.Email, "New Task Has Been Assigned To You", "NewTaskAssignment", replacements);
-                }
-                string? channel = task.ClientService?.Client?.DiscordChannelId;
-                if (!string.IsNullOrEmpty(channel))
-                {
-                    TaskDTO mappedTask = mapper.Map<TaskDTO>(task);
-                    await discordService.NewTask(channel, mappedTask);
+
+                    var emailOutBox = new Outbox
+                    {
+                        OpType = OutboxTypes.Email,
+                        OpTitle = "Send New Task Email",
+                        PayLoad = JsonSerializer.Serialize(emailPayload)
+                    };
+
+                    await context.OutboxMessages.AddAsync(emailOutBox);
+                    await context.SaveChangesAsync();
                 }
 
-
-                // Return the created task with all related data
                 var createdTask = await context.Tasks
                     .Include(t => t.ClientService)
                         .ThenInclude(cs => cs.Service)
@@ -452,10 +461,28 @@ namespace Infrastructure.Services.NewFolder
                     .Include(t => t.TaskGroup)
                     .FirstOrDefaultAsync(t => t.Id == task.Id);
 
+                var mappedTask = mapper.Map<TaskDTO>(createdTask);
+                string? channel = task.ClientService?.Client?.DiscordChannelId;
+                if (channel is not null)
+                {
+                    var discordPayload = new DiscordPayload(channel, mappedTask);
+                    //{
+                    //    ChannelId = channel,
+                    //    Task = mappedTask
+                    //};
+
+                    var discordOutbox = new Outbox
+                    {
+                        OpType = OutboxTypes.Discord,
+                        OpTitle = "Send New Discord Notification",
+                        PayLoad = JsonSerializer.Serialize(discordPayload)
+                    };
+                    await context.OutboxMessages.AddAsync(discordOutbox);
+                    await context.SaveChangesAsync();
+                }
+
                 await transaction.CommitAsync();
-
-                return mapper.Map<TaskDTO>(createdTask);
-
+                return mapper.Map<TaskDTO>(mappedTask);
             }
             catch(Exception ex)
             {

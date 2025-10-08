@@ -121,55 +121,41 @@
             <div class="title">A new leave request has been submitted</div>
 
             <p style="text-align: center; color: #666; line-height: 1.6;">
-                Hello {{ApproverName}}, a new leave request has been created and is awaiting your review.
+                Hello {{EmployeeName}}, you submitted a new leave request and is awaiting your action from admin.
             </p>
 
             <div class="details">
-                <div class="detail-row">
-                    <span class="detail-label">Request ID:</span>
-                    <span class="detail-value">{{RequestId}}</span>
-                </div>
-                <div class="detail-row">
-                    <span class="detail-label">Employee Name:</span>
-                    <span class="detail-value">{{EmployeeName}}</span>
-                </div>
                 <div class="detail-row">
                     <span class="detail-label">Leave Type:</span>
                     <span class="detail-value">{{LeaveType}}</span>
                 </div>
                 <div class="detail-row">
                     <span class="detail-label">Start Date:</span>
-                    <span class="detail-value">{{StartDate}}</span>
+                    <span class="detail-value">{{RequestFromDate}}</span>
                 </div>
                 <div class="detail-row">
                     <span class="detail-label">End Date:</span>
-                    <span class="detail-value">{{EndDate}}</span>
-                </div>
-                <div class="detail-row">
-                    <span class="detail-label">Duration:</span>
-                    <span class="detail-value">{{Duration}}</span>
+                    <span class="detail-value">{{RequestToDate}}</span>
                 </div>
                 <div class="detail-row">
                     <span class="detail-label">Reason:</span>
-                    <span class="detail-value">{{Reason}}</span>
+                    <span class="detail-value">{{RequestReason}}</span>
                 </div>
                 <div class="detail-row">
                     <span class="detail-label">Submitted:</span>
                     <span class="detail-value">{{TimeStamp}}</span>
                 </div>
                 <div class="detail-row">
-                    <span class="detail-label">Status:</span>
-                    <span class="detail-value {{StatusClass}}">{{Status}}</span>
+                    <span class="detail-label">Attatchement</span>
+                    <span class="detail-value">
+                        <a href="{{RequestFile}}">See Attatchement</a>
+                    </span>
                 </div>
             </div>
 
-            <p style="text-align: center; color: #666; line-height: 1.6;">
-                Please log in to review, approve, or reject this request.
-            </p>
-
-            <div style="text-align: center;">
+            <!--<div style="text-align: center;">
                 <a href="https://internal.theminaretagency.com/leaves/{{RequestId}}" class="cta-button">Review Leave Request</a>
-            </div>
+            </div>-->
         </div>
 
         <div class="footer">

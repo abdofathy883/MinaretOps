@@ -15,7 +15,7 @@ namespace ClientAPI.Controllers
             attendanceService = attendance;
         }
 
-        [HttpPost("new-attendance")]
+        [HttpPost("clock-in")]
         public async Task<IActionResult> CreateNewAttendanceRecordAsync(CreateAttendanceRecordDTO recordDTO)
         {
             if (!ModelState.IsValid)
@@ -31,6 +31,13 @@ namespace ClientAPI.Controllers
             {
                 return StatusCode(500, ex.Message);
             }
+        }
+
+        [HttpPost("clock-out/{empId}")]
+        public async Task<IActionResult> ClockOutAsync(string empId)
+        {
+            var result = await attendanceService.ClockOutAsync(empId);
+            return Ok(result);
         }
 
         [HttpGet("today-attendance/{employeeId}")]

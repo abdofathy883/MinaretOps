@@ -5,29 +5,32 @@ using Core.Interfaces;
 using Core.Models;
 using Infrastructure.Data;
 using Infrastructure.Exceptions;
+using Infrastructure.Services.MediaUploads;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace Infrastructure.Services.LeaveRequestService
 {
     public class LeaveRequestService : ILeaveRequestService
     {
         private readonly MinaretOpsDbContext context;
-        private readonly IEmailService emailService;
+        private readonly MediaUploadService mediaUploadService;
         private readonly IMapper mapper;
         private readonly UserManager<ApplicationUser> userManager;
         private readonly ILogger<LeaveRequestService> logger;
         public LeaveRequestService(
             MinaretOpsDbContext dbContext,
-            IEmailService _emailService,
+            MediaUploadService _mediaUploadService,
             IMapper _mapper,
             UserManager<ApplicationUser> _userManager,
             ILogger<LeaveRequestService> _logger
             )
         {
             context = dbContext;
-            emailService = _emailService;
+            mediaUploadService = _mediaUploadService;
             mapper = _mapper;
             userManager = _userManager;
             logger = _logger;
@@ -43,6 +46,8 @@ namespace Infrastructure.Services.LeaveRequestService
                 .FirstOrDefaultAsync(r => r.Id == requestId)
                 ?? throw new InvalidObjectException($"لم يتم العثور على طلب الاجازة بهذا المعرف {requestId}");
 
+            var emp = await GetUserOrThrow(request.EmployeeId);
+
             using var transaction = await context.Database.BeginTransactionAsync();
             try
             {
@@ -51,16 +56,34 @@ namespace Infrastructure.Services.LeaveRequestService
                 context.Update(request);
                 await context.SaveChangesAsync();
 
-                if (!string.IsNullOrEmpty(request.Employee.Email))
+                if (!string.IsNullOrEmpty(emp.Email))
                 {
-                    Dictionary<string, string> replacements = new()
+                    var emailPayload = new
                     {
-                        { "EmployeeName", $"{request.Employee.FirstName} {request.Employee.LastName}" },
-                        { "FromDate", $"{request.FromDate}" },
-                        { "ToDate", $"{request.ToDate}" },
+                        To = emp.Email,
+                        Subject = "Leave Request Updates",
+                        Template = "LeaveRequestUpdates",
+                        Replacements = new Dictionary<string, string>
+                        {
+                            { "EmployeeName", $"{request.Employee.FirstName} {request.Employee.LastName}" },
+                            { "FromDate", $"{request.FromDate}" },
+                            { "ToDate", $"{request.ToDate}" },
+                            { "RequestStatus", $"{request.Status.ToString()}" },
+                            { "LeaveType", request.Type.ToString() },
+                            { "RequestReason", request.Reason },
+                            { "TimeStamp", $"{request.RequestDate.ToString("yyyy-MM-dd")}" }
+                        }
                     };
 
-                    await emailService.SendEmailWithTemplateAsync(request.Employee.Email, "Leave Request Updates", "LeaveRequestUpdates", replacements);
+                    var emailOutBox = new Outbox
+                    {
+                        OpType = OutboxTypes.Email,
+                        OpTitle = "Send Leave Request Updates Email",
+                        PayLoad = JsonSerializer.Serialize(emailPayload)
+                    };
+
+                    await context.OutboxMessages.AddAsync(emailOutBox);
+                    await context.SaveChangesAsync();
                 }
                 await transaction.CommitAsync();
                 return mapper.Map<LeaveRequestDTO>(request);
@@ -95,27 +118,66 @@ namespace Infrastructure.Services.LeaveRequestService
             using var transaction = await context.Database.BeginTransactionAsync();
             try
             {
+                var fileUrl = string.Empty;
+                if (leaveRequestDTO.ProofFile != null)
+                {
+                    var contentType = leaveRequestDTO.ProofFile.ContentType.ToLower();
+
+                    if (contentType.StartsWith("image/"))
+                    {
+                        var uploaded = await mediaUploadService.UploadImageWithPath(leaveRequestDTO.ProofFile, $"{emp.FirstName} {emp.LastName}");
+                        fileUrl = uploaded.Url;
+                    }
+                    else
+                    {
+                        var uploaded = await mediaUploadService.UploadPDFFile(leaveRequestDTO.ProofFile, $"{emp.FirstName} {emp.LastName}");
+                        fileUrl = uploaded;
+                    }
+                }
                 var request = new LeaveRequest
                 {
                     EmployeeId = emp.Id,
                     FromDate = leaveRequestDTO.FromDate,
                     ToDate = leaveRequestDTO.ToDate,
+                    Type = leaveRequestDTO.Type,
+                    Reason = leaveRequestDTO.Reason,
                     Status = LeaveStatus.Pending,
-                    ActionDate = DateTime.UtcNow
+                    ActionDate = DateTime.UtcNow,
+                    RequestDate = DateTime.UtcNow,
+                    ProofFile = fileUrl
                 };
-                await context.AddAsync(request);
+                await context.LeaveRequests.AddAsync(request);
                 await context.SaveChangesAsync();
 
                 if (!string.IsNullOrEmpty(emp.Email))
                 {
-                    Dictionary<string, string> replacements = new()
+                    var emailPayload = new
                     {
-                        { "EmployeeName", $"{emp.FirstName} {emp.LastName}" },
-                        { "RequestFromDate", $"{request.FromDate}" },
-                        { "RequestToDate", $"{request.ToDate}" },
-                        { "RequestStatus", $"{request.Status.ToString()}" }
+                        To = emp.Email,
+                        Subject = "New Leave Request",
+                        Template = "NewLeaveRequest",
+                        Replacements = new Dictionary<string, string>
+                        {
+                            { "EmployeeName", $"{emp.FirstName} {emp.LastName}" },
+                            { "RequestFromDate", $"{request.FromDate}" },
+                            { "RequestToDate", $"{request.ToDate}" },
+                            { "RequestStatus", $"{request.Status.ToString()}" },
+                            { "LeaveType", request.Type.ToString() },
+                            { "RequestReason", request.Reason },
+                            { "RequestFile", request.ProofFile },
+                            { "TimeStamp", $"{request.RequestDate.ToString("yyyy-MM-dd")}" }
+                        }
                     };
-                    await emailService.SendEmailWithTemplateAsync(emp.Email, "New Leave Request", "NewLeaveRequest", replacements);
+
+                    var emailOutBox = new Outbox
+                    {
+                        OpType = OutboxTypes.Email,
+                        OpTitle = "Send New Leave Request Email",
+                        PayLoad = JsonSerializer.Serialize(emailPayload)
+                    };
+
+                    await context.OutboxMessages.AddAsync(emailOutBox);
+                    await context.SaveChangesAsync();
                 }
 
                 await transaction.CommitAsync();

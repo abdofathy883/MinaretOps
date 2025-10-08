@@ -28,6 +28,7 @@ namespace Infrastructure.Data
         public DbSet<EmployeeAnnouncement> EmployeeAnnouncements { get; set; }
         public DbSet<Complaint> Complaints { get; set; }
         public DbSet<KPIIncedint> KPIIncedints { get; set; }
+        public DbSet<Outbox> OutboxMessages { get; set; }
         public DbSet<BlogCategory> BlogCategories { get; set; }
         public DbSet<Post> BlogPosts { get; set; }
         public DbSet<ProjectCategory> ProjectCategories { get; set; }
@@ -53,6 +54,7 @@ namespace Infrastructure.Data
             builder.ApplyConfiguration(new EmployeeAnnouncementConfig());
             builder.ApplyConfiguration(new ComplaintConfig());
             builder.ApplyConfiguration(new IncedientConfig());
+            builder.ApplyConfiguration(new OutboxConfig());
         }
     }
 }

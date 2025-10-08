@@ -17,6 +17,7 @@ using Infrastructure.Services.LeaveRequestService;
 using Infrastructure.Services.MediaUploads;
 using Infrastructure.Services.NewFolder;
 using Infrastructure.Services.Notifications;
+using Infrastructure.Services.OutboxProcessor;
 using Infrastructure.Services.Services;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
@@ -68,8 +69,10 @@ namespace ClientAPI
             builder.Services.AddScoped<IAnnouncementService, AnnouncementService>();
             builder.Services.AddScoped<IComplaintService, ComplaintService>();
             builder.Services.AddScoped<IKPIService, KPIService>();
+            builder.Services.AddScoped<IOutboxHandler, OutboxHandler>();
             builder.Services.AddSingleton<DiscordService>();
             builder.Services.AddHostedService<DiscordHostedService>();
+            builder.Services.AddHostedService<OutboxProcessor>();
 
             builder.Services.AddQuartz(q =>
             {

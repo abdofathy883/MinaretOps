@@ -27,12 +27,28 @@ namespace Infrastructure.Data.Model_Configurations
             builder.Property(lr => lr.ToDate)
                 .IsRequired();
 
+            builder.Property(lr => lr.Type)
+                .IsRequired()
+                .HasConversion<string>();
+
+            builder.Property(lr => lr.Reason)
+                .IsRequired()
+                .HasMaxLength(3000);
+
+            builder.Property(lr => lr.ProofFile)
+                .IsRequired(false)
+                .HasMaxLength(2000);
+
             builder.Property(lr => lr.Status)
                 .IsRequired()
                 .HasConversion<string>();
 
             builder.Property(lr => lr.ActionDate)
                 .IsRequired(false);
+
+            builder.Property(lr => lr.RequestDate)
+                .IsRequired(true)
+                .HasDefaultValueSql("GETDATE()");
 
             builder.HasOne(lr => lr.Employee)
                 .WithMany(e => e.LeaveRequests)

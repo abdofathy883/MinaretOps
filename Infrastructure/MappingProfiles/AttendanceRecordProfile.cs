@@ -14,9 +14,9 @@ namespace Infrastructure.MappingProfiles
                 .ForMember(dest => dest.EmployeeName, opt => opt.MapFrom(src => $"{src.Employee.FirstName} {src.Employee.LastName}"))
                 .ForMember(dest => dest.ClockIn, opt => opt.MapFrom(src => src.ClockIn))
                 .ForMember(dest => dest.ClockOut, opt => opt.MapFrom(src => src.ClockOut))
-                .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status))
-                .ForMember(dest => dest.DeviceId, opt => opt.MapFrom(src => src.DeviceId))
-                .ForMember(dest => dest.IpAddress, opt => opt.MapFrom(src => src.IpAddress));
+                .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status));
+                //.ForMember(dest => dest.DeviceId, opt => opt.MapFrom(src => src.DeviceId))
+                //.ForMember(dest => dest.IpAddress, opt => opt.MapFrom(src => src.IpAddress));
         }
     }
 }

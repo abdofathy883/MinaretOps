@@ -15,6 +15,7 @@ namespace Infrastructure.Services.Discord
     {
         private readonly DiscordSocketClient client;
         private readonly IOptions<DiscordSettings> options;
+        //public bool IsAvailable { get; private set; }
         public DiscordService(IOptions<DiscordSettings> options)
         {
             this.options = options;
@@ -27,8 +28,14 @@ namespace Infrastructure.Services.Discord
 
         public async Task StartAsync()
         {
+            //if (string.IsNullOrEmpty(options.Value.BotToken))
+            //{
+            //    IsAvailable = false;
+            //    return;
+            //}
             client.Ready += () =>
             {
+                //IsAvailable = client.Guilds.Any();
                 return Task.CompletedTask;
             };
 
