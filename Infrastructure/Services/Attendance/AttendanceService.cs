@@ -79,7 +79,10 @@ namespace Infrastructure.Services.Attendance
             {
                 var tz = TimeZoneInfo.FindSystemTimeZoneById("Egypt Standard Time");
                 attendanceRecord.ClockIn = TimeZoneInfo.ConvertTimeFromUtc(attendanceRecord.ClockIn, tz);
-                attendanceRecord.ClockOut = TimeZoneInfo.ConvertTimeFromUtc((DateTime)attendanceRecord.ClockOut, tz);
+                if (attendanceRecord.ClockOut.HasValue)
+                {
+                    attendanceRecord.ClockOut = TimeZoneInfo.ConvertTimeFromUtc((DateTime)attendanceRecord.ClockOut, tz);
+                }
             }
 
             return mapper.Map<AttendanceRecordDTO>(attendanceRecord);

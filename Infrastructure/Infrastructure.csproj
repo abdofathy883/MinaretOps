@@ -34,7 +34,6 @@
 
   <ItemGroup>
     <Folder Include="Migrations\" />
-    <Folder Include="Services\Google\" />
     <Folder Include="Services\Portfolio\" />
   </ItemGroup>
 
