@@ -16,7 +16,6 @@ namespace Core.Interfaces
         Task<UserDTO> GetUserByIdAsync(string userId);
         Task<bool> DeleteUserAsync(string userId);
 
-
         Task<List<TeamMemberDTO>> GetTeamMembersAsync();
     }
 }

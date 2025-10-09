@@ -12,6 +12,7 @@ using Infrastructure.Services.ContactForm;
 using Infrastructure.Services.Discord;
 using Infrastructure.Services.Email;
 using Infrastructure.Services.InternalTasks;
+using Infrastructure.Services.JobDescription;
 using Infrastructure.Services.KPI;
 using Infrastructure.Services.LeaveRequestService;
 using Infrastructure.Services.MediaUploads;
@@ -69,10 +70,12 @@ namespace ClientAPI
             builder.Services.AddScoped<IAnnouncementService, AnnouncementService>();
             builder.Services.AddScoped<IComplaintService, ComplaintService>();
             builder.Services.AddScoped<IKPIService, KPIService>();
+            builder.Services.AddScoped<IJobDescribtionService, JobDescriptionService>();
             builder.Services.AddScoped<IOutboxHandler, OutboxHandler>();
             builder.Services.AddSingleton<DiscordService>();
             builder.Services.AddHostedService<DiscordHostedService>();
             builder.Services.AddHostedService<OutboxProcessor>();
+            builder.Services.AddHostedService<OutboxCleaner>();
 
             builder.Services.AddQuartz(q =>
             {
@@ -114,6 +117,7 @@ namespace ClientAPI
                 cfg.AddProfile<KPIIncedintProfile>();
                 cfg.AddProfile<TaskHistoryProfile>();
                 cfg.AddProfile<TaskResourcesProfile>();
+                cfg.AddProfile<JDProfile>();
             });
 
             builder.Services.AddControllers();

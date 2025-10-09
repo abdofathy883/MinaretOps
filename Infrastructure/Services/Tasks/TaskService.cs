@@ -44,9 +44,12 @@ namespace Infrastructure.Services.NewFolder
             if (status == CustomTaskStatus.Completed)
                 throw new InvalidOperationException("لا يمكن انهاء التاسك من خلال هذا الجراء");
 
-            var user = await userManager.FindByIdAsync(userId);
-
+            var user = await GetUserOrThrow(userId);
             var task = await GetTaskOrThrow(taskId);
+            var emp = await GetUserOrThrow(task.EmployeeId);
+            //if (!string.IsNullOrEmpty(task.EmployeeId))
+            //{
+            //}
             var oldStatus = task.Status;
 
             using var transaction = await context.Database.BeginTransactionAsync();
@@ -65,11 +68,14 @@ namespace Infrastructure.Services.NewFolder
                 context.Tasks.Update(task);
                 await context.TaskHistory.AddAsync(history);
                 await context.SaveChangesAsync();
-                if (user is not null)
+                if (!string.IsNullOrEmpty(emp.Email))
                 {
-                    if (!string.IsNullOrEmpty(user.Email) && !string.IsNullOrEmpty(user.Id))
+                    var emailPayload = new
                     {
-                        Dictionary<string, string> replacements = new Dictionary<string, string>
+                        To = emp.Email,
+                        Subject = "Task Updates",
+                        Template = "ChangeTaskStatus",
+                        Replacements = new Dictionary<string, string>
                         {
                             {"FullName", $"{task.Employee.FirstName} {task.Employee.LastName}" },
                             {"Email", $"{task.Employee.Email}" },
@@ -79,8 +85,17 @@ namespace Infrastructure.Services.NewFolder
                             {"OldStatus", $"{task.Status}" },
                             {"NewStatus", $"{status}" },
                             {"TimeStamp", $"{DateTime.UtcNow}" }
-                        };
-                        await emailService.SendEmailWithTemplateAsync(user.Email, "Task Updates", "ChangeTaskStatus", replacements);
+                        }
+                    };
+                    var outboxEmail = new Outbox
+                    {
+                        OpTitle = "Task Updates Email",
+                        OpType = OutboxTypes.Email,
+                        PayLoad = JsonSerializer.Serialize(emailPayload)
+                    };
+                    await context.OutboxMessages.AddAsync(outboxEmail);
+                    await context.SaveChangesAsync();
+                    
                         //await notificationService.CreateAsync(new Core.DTOs.Notifications.CreateNotificationDTO
                         //{
                         //    UserId = task.EmployeeId,
@@ -88,15 +103,21 @@ namespace Infrastructure.Services.NewFolder
                         //    Body = $"The status of task '{task.Title}' has been changed to {status}.",
                         //    Url = $"https://internal.theminaretagency.com/tasks/{task.Id}"
                         //});
-                
-                    }
                     
                 }
                 string? channel = task.ClientService?.Client?.DiscordChannelId;
                 if (!string.IsNullOrEmpty(channel))
                 {
                     TaskDTO mappedTask = mapper.Map<TaskDTO>(task);
-                    await discordService.ChangeTaskStatus(channel, mappedTask, status);
+                    var discordPayload = new DiscordPayload(channel, mappedTask);
+                    var outboxDiscord = new Outbox
+                    {
+                        OpTitle = "Task Updates Discord",
+                        OpType = OutboxTypes.Discord,
+                        PayLoad = JsonSerializer.Serialize(discordPayload)
+                    };
+                    await context.OutboxMessages.AddAsync(outboxDiscord);
+                    await context.SaveChangesAsync();
                 }
                 await transaction.CommitAsync();
                 return true;
@@ -110,6 +131,7 @@ namespace Infrastructure.Services.NewFolder
         public async Task<bool> DeleteTaskAsync(int taskId)
         {
             var task = await GetTaskOrThrow(taskId);
+            var emp = await GetUserOrThrow(task.EmployeeId);
 
             using var transaction = await context.Database.BeginTransactionAsync();
             try
@@ -117,24 +139,46 @@ namespace Infrastructure.Services.NewFolder
                 context.Remove(task);
                 await context.SaveChangesAsync();
 
-                if (!string.IsNullOrEmpty(task.Employee.Email) && !string.IsNullOrEmpty(task.EmployeeId))
+                if (!string.IsNullOrEmpty(emp.Email) && !string.IsNullOrEmpty(emp.Id))
                 {
-                    Dictionary<string, string> replacements = new Dictionary<string, string>
+                    var emailPayload = new
                     {
-                        {"FullName", $"{task.Employee.FirstName} {task.Employee.LastName}" },
-                        {"Email", $"{task.Employee.Email}" },
-                        {"TaskTitle", $"{task.Title}" },
-                        {"TaskType", $"{task.TaskType}" },
-                        {"TaskId", $"{task.Id}" },
-                        {"TimeStamp", $"{DateTime.UtcNow}" }
+                        To = emp.Email,
+                        Subject = "Task Deleted",
+                        Template = "DeleteTask",
+                        Replacements = new Dictionary<string, string>
+                        {
+                            {"FullName", $"{task.Employee.FirstName} {task.Employee.LastName}" },
+                            {"Email", $"{task.Employee.Email}" },
+                            {"TaskTitle", $"{task.Title}" },
+                            {"TaskType", $"{task.TaskType}" },
+                            {"TaskId", $"{task.Id}" },
+                            {"TimeStamp", $"{DateTime.UtcNow}" }
+                        }
                     };
-                    await emailService.SendEmailWithTemplateAsync(task.Employee.Email, "Task Deleted", "DeleteTask", replacements);
+                    var outboxEmail = new Outbox
+                    {
+                        OpTitle = "Task Deletion Email",
+                        OpType = OutboxTypes.Email,
+                        PayLoad = JsonSerializer.Serialize(emailPayload)
+                    };
+                    await context.OutboxMessages.AddAsync(outboxEmail);
+                    await context.SaveChangesAsync();
+
                 }
                 string? channel = task.ClientService?.Client?.DiscordChannelId;
                 if (!string.IsNullOrEmpty(channel))
                 {
                     TaskDTO mappedTask = mapper.Map<TaskDTO>(task);
-                    await discordService.DeleteTask(channel, mappedTask);
+                    var discordPayload = new DiscordPayload(channel, mappedTask);
+                    var outboxDiscord = new Outbox
+                    {
+                        OpTitle = "Task Updates Discord",
+                        OpType = OutboxTypes.Discord,
+                        PayLoad = JsonSerializer.Serialize(discordPayload)
+                    };
+                    await context.OutboxMessages.AddAsync(outboxDiscord);
+                    await context.SaveChangesAsync();
                 }
                 await transaction.CommitAsync();
                 return true;
@@ -187,8 +231,6 @@ namespace Infrastructure.Services.NewFolder
                 .Include(t => t.ClientService)
                     .ThenInclude(cs => cs.Client)
                 .Include(t => t.Employee);
-
-            
 
             if (roles.Contains(UserRoles.Admin.ToString()) || roles.Contains(UserRoles.AccountManager.ToString()))
             {
@@ -343,25 +385,33 @@ namespace Infrastructure.Services.NewFolder
 
             await context.SaveChangesAsync();
 
+            var emp = await GetUserOrThrow(task.EmployeeId);
             // --- Notifications ---
             if (!string.IsNullOrEmpty(task.Employee.Email) && !string.IsNullOrEmpty(task.EmployeeId))
             {
-                var replacements = new Dictionary<string, string>
+                var emailPayload = new
                 {
-                    {"FullName", $"{task.Employee.FirstName} {task.Employee.LastName}" },
-                    {"Email", task.Employee.Email },
-                    {"TaskTitle", task.Title },
-                    {"TaskType", task.TaskType.ToString() },
-                    {"TaskId", task.Id.ToString() },
-                    {"TimeStamp", DateTime.UtcNow.ToString("u") }
+                    To = emp.Email,
+                    Subject = "Task Has Been Updated",
+                    Template = "TaskUpdates",
+                    Replacements = new Dictionary<string, string>
+                    {
+                        {"FullName", $"{task.Employee.FirstName} {task.Employee.LastName}" },
+                        {"Email", task.Employee.Email },
+                        {"TaskTitle", task.Title },
+                        {"TaskType", task.TaskType.ToString() },
+                        {"TaskId", task.Id.ToString() },
+                        {"TimeStamp", DateTime.UtcNow.ToString("u") }
+                    }
                 };
-
-                await emailService.SendEmailWithTemplateAsync(
-                    task.Employee.Email,
-                    "Task Has Been Updated",
-                    "TaskUpdates",
-                    replacements
-                );
+                var outboxEmail = new Outbox
+                {
+                    OpTitle = "Task Updates Email",
+                    OpType = OutboxTypes.Email,
+                    PayLoad = JsonSerializer.Serialize(emailPayload)
+                };
+                await context.OutboxMessages.AddAsync(outboxEmail);
+                await context.SaveChangesAsync();
             }
 
             // --- Discord update ---
@@ -369,7 +419,15 @@ namespace Infrastructure.Services.NewFolder
             TaskDTO mappedTask = mapper.Map<TaskDTO>(task);
             if (!string.IsNullOrEmpty(channel))
             {
-                await discordService.UpdateTask(channel, mappedTask);
+                var discordPayload = new DiscordPayload(channel, mappedTask);
+                var outboxDiscord = new Outbox
+                {
+                    OpTitle = "Task Updates Discord",
+                    OpType = OutboxTypes.Discord,
+                    PayLoad = JsonSerializer.Serialize(discordPayload)
+                };
+                await context.OutboxMessages.AddAsync(outboxDiscord);
+                await context.SaveChangesAsync();
             }
 
             return mappedTask;
@@ -466,10 +524,6 @@ namespace Infrastructure.Services.NewFolder
                 if (channel is not null)
                 {
                     var discordPayload = new DiscordPayload(channel, mappedTask);
-                    //{
-                    //    ChannelId = channel,
-                    //    Task = mappedTask
-                    //};
 
                     var discordOutbox = new Outbox
                     {
@@ -558,28 +612,50 @@ namespace Infrastructure.Services.NewFolder
                         context.Tasks.Add(task);
                         await context.SaveChangesAsync();
 
-                        if (task.Employee is not null)
+                        if (!string.IsNullOrEmpty(employee.Email))
                         {
-
-                            Dictionary<string, string> replacements = new Dictionary<string, string>
+                            var emailPayload = new
                             {
-                                {"FullName", $"{task.Employee.FirstName} {task.Employee.LastName}" },
-                                {"Email", $"{task.Employee.Email}" },
-                                {"TaskTitle", $"{task.Title}" },
-                                {"TaskType", $"{task.TaskType}" },
-                                {"TaskId", $"{task.Id}" },
-                                {"Client", $"{task.ClientService.Client.Name}" },
-                                {"TimeStamp", $"{DateTime.UtcNow}" }
+                                To = employee.Email,
+                                Subject = "New Task Has Been Assigned To You",
+                                Template = "NewTaskAssignment",
+                                Replacements = new Dictionary<string, string>
+                                {
+                                    {"FullName", $"{employee.FirstName} {employee.LastName}" },
+                                    {"Email", $"{task.Employee.Email}" },
+                                    {"TaskTitle", $"{task.Title}" },
+                                    {"TaskType", $"{task.TaskType}" },
+                                    {"TaskId", $"{task.Id}" },
+                                    {"Client", $"{task.ClientService.Client.Name}" },
+                                    {"TimeStamp", $"{DateTime.UtcNow}" }
+                                }
                             };
-                            await emailService.SendEmailWithTemplateAsync(task.Employee.Email, "New Task Has been Assigned To You", "NewTaskAssignment", replacements);
 
+                            var emailOutBox = new Outbox
+                            {
+                                OpType = OutboxTypes.Email,
+                                OpTitle = "Send New Task Email",
+                                PayLoad = JsonSerializer.Serialize(emailPayload)
+                            };
+
+                            await context.OutboxMessages.AddAsync(emailOutBox);
+                            await context.SaveChangesAsync();
                         }
 
                         string? channel = task.ClientService?.Client?.DiscordChannelId;
                         if (!string.IsNullOrEmpty(channel))
                         {
                             TaskDTO mappedTask = mapper.Map<TaskDTO>(task);
-                            await discordService.NewTask(channel, mappedTask);
+                            var discordPayload = new DiscordPayload(channel, mappedTask);
+
+                            var discordOutbox = new Outbox
+                            {
+                                OpType = OutboxTypes.Discord,
+                                OpTitle = "Send New Discord Notification",
+                                PayLoad = JsonSerializer.Serialize(discordPayload)
+                            };
+                            await context.OutboxMessages.AddAsync(discordOutbox);
+                            await context.SaveChangesAsync();
                         }
                     }
                 }
@@ -639,6 +715,12 @@ namespace Infrastructure.Services.NewFolder
                 ?? throw new InvalidObjectException("لا يوجد تاسك بهذه البيانات");
 
             return task;
+        }
+        private async Task<ApplicationUser> GetUserOrThrow(string empId)
+        {
+            var user = await userManager.FindByIdAsync(empId)
+                ?? throw new InvalidObjectException("لم يتم العثور على الموظف");
+            return user;
         }
 
         public async Task<List<TaskDTO>> SearchTasks(string query, string currentUserId)

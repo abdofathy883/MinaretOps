@@ -10,6 +10,8 @@ namespace Infrastructure.Data
         public MinaretOpsDbContext(DbContextOptions<MinaretOpsDbContext> options) : base(options)
         { }
         public DbSet<ApplicationUser> ApplicationUsers { get; set; }
+        public DbSet<JobDescription> JobDescriptions { get; set; }
+        public DbSet<JobResponsibility> JobResponsibilities { get; set; }
         public DbSet<Client> Clients { get; set; }
         public DbSet<Service> Services { get; set; }
         public DbSet<ClientService> ClientServices { get; set; }

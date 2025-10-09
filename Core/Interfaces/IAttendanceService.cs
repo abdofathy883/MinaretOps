@@ -12,6 +12,6 @@ namespace Core.Interfaces
         Task<AttendanceRecordDTO> GetTodayAttendanceForEmployeeAsync(string empId);
 
         Task MarkAbsenteesAsync();
-        //Task<List<AttendanceRecordDTO>> GetMonthlyStatusForEmpAsync();
+        //Task<List<AttendanceRecordDTO>> GetMonthlyReportForEmpAsync();
     }
 }

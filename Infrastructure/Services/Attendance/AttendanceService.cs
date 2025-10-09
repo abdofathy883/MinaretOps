@@ -8,26 +8,24 @@ using Infrastructure.Exceptions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using System.Text.Json;
 
 namespace Infrastructure.Services.Attendance
 {
     public class AttendanceService : IAttendanceService
     {
         private readonly MinaretOpsDbContext context;
-        private readonly IEmailService emailService;
         private readonly IMapper mapper;
         private readonly UserManager<ApplicationUser> userManager;
         private readonly ILogger<AttendanceService> logger;
         public AttendanceService(
             MinaretOpsDbContext dbContext,
-            IEmailService _emailService,
             IMapper _mapper,
             UserManager<ApplicationUser> _userManager,
             ILogger<AttendanceService> _logger
             )
         {
             context = dbContext;
-            emailService = _emailService;
             mapper = _mapper;
             userManager = _userManager;
             logger = _logger;
@@ -98,26 +96,35 @@ namespace Infrastructure.Services.Attendance
 
             foreach (var emp in employees)
             {
-                bool hasRecord = await context.AttendanceRecords
-                    .AnyAsync(a => a.EmployeeId == emp.Id && a.ClockIn.Date == today);
-
-                if (hasRecord) continue;
+                var existingRecord = await context.AttendanceRecords
+                    .FirstOrDefaultAsync(a => a.EmployeeId == emp.Id && a.ClockIn.Date == today);
 
                 bool hasApprovedLeave = await context.LeaveRequests
-                    .AnyAsync(l => l.EmployeeId == emp.Id && 
+                    .AnyAsync(l => l.EmployeeId == emp.Id &&
                     l.Status == LeaveStatus.Approved &&
                     l.FromDate.Date <= today &&
                     l.ToDate.Date >= today);
 
-                var record = new AttendanceRecord
+                // Case 1: Employee has no attendance record at all
+                if (existingRecord == null)
                 {
-                    EmployeeId = emp.Id,
-                    ClockIn = today,
-                    Status = hasApprovedLeave ? AttendanceStatus.Leave : AttendanceStatus.Absent,
-                    DeviceId = "System",
-                    IpAddress = "System"
-                };
-                await context.AttendanceRecords.AddAsync(record);
+                    var record = new AttendanceRecord
+                    {
+                        EmployeeId = emp.Id,
+                        ClockIn = today,
+                        Status = hasApprovedLeave ? AttendanceStatus.Leave : AttendanceStatus.Absent,
+                        DeviceId = "System",
+                        IpAddress = "System"
+                    };
+                    await context.AttendanceRecords.AddAsync(record);
+                }
+                // Case 2: Employee clocked in but didn't clock out (missing clock out)
+                else if (existingRecord.ClockOut == null && existingRecord.Status == AttendanceStatus.Present)
+                {
+                    // Update status to MissingClockOut
+                    existingRecord.MissingClockOut = true;
+                    context.Update(existingRecord);
+                }
             }
             await context.SaveChangesAsync();
         }
@@ -164,19 +171,33 @@ namespace Infrastructure.Services.Attendance
                     var otherEmployeesNames = string.Join(", ",
                         otherEmpsWithSameIp.Select(r => $"{r.Employee.FirstName} {r.Employee.LastName}"));
 
-                    Dictionary<string, string> replacements = new Dictionary<string, string>
+                    var emailPayload = new
                     {
-                        { "CurrentEmpName", $"{user.FirstName} {user.LastName}" },
-                        { "CurrentEmpEmail", user.Email ?? string.Empty },
-                        { "CurrentEmpId", user.Id },
-                        { "SuspiciousIp", recordDTO.IpAddress },
-                        { "CheckInTime", attendanceRecord.ClockIn.ToString("u") },
-                        { "DeviceId", recordDTO.DeviceId },
-                        { "OtherEmployees", otherEmployeesNames },
-                        { "TotalEmployeesOnIp", (otherEmpsWithSameIp.Count + 1).ToString() },
+                        To = "zminaretagency@gmail.com",
+                        Subject = "Attendance Alert : Multiple Employees Using Same Device",
+                        Template = "AttendanceAlert",
+                        Replacements = new Dictionary<string, string>
+                        {
+                            { "CurrentEmpName", $"{user.FirstName} {user.LastName}" },
+                            { "CurrentEmpEmail", user.Email ?? string.Empty },
+                            { "CurrentEmpId", user.Id },
+                            { "SuspiciousIp", recordDTO.IpAddress },
+                            { "CheckInTime", attendanceRecord.ClockIn.ToString("u") },
+                            { "DeviceId", recordDTO.DeviceId },
+                            { "OtherEmployees", otherEmployeesNames },
+                            { "TotalEmployeesOnIp", (otherEmpsWithSameIp.Count + 1).ToString() }
+                        }
                     };
 
-                    await emailService.SendEmailWithTemplateAsync("zminaretagency@gmail.com", "Attendance Alert : Multiple Employees Using Same Device", "AttendanceAlert", replacements);
+                    var emailOutbox = new Outbox
+                    {
+                        OpTitle = "Attendance Alert Email",
+                        OpType = OutboxTypes.Email,
+                        PayLoad = JsonSerializer.Serialize(emailPayload)
+                    };
+
+                    await context.OutboxMessages.AddAsync(emailOutbox);
+                    await context.SaveChangesAsync();
                 }
 
                 await transaction.CommitAsync();
@@ -215,31 +236,41 @@ namespace Infrastructure.Services.Attendance
             {
                 existingRecord.ClockOut = DateTime.UtcNow;
 
-
-                //logger.LogInformation("Creating new attendance record for employee {EmployeeId} at {CheckInTime}", recordDTO.EmployeeId, attendanceRecord.ClockIn);
                 context.Update(existingRecord);
                 await context.SaveChangesAsync();
-
-                //logger.LogInformation("Attendance record created with Id {RecordId}", attendanceRecord.Id);
 
                 if (otherEmpsWithSameIp.Any())
                 {
                     var otherEmployeesNames = string.Join(", ",
                         otherEmpsWithSameIp.Select(r => $"{r.Employee.FirstName} {r.Employee.LastName}"));
 
-                    Dictionary<string, string> replacements = new Dictionary<string, string>
+                    var emailPayload = new
                     {
-                        { "CurrentEmpName", $"{user.FirstName} {user.LastName}" },
-                        { "CurrentEmpEmail", user.Email ?? string.Empty },
-                        { "CurrentEmpId", user.Id },
-                        { "SuspiciousIp", existingRecord.IpAddress },
-                        { "CheckInTime", existingRecord.ClockIn.ToString("u") },
-                        { "DeviceId", existingRecord.DeviceId },
-                        { "OtherEmployees", otherEmployeesNames },
-                        { "TotalEmployeesOnIp", (otherEmpsWithSameIp.Count + 1).ToString() },
+                        To = "zminaretagency@gmail.com",
+                        Subject = "Attendance Alert : Multiple Employees Using Same Device",
+                        Template = "AttendanceAlert",
+                        Replacements = new Dictionary<string, string>
+                        {
+                            { "CurrentEmpName", $"{user.FirstName} {user.LastName}" },
+                            { "CurrentEmpEmail", user.Email ?? string.Empty },
+                            { "CurrentEmpId", user.Id },
+                            { "SuspiciousIp", existingRecord.IpAddress },
+                            { "CheckInTime", existingRecord.ClockIn.ToString("u") },
+                            { "DeviceId", existingRecord.DeviceId },
+                            { "OtherEmployees", otherEmployeesNames },
+                            { "TotalEmployeesOnIp", (otherEmpsWithSameIp.Count + 1).ToString() }
+                        }
                     };
 
-                    await emailService.SendEmailWithTemplateAsync("zminaretagency@gmail.com", "Attendance Alert : Multiple Employees Using Same Device", "AttendanceAlert", replacements);
+                    var emailOutbox = new Outbox
+                    {
+                        OpTitle = "Attendance Alert Email",
+                        OpType = OutboxTypes.Email,
+                        PayLoad = JsonSerializer.Serialize(emailPayload)
+                    };
+
+                    await context.OutboxMessages.AddAsync(emailOutbox);
+                    await context.SaveChangesAsync();
                 }
 
                 await transaction.CommitAsync();
@@ -268,5 +299,9 @@ namespace Infrastructure.Services.Attendance
             return record;
         }
 
+        //public Task<List<AttendanceRecordDTO>> GetMonthlyReportForEmpAsync()
+        //{
+        //    throw new NotImplementedException();
+        //}
     }
 }
