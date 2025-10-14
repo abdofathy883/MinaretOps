@@ -49,6 +49,10 @@ namespace Infrastructure.Data.Model_Configurations
             builder.Property(t => t.IsArchived)
                 .HasDefaultValue(false);
 
+            builder.Property(t => t.CreatedAt)
+                .IsRequired()
+                .HasDefaultValueSql("GETDATE()");
+
             // Relationship with ClientService
             builder.HasOne(t => t.TaskGroup)
                 .WithMany(cs => cs.Tasks)

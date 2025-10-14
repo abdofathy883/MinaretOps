@@ -47,6 +47,12 @@ namespace Infrastructure.Data.Model_Configurations
 
             builder.HasIndex(ar => new { ar.EmployeeId, ar.ClockIn })
                 .IsUnique();
+
+            // One AttendanceRecord has many BreakPeriods
+            builder.HasMany(ar => ar.BreakPeriods)
+                .WithOne(b => b.AttendanceRecord)
+                .HasForeignKey(b => b.AttendanceRecordId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

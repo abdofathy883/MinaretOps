@@ -46,7 +46,7 @@ namespace Infrastructure.Services.NewFolder
 
             var user = await GetUserOrThrow(userId);
             var task = await GetTaskOrThrow(taskId);
-            var emp = await GetUserOrThrow(task.EmployeeId);
+            var emp = await GetUserOrThrow(task.EmployeeId ?? string.Empty);
             //if (!string.IsNullOrEmpty(task.EmployeeId))
             //{
             //}
@@ -95,15 +95,15 @@ namespace Infrastructure.Services.NewFolder
                     };
                     await context.OutboxMessages.AddAsync(outboxEmail);
                     await context.SaveChangesAsync();
-                    
-                        //await notificationService.CreateAsync(new Core.DTOs.Notifications.CreateNotificationDTO
-                        //{
-                        //    UserId = task.EmployeeId,
-                        //    Title = "Task Status Updated",
-                        //    Body = $"The status of task '{task.Title}' has been changed to {status}.",
-                        //    Url = $"https://internal.theminaretagency.com/tasks/{task.Id}"
-                        //});
-                    
+
+                    //        //await notificationService.CreateAsync(new Core.DTOs.Notifications.CreateNotificationDTO
+                    //        //{
+                    //        //    UserId = task.EmployeeId,
+                    //        //    Title = "Task Status Updated",
+                    //        //    Body = $"The status of task '{task.Title}' has been changed to {status}.",
+                    //        //    Url = $"https://internal.theminaretagency.com/tasks/{task.Id}"
+                    //        //});
+
                 }
                 string? channel = task.ClientService?.Client?.DiscordChannelId;
                 if (!string.IsNullOrEmpty(channel))

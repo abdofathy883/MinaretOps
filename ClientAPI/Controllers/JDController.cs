@@ -23,6 +23,13 @@ namespace ClientAPI.Controllers
             return Ok(result);
         }
 
+        [HttpGet("roles")]
+        public async Task<IActionResult> GetAllRolesAsync()
+        {
+            var result = await jobDescribtionService.GetAllRolesAsync();
+            return Ok(result);
+        }
+
         [HttpGet("{jdId}")]
         public async Task<IActionResult> GetJDByIdAsync(int jdId)
         {

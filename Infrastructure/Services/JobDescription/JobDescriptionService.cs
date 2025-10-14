@@ -3,6 +3,7 @@ using Core.DTOs.JDs;
 using Core.Interfaces;
 using Core.Models;
 using Infrastructure.Data;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Services.JobDescription
@@ -56,6 +57,10 @@ namespace Infrastructure.Services.JobDescription
             return mapper.Map<JDDTO>(jd);
         }
 
-        //public async Task<List<identityrol>>
+        public async Task<List<IdentityRole>> GetAllRolesAsync()
+        {
+            var roles = await context.Roles.ToListAsync();
+            return roles;
+        }
     }
 }

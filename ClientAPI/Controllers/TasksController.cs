@@ -92,7 +92,7 @@ namespace ClientAPI.Controllers
             try
             {
                 var result = await taskService.ToggleArchiveTaskAsync(taskId);
-                return Ok(new { message = "Task archived successfully" });
+                return Ok(result);
             }
             catch (Exception ex)
             {

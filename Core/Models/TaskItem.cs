@@ -29,5 +29,6 @@ namespace Core.Models
         public List<TaskCompletionResources> CompletionResources { get; set; } = new();
         public string? CompletionNotes { get; set; }
         public bool IsArchived { get; set; } = false;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }

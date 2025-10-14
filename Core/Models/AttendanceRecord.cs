@@ -9,9 +9,15 @@ namespace Core.Models
         public ApplicationUser Employee { get; set; } = default!;
         public DateTime ClockIn { get; set; }
         public DateTime? ClockOut { get; set; }
+        public TimeSpan? TotalWorkingTime => ClockOut.HasValue ? ClockOut.Value - ClockIn : null;
         public bool? MissingClockOut { get; set; }
         public AttendanceStatus Status { get; set; }
         public required string DeviceId { get; set; }
         public required string IpAddress { get; set; }
+        public List<BreakPeriod> BreakPeriods { get; set; } = new();
+        public TimeSpan TotalBreakTime => TimeSpan.FromMinutes(
+        BreakPeriods.Where(b => b.EndTime.HasValue)
+              .Sum(b => (b.EndTime.Value - b.StartTime).TotalMinutes)
+    );
     }
 }
