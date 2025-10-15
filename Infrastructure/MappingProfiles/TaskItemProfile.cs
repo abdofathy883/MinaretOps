@@ -23,7 +23,7 @@ namespace Infrastructure.MappingProfiles
                 .ForMember(dest => dest.IsArchived, opt => opt.MapFrom(src => src.IsArchived))
                 .ForMember(dest => dest.IsCompletedOnDeadline, opt => opt.MapFrom(src => src.IsCompletedOnDeadline))
                 .ForMember(dest => dest.EmployeeName, opt =>
-                    opt.MapFrom(src => $"{src.Employee.FirstName} {src.Employee.LastName}"))
+                    opt.MapFrom(src => src.Employee != null ? $"{src.Employee.FirstName} {src.Employee.LastName}" : null))
                 .ForMember(dest => dest.TaskGroupId, opt => opt.MapFrom(src => src.TaskGroupId))
                 .ForMember(dest => dest.ServiceName, opt =>
                     opt.MapFrom(src => src.ClientService.Service.Title))

@@ -68,8 +68,8 @@ namespace ClientAPI.Controllers
                 return BadRequest("Task Id is Null Or New Task Object Is Null");
             try
             {
-                await taskService.UpdateTaskAsync(taskId, updateTaskDTO, empId);
-                return Ok(new { message = "Task updated successfully" });
+                var result = await taskService.UpdateTaskAsync(taskId, updateTaskDTO, empId);
+                return Ok(result);
             }
             catch (Exception ex)
             {
@@ -80,8 +80,15 @@ namespace ClientAPI.Controllers
         [HttpPatch("change-status/{taskId}/{empId}")]
         public async Task<IActionResult> ChangeTaskStatusAsync(int taskId, string empId, [FromBody] CustomTaskStatus status)
         {
-            var result = await taskService.ChangeTaskStatusAsync(taskId, status, empId);
-            return Ok(result);
+            try
+            {
+                var result = await taskService.ChangeTaskStatusAsync(taskId, status, empId);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         [HttpPatch("toggle-archive/{taskId}")]
@@ -108,7 +115,7 @@ namespace ClientAPI.Controllers
             try
             {
                 var createdTask = await taskService.CreateTaskAsync(userId, createTaskDTO);
-                return CreatedAtAction(nameof(GetTaskById), new { taskId = createdTask.Id }, createdTask);
+                return Ok(createdTask);
             }
             catch (Exception ex)
             {
@@ -116,14 +123,14 @@ namespace ClientAPI.Controllers
             }
         }
 
-        [HttpPost("create-task-group")]
-        public async Task<IActionResult> CreateTaskGroupAsync(CreateTaskGroupDTO createTaskGroupDTO)
+        [HttpPost("create-task-group/{userId}")]
+        public async Task<IActionResult> CreateTaskGroupAsync(CreateTaskGroupDTO createTaskGroupDTO, string userId)
         {
             if (createTaskGroupDTO is null)
                 return BadRequest("Task Group Object Is Null");
             try
             {
-                var createdTaskGroup = await taskService.CreateTaskGroupAsync(createTaskGroupDTO);
+                var createdTaskGroup = await taskService.CreateTaskGroupAsync(createTaskGroupDTO, userId);
                 return Ok(createdTaskGroup);
             }
             catch (Exception ex)

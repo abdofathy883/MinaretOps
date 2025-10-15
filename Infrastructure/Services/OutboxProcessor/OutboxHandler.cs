@@ -36,7 +36,28 @@ namespace Infrastructure.Services.OutboxProcessor
                 case OutboxTypes.Discord:
                     var discordData = JsonSerializer.Deserialize<DiscordPayload>(message.PayLoad);
                     var discordService = scope.ServiceProvider.GetRequiredService<DiscordService>();
-                    await discordService.NewTask(discordData.ChannelId, discordData.Task);
+                    switch (discordData.OperationType)
+                    {
+                        case DiscordOperationType.NewTask:
+                            await discordService.NewTask(discordData.ChannelId, discordData.Task);
+                            break;
+                        case DiscordOperationType.UpdateTask:
+                            await discordService.UpdateTask(discordData.ChannelId, discordData.Task);
+                            break;
+                        case DiscordOperationType.DeleteTask:
+                            await discordService.DeleteTask(discordData.ChannelId, discordData.Task);
+                            break;
+                        case DiscordOperationType.CompleteTask:
+                            await discordService.CompleteTask(discordData.ChannelId, discordData.Task);
+                            break;
+                        case DiscordOperationType.ChangeTaskStatus:
+                            if (!discordData.NewStatus.HasValue)
+                                throw new InvalidOperationException("NewStatus is required for ChangeTaskStatus operation");
+                            await discordService.ChangeTaskStatus(discordData.ChannelId, discordData.Task, discordData.NewStatus.Value);
+                            break;
+                        default:
+                            throw new InvalidOperationException($"Unknown Discord operation type: {discordData.OperationType}");
+                    }
                     break;
 
                 default:

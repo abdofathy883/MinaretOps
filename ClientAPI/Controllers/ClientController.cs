@@ -32,13 +32,13 @@ namespace ClientAPI.Controllers
             return Ok(client);
         }
 
-        [HttpPost]
-        public async Task<IActionResult> AddClientAsync(CreateClientDTO createClientDTO)
+        [HttpPost("{userId}")]
+        public async Task<IActionResult> AddClientAsync(CreateClientDTO createClientDTO, string userId)
         {
             if (createClientDTO is null)
                 return BadRequest();
 
-            var result = await clientService.AddClientAsync(createClientDTO);
+            var result = await clientService.AddClientAsync(createClientDTO, userId);
 
             return Ok(result);
         }

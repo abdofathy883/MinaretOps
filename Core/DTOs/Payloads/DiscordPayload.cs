@@ -1,15 +1,13 @@
-﻿using Core.DTOs.Tasks;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Core.Enums;
+using Core.Models;
 
 namespace Core.DTOs.Payloads
 {
     public record DiscordPayload
     (
         string ChannelId,
-        TaskDTO Task
+        TaskItem Task,
+        DiscordOperationType OperationType,
+        CustomTaskStatus? NewStatus = null
     );
 }

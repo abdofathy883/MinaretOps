@@ -36,6 +36,10 @@ namespace Infrastructure.Data.Model_Configurations
                 .IsRequired()
                 .HasMaxLength(150);
 
+            builder.Property(c => c.DiscordChannelId)
+                .IsRequired()
+                .HasMaxLength(20);
+
             builder.Property(c => c.Status)
                 .IsRequired()
                 .HasConversion<string>();

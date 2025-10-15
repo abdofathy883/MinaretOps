@@ -46,6 +46,7 @@ namespace Infrastructure.Data
             builder.ApplyConfiguration(new ClientServiceConfig());
             builder.ApplyConfiguration(new TaskConfig());
             builder.ApplyConfiguration(new TaskLinksConfig());
+            builder.ApplyConfiguration(new TaskHistoryConfig());
             builder.ApplyConfiguration(new TaskGroupConfig());
             builder.ApplyConfiguration(new InternalTaskConfig());
             builder.ApplyConfiguration(new InternalTaskAssignmentConfig());

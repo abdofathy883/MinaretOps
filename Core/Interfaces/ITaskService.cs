@@ -15,7 +15,7 @@ namespace Core.Interfaces
         Task<bool> DeleteTaskAsync(int taskId);
 
         Task<TaskDTO> CreateTaskAsync(string userId, CreateTaskDTO createTask);
-        Task<TaskGroupDTO> CreateTaskGroupAsync(CreateTaskGroupDTO createTaskGroup);
+        Task<TaskGroupDTO> CreateTaskGroupAsync(CreateTaskGroupDTO createTaskGroup, string userId);
         Task<List<TaskGroupDTO>> GetTaskGroupsByClientServiceAsync(int clientServiceId);
         Task<List<TaskDTO>> SearchTasks(string query, string currentUserId);
     }

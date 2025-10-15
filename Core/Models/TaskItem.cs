@@ -16,7 +16,7 @@ namespace Core.Models
         public string Priority { get; set; } = "عادي"; // Default priority
         public string? Refrence { get; set; }
         public string? EmployeeId { get; set; }
-        public ApplicationUser Employee { get; set; } = default!;
+        public ApplicationUser? Employee { get; set; }
 
         public DateTime? CompletedAt { get; set; }
         public bool IsCompletedOnDeadline =>

@@ -1,9 +1,11 @@
 ﻿using Core.DTOs.AuthDTOs;
+using Core.Enums;
 using Core.Interfaces;
 using Core.Models;
 using Infrastructure.Data;
 using Infrastructure.Exceptions;
 using Infrastructure.Services.MediaUploads;
+using Infrastructure.Services.Tasks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using System.Web;
@@ -13,22 +15,22 @@ namespace Infrastructure.Services.Auth
     public class AuthService : IAuthService
     {
         private readonly MinaretOpsDbContext dbContext;
+        private readonly TaskHelperService helperService;
         private readonly UserManager<ApplicationUser> userManager;
         private readonly IJWTServices jwtServices;
-        private readonly IEmailService emailService;
         private readonly MediaUploadService mediaUploadService;
         public AuthService(
             MinaretOpsDbContext _context,
+            TaskHelperService _helperService,
             UserManager<ApplicationUser> _userManager,
             IJWTServices _jwtServices,
-            IEmailService email,
             MediaUploadService service
             )
         {
             dbContext = _context;
+            helperService = _helperService;
             userManager = _userManager;
             jwtServices = _jwtServices;
-            emailService = email;
             mediaUploadService = service;
         }
         public async Task<List<AuthResponseDTO>> GetAllUsersAsync()
@@ -158,9 +160,7 @@ namespace Infrastructure.Services.Auth
                 var result = await userManager.CreateAsync(user, newUser.Password);
 
                 if (!result.Succeeded)
-                {
                     return FailResult("Failed To Add New User");
-                }
 
                 await userManager.AddToRoleAsync(user, newUser.Role.ToString());
 
@@ -170,22 +170,27 @@ namespace Infrastructure.Services.Auth
                     Message = "تم تسجيل حساب جديد بنجاح"
                 };
 
-                Dictionary<string, string> replacements = new Dictionary<string, string>
+                var emailPayload = new
                 {
-                    {"EmpName", $"{user.FirstName} {user.LastName}" },
-                    {"EmpEmail", $"{user.Email}" },
-                    {"EmpRole", string.Join(", ", await userManager.GetRolesAsync(user)) }
-
+                    To = user.Email,
+                    Subject = "Welcome On Board",
+                    Template = "EmployeeOnBoarding",
+                    Replacements = new Dictionary<string, string>
+                    {
+                        {"EmpName", $"{user.FirstName} {user.LastName}" },
+                        {"EmpEmail", $"{user.Email}" },
+                        {"EmpRole", string.Join(", ", await userManager.GetRolesAsync(user)) }
+                    }
                 };
-
-                await emailService.SendEmailWithTemplateAsync(user.Email, "Welcome On Board", "EmployeeOnBoarding", replacements);
+                await helperService.AddOutboxAsync(OutboxTypes.Email, "New User Email", emailPayload);
+                await dbContext.SaveChangesAsync();
                 await dbTransaction.CommitAsync();
                 return authDTO;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 await dbTransaction.RollbackAsync();
-                return FailResult($"حدث خطأ أثناء التسجيل: {ex.Message}");
+                throw;
             }
         }
         public async Task<bool> ToggleVisibilityAsync(string userId)
@@ -315,14 +320,20 @@ namespace Infrastructure.Services.Auth
 
             if (!string.IsNullOrEmpty(user.Email))
             {
-                Dictionary<string, string> replacements = new Dictionary<string, string>
+                var emailPayload = new
                 {
-                    {"EmpFullName", $"{user.FirstName} {user.LastName}" },
-                    {"EmpEmail", $"{user.Email}" },
-                    {"TimeStamp", $"{DateTime.UtcNow}" }
+                    To = user.Email,
+                    Subject = "Profile Update Successfully",
+                    Template = "ProfileUpdate",
+                    Replacements = new Dictionary<string, string>
+                    {
+                        {"EmpFullName", $"{user.FirstName} {user.LastName}" },
+                        {"EmpEmail", $"{user.Email}" },
+                        {"TimeStamp", $"{DateTime.UtcNow}" }
+                    }
                 };
-                
-                await emailService.SendEmailWithTemplateAsync(user.Email, "Profile Update Successfully", "ProfileUpdate", replacements);
+                await helperService.AddOutboxAsync(OutboxTypes.Email, "Profile Updates Email", emailPayload);
+                await dbContext.SaveChangesAsync();
             }
 
             return new AuthResponseDTO
@@ -366,14 +377,20 @@ namespace Infrastructure.Services.Auth
 
             if (!string.IsNullOrEmpty(user.Email))
             {
-                Dictionary<string, string> replacements = new Dictionary<string, string>
+                var emailPayload = new
                 {
-                    {"FullName", $"{user.FirstName} {user.LastName}" },
-                    {"Email", $"{user.Email}" },
-                    {"TimeStamp", $"{DateTime.UtcNow}" }
+                    To = user.Email,
+                    Subject = "Change Password Confirmation",
+                    Template = "ChangePasswordConfirmation",
+                    Replacements = new Dictionary<string, string>
+                    {
+                        {"EmpFullName", $"{user.FirstName} {user.LastName}" },
+                        {"EmpEmail", $"{user.Email}" },
+                        {"TimeStamp", $"{DateTime.UtcNow}" }
+                    }
                 };
-                
-                await emailService.SendEmailWithTemplateAsync(user.Email, "Change Password Confirmation", "ChangePasswordConfirmation", replacements);
+                await helperService.AddOutboxAsync(OutboxTypes.Email, "Profile Updates Email", emailPayload);
+                await dbContext.SaveChangesAsync();
             }
 
             return new AuthResponseDTO
@@ -409,14 +426,21 @@ namespace Infrastructure.Services.Auth
             var resetLink = $"https://internal.theminaretagency.com/reset-password?userId={user.Id}&token={HttpUtility.UrlEncode(token)}";
             if (!string.IsNullOrEmpty(user.Email))
             {
-                Dictionary<string, string> replacements = new()
+                var emailPayload = new
                 {
-                    { "EmployeeName", $"{user.FirstName} {user.LastName}" },
-                    { "EmployeeEmail", user.Email },
-                    { "TimeStamp", $"{DateTime.UtcNow}" },
-                    { "ResetLink", resetLink }
+                    To = user.Email,
+                    Subject = "Reset Your Password",
+                    Template = "RequestResetPassword",
+                    Replacements = new Dictionary<string, string>
+                    {
+                        { "EmployeeName", $"{user.FirstName} {user.LastName}" },
+                        { "EmployeeEmail", user.Email },
+                        { "TimeStamp", $"{DateTime.UtcNow}" },
+                        { "ResetLink", resetLink }
+                    }
                 };
-                await emailService.SendEmailWithTemplateAsync(user.Email, "Reset Your Password", "RequestResetPassword", replacements);
+                await helperService.AddOutboxAsync(OutboxTypes.Email, "Profile Updates Email", emailPayload);
+                await dbContext.SaveChangesAsync();
             }
             return resetLink;
         }

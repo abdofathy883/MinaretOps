@@ -1,11 +1,12 @@
 ﻿using AutoMapper;
 using Core.DTOs.Clients;
-using Core.DTOs.Tasks;
+using Core.DTOs.Payloads;
+using Core.Enums;
 using Core.Interfaces;
 using Core.Models;
 using Infrastructure.Data;
 using Infrastructure.Exceptions;
-using Infrastructure.Services.Discord;
+using Infrastructure.Services.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -14,23 +15,20 @@ namespace Infrastructure.Services.Clients
     public class ClientService : IClientServices
     {
         private readonly MinaretOpsDbContext dbContext;
+        private readonly TaskHelperService taskHelperService;
         private readonly IMapper mapper;
         private readonly ILogger<ClientService> logger;
-        private readonly IEmailService emailService;
-        private readonly DiscordService discordService;
         public ClientService(
             MinaretOpsDbContext minaret,
+            TaskHelperService _taskHelperService,
             IMapper _mapper,
-            ILogger<ClientService> _logger,
-            IEmailService email,
-            DiscordService service
+            ILogger<ClientService> _logger
             )
         {
             dbContext = minaret;
             mapper = _mapper;
             logger = _logger;
-            emailService = email;
-            discordService = service;
+            taskHelperService = _taskHelperService;
         }
         public async Task<List<LightWieghtClientDTO>> GetAllClientsAsync()
         {
@@ -55,8 +53,10 @@ namespace Infrastructure.Services.Clients
             var client = await GetClientOrThrow(clientId);
             return mapper.Map<ClientDTO>(client);
         }
-        public async Task<ClientDTO> AddClientAsync(CreateClientDTO clientDTO)
+        public async Task<ClientDTO> AddClientAsync(CreateClientDTO clientDTO, string userId)
         {
+            var user = await taskHelperService.GetUserOrThrow(userId);
+
             var existingClient = await dbContext.Clients
                 .AnyAsync(c => c.Name == clientDTO.Name);
 
@@ -77,12 +77,8 @@ namespace Infrastructure.Services.Clients
                     DiscordChannelId = clientDTO.DiscordChannelId,
                     ClientServices = new List<Core.Models.ClientService>()
                 };
+                await dbContext.Clients.AddAsync(newClient);
 
-                // First, add the client to get its ID
-                await dbContext.AddAsync(newClient);
-                await dbContext.SaveChangesAsync();
-
-                // Now create ClientServices with proper relationships
                 foreach (var csDto in clientDTO.ClientServices)
                 {
                     var clientService = new Core.Models.ClientService
@@ -92,10 +88,8 @@ namespace Infrastructure.Services.Clients
                         TaskGroups = new List<TaskGroup>()
                     };
 
-                    await dbContext.AddAsync(clientService);
-                    await dbContext.SaveChangesAsync();
+                    await dbContext.ClientServices.AddAsync(clientService);
 
-                    // Create TaskGroups for this ClientService
                     foreach (var tgDto in csDto.TaskGroups)
                     {
                         var taskGroup = new TaskGroup
@@ -107,12 +101,12 @@ namespace Infrastructure.Services.Clients
                             Tasks = new List<TaskItem>()
                         };
 
-                        await dbContext.AddAsync(taskGroup);
-                        await dbContext.SaveChangesAsync();
+                        await dbContext.TaskGroups.AddAsync(taskGroup);
 
-                        // Create Tasks for this TaskGroup
                         foreach (var taskDto in tgDto.Tasks)
                         {
+                            var emp = await taskHelperService.GetUserOrThrow(taskDto.EmployeeId);
+
                             var task = new TaskItem
                             {
                                 Title = taskDto.Title,
@@ -121,32 +115,48 @@ namespace Infrastructure.Services.Clients
                                 Deadline = taskDto.Deadline,
                                 Priority = taskDto.Priority,
                                 Refrence = taskDto.Refrence,
-                                EmployeeId = taskDto.EmployeeId,
+                                EmployeeId = emp.Id,
+                                Employee = emp,
                                 TaskGroupId = taskGroup.Id,
-                                ClientServiceId = clientService.Id // This was missing!
+                                ClientServiceId = clientService.Id
                             };
+                            await dbContext.Tasks.AddAsync(task);
 
-                            await dbContext.AddAsync(task);
+                            var taskHistory = new TaskItemHistory
+                            {
+                                TaskItemId = task.Id,
+                                PropertyName = "انشاء التاسك",
+                                UpdatedById = user.Id,
+                                UpdatedBy = user,
+                                UpdatedAt = DateTime.UtcNow
+                            };
+                            await dbContext.TaskHistory.AddAsync(taskHistory);
 
                             // Get employee information from the database to avoid null reference
-                            if (!string.IsNullOrEmpty(task.Employee.Email))
+                            if (!string.IsNullOrEmpty(emp.Email))
                             {
-                                Dictionary<string, string> replacements = new Dictionary<string, string>
+                                var emailPayload = new
                                 {
-                                    {"FullName", $"{task.Employee.FirstName} {task.Employee.LastName}" },
-                                    {"Email", $"{task.Employee.Email}" },
-                                    {"TaskTitle", $"{task.Title}" },
-                                    {"TaskType", $"task.TaskType" },
-                                    {"TaskId", $"{task.Id}" },
-                                    {"ClientName", $"{task.ClientService.Client.Name}" },
-                                    {"TimeStamp", $"{DateTime.UtcNow}" }
+                                    To = emp.Email,
+                                    Subject = "New Task Has Been Assigned To You",
+                                    Template = "NewTaskAssignment",
+                                    Replacements = new Dictionary<string, string>
+                                    {
+                                        {"FullName", $"{task.Employee.FirstName} {task.Employee.LastName}" },
+                                        {"Email", $"{task.Employee.Email}" },
+                                        {"TaskTitle", $"{task.Title}" },
+                                        {"TaskType", $"task.TaskType" },
+                                        {"TaskId", $"{task.Id}" },
+                                        {"ClientName", $"{task.ClientService.Client.Name}" },
+                                        {"TimeStamp", $"{DateTime.UtcNow}" }
+                                    }
                                 };
-                                await emailService.SendEmailWithTemplateAsync(task.Employee.Email, "New Client Assigned To You", "NewClientAssignment", replacements);
+                                await taskHelperService.AddOutboxAsync(OutboxTypes.Email, "Send New Task Email", emailPayload);
                                 string? channelId = clientDTO?.DiscordChannelId;
                                 if (channelId != null)
                                 {
-                                    var mappedTask = mapper.Map<TaskDTO>(task);
-                                    await discordService.NewTask(channelId, mappedTask);
+                                    var discordPayload = new DiscordPayload(channelId, task, DiscordOperationType.NewTask);
+                                    await taskHelperService.AddOutboxAsync(OutboxTypes.Discord, "Send New Discord Notification", discordPayload);
                                 }
                             }
                         }

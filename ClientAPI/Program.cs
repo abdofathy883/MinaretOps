@@ -16,7 +16,7 @@ using Infrastructure.Services.JobDescription;
 using Infrastructure.Services.KPI;
 using Infrastructure.Services.LeaveRequestService;
 using Infrastructure.Services.MediaUploads;
-using Infrastructure.Services.NewFolder;
+using Infrastructure.Services.Tasks;
 using Infrastructure.Services.Notifications;
 using Infrastructure.Services.OutboxProcessor;
 using Infrastructure.Services.Services;
@@ -58,6 +58,7 @@ namespace ClientAPI
             builder.Services.AddScoped<IClientServices, ClientService>();
             builder.Services.AddScoped<IServiceService, ServiceService>();
             builder.Services.AddScoped<ITaskService, TaskService>();
+            builder.Services.AddScoped<TaskHelperService>();
             builder.Services.AddScoped<IInternalTaskService, InternalTaskService>();
             builder.Services.AddScoped<IEmailService, EmailService>();
             builder.Services.AddScoped<IContactFormService, ContactFormService>();
