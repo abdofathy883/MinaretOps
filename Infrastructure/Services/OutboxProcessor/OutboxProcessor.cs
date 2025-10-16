@@ -4,6 +4,7 @@ using Infrastructure.Services.Discord;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace Infrastructure.Services.OutboxProcessor
 {
@@ -11,9 +12,11 @@ namespace Infrastructure.Services.OutboxProcessor
     {
         private readonly IServiceProvider _serviceProvider;
         private readonly TimeSpan _interval = TimeSpan.FromSeconds(20);
-        public OutboxProcessor(IServiceProvider serviceProvider)
+        private readonly ILogger<OutboxProcessor> _logger;
+        public OutboxProcessor(IServiceProvider serviceProvider, ILogger<OutboxProcessor> logger)
         {
             _serviceProvider = serviceProvider;
+            _logger = logger;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -34,15 +37,25 @@ namespace Infrastructure.Services.OutboxProcessor
 
                     foreach (var msg in pending)
                     {
-                        await handler.HandleAsync(msg, stoppingToken);
-                        msg.ProcessedAt = DateTime.UtcNow;
+                        try
+                        {
+                            await handler.HandleAsync(msg, stoppingToken);
+                            msg.ProcessedAt = DateTime.UtcNow;
+                        }
+                        catch (Exception msgEx)
+                        {
+                            // Log and mark as processed to avoid poison-message infinite loops
+                            _logger.LogError(msgEx, "Outbox message processing failed. Id={OutboxId} Title={OutboxTitle}", msg.Id, msg.OpTitle);
+                            msg.ProcessedAt = DateTime.UtcNow;
+                        }
                     }
 
                     await context.SaveChangesAsync(stoppingToken);
                 }
                 catch (Exception ex)
                 {
-                    throw new Exception(ex.Message);
+                    // Log and continue without crashing the host
+                    _logger.LogError(ex, "OutboxProcessor cycle failed");
                 }
                 await Task.Delay(_interval, stoppingToken);
             }
