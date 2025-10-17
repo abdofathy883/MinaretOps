@@ -1,4 +1,5 @@
 ﻿using Core.DTOs.Attendance;
+using Core.DTOs.AttendanceBreaks;
 using Core.Enums;
 using Core.Interfaces;
 using Microsoft.AspNetCore.Mvc;
@@ -10,9 +11,11 @@ namespace ClientAPI.Controllers
     public class AttendanceController : ControllerBase
     {
         private readonly IAttendanceService attendanceService;
-        public AttendanceController(IAttendanceService attendance)
+        private readonly IBreakService breakService;
+        public AttendanceController(IAttendanceService attendance, IBreakService breakService)
         {
             attendanceService = attendance;
+            this.breakService = breakService;
         }
 
         [HttpPost("clock-in")]
@@ -103,5 +106,57 @@ namespace ClientAPI.Controllers
             }
         }
 
+        // Add these methods to the existing AttendanceController
+
+        [HttpPost("start-break")]
+        public async Task<IActionResult> StartBreakAsync([FromBody] Start_EndBreakDTO breakDTO)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            try
+            {
+                var result = await breakService.StartBreakAsync(breakDTO);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpPost("end-break")]
+        public async Task<IActionResult> EndBreakAsync([FromBody] Start_EndBreakDTO breakDTO)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            try
+            {
+                var result = await breakService.EndBreakAsync(breakDTO);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpGet("active-break/{employeeId}")]
+        public async Task<IActionResult> GetActiveBreakAsync(string employeeId)
+        {
+            if (string.IsNullOrEmpty(employeeId))
+                return BadRequest("Employee ID is required");
+
+            try
+            {
+                var result = await breakService.GetActiveBreakAsync(employeeId);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
     }
 }

@@ -1,34 +1,31 @@
 ﻿using AutoMapper;
 using Core.DTOs.Announcements;
 using Core.DTOs.Notifications;
+using Core.Enums;
 using Core.Interfaces;
 using Core.Models;
 using Infrastructure.Data;
 using Infrastructure.Exceptions;
+using Infrastructure.Services.Tasks;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Infrastructure.Services.Announcements
 {
     public class AnnouncementService: IAnnouncementService
     {
         private readonly MinaretOpsDbContext context;
-        private readonly IEmailService emailService;
+        private readonly TaskHelperService helperService;
         private readonly INotificationService notificationService;
         private readonly IMapper mapper;
         public AnnouncementService(
             MinaretOpsDbContext minaret,
-            IEmailService email,
+            TaskHelperService _helperService,
             INotificationService notification,
             IMapper _mapper
             )
         {
             context = minaret;
-            emailService = email;
+            helperService = _helperService;
             notificationService = notification;
             mapper = _mapper;
         }
@@ -62,40 +59,44 @@ namespace Infrastructure.Services.Announcements
                 //    };
                 //    await context.EmployeeAnnouncements.AddAsync(ea);
                 //}
-                await context.SaveChangesAsync();
-                Dictionary<string, string> replacements = new Dictionary<string, string>
-                {
-                    { "AnnouncementTitle", announcement.Title },
-                    { "AnnouncementContent", announcement.Message },
-                    { "AnnouncementId", $"{announcement.Id}" },
-                    { "{{TimeStamp}}", announcement.CreatedAt.ToString("f") }
-                };
                 foreach (var emp in employees)
                 {
                     if (!string.IsNullOrEmpty(emp.Email))
                     {
-                        await emailService.SendEmailWithTemplateAsync(emp.Email ?? string.Empty, "New Announcement", "NewAnnouncement", replacements);
-                        
+                        var emailPayload = new
+                        {
+                            To = emp.Email,
+                            Subject = "New Announcement",
+                            Template = "NewAnnouncement",
+                            Replacements = new Dictionary<string, string>
+                            {
+                                { "AnnouncementTitle", announcement.Title },
+                                { "AnnouncementContent", announcement.Message },
+                                { "AnnouncementId", $"{announcement.Id}" },
+                                { "TimeStamp", announcement.CreatedAt.ToString("f") }
+                            }
+                        };
+                        await helperService.AddOutboxAsync(OutboxTypes.Email, "New Announcement Email", emailPayload);                        
                     }
-                    //var notification = new CreateNotificationDTO
-                    //{
-                    //    Title = $"New Announcement - {dto.Title}",
-                    //    Body = dto.Message,
-                    //    UserId = emp.Id,
-                    //    Url = "https://internal.theminaretagency.com/announcements"
-                    //};
-                    //await notificationService.CreateAsync(notification);
+                    var notification = new CreateNotificationDTO
+                    {
+                        Title = $"New Announcement - {dto.Title}",
+                        Body = dto.Message,
+                        UserId = emp.Id,
+                        Url = "https://internal.theminaretagency.com/announcements"
+                    };
+                    await notificationService.CreateAsync(notification);
                 }
+                await context.SaveChangesAsync();
                 await transaction.CommitAsync();
                 return mapper.Map<AnnouncementDTO>(announcement);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 await transaction.RollbackAsync();
-                throw new Exception(ex.Message);
+                throw;
             }
         }
-
         public async Task<List<AnnouncementDTO>> GetAllAnnouncementsAsync()
         {
             var announcements = await context.Announcements
@@ -106,10 +107,5 @@ namespace Infrastructure.Services.Announcements
 
             return mapper.Map<List<AnnouncementDTO>>(announcements);
         }
-
-        //public Task<AnnouncementDTO> MarkAsReadAsync(int announcementId)
-        //{
-        //    throw new NotImplementedException();
-        //}
     }
 }

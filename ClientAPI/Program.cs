@@ -67,6 +67,7 @@ namespace ClientAPI
             builder.Services.AddScoped<MediaUploadService>();
             builder.Services.AddScoped<IAttendanceService, AttendanceService>();
             builder.Services.AddScoped<ILeaveRequestService, LeaveRequestService>();
+            builder.Services.AddScoped<IBreakService, BreakService>();
             builder.Services.AddScoped<INotificationService, NotificatonService>();
             builder.Services.AddScoped<IAnnouncementService, AnnouncementService>();
             builder.Services.AddScoped<IComplaintService, ComplaintService>();
@@ -119,6 +120,7 @@ namespace ClientAPI
                 cfg.AddProfile<TaskHistoryProfile>();
                 cfg.AddProfile<TaskResourcesProfile>();
                 cfg.AddProfile<JDProfile>();
+                cfg.AddProfile<BreakProfile>();
             });
 
             builder.Services.AddControllers();

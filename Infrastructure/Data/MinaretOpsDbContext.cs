@@ -24,6 +24,7 @@ namespace Infrastructure.Data
         public DbSet<ContactFormEntry> ContactFormEntries { get; set; }
         public DbSet<AttendanceRecord> AttendanceRecords { get; set; }
         public DbSet<LeaveRequest> LeaveRequests { get; set; }
+        public DbSet<BreakPeriod> BreakPeriods { get; set; }
         public DbSet<PushNotification> PushNotifications { get; set; }
         public DbSet<CustomPushSubscription> PushSubscriptions { get; set; }
         public DbSet<Announcement> Announcements { get; set; }

@@ -40,11 +40,31 @@ namespace ClientAPI.Controllers
         public async Task<IActionResult> CreateJDAsync(CreateJDDTO createJDDTO)
         {
             if (!ModelState.IsValid)
-            {
                 return BadRequest();
+            try
+            {
+                var result = await jobDescribtionService.CreateJDAsync(createJDDTO);
+                return Ok(result);
             }
-            var result = await jobDescribtionService.CreateJDAsync(createJDDTO);
-            return Ok(result);
+            catch(Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+        [HttpPut("{jdId}")]
+        public async Task<IActionResult> UpdateJDAsync(int jdId, CreateJDDTO updateJDDTO)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest();
+            try
+            {
+                var result = await jobDescribtionService.UpdateJdAsync(jdId, updateJDDTO);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
     }
 }

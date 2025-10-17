@@ -12,5 +12,9 @@ namespace Core.Interfaces
         Task<NotificationDTO> CreateAsync(CreateNotificationDTO dto);
         Task<IEnumerable<NotificationDTO>> GetTodayForUserAsync(string userId);
         Task MarkAsReadAsync(int id, string userId);
+
+        // Add to INotificationService.cs
+        Task SubscribeUserAsync(PushSubscriptionDTO subscription);
+        Task UnsubscribeUserAsync(string userId);
     }
 }

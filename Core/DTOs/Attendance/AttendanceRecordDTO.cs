@@ -1,4 +1,5 @@
-﻿using Core.Enums;
+﻿using Core.DTOs.AttendanceBreaks;
+using Core.Enums;
 
 namespace Core.DTOs.Attendance
 {
@@ -10,5 +11,8 @@ namespace Core.DTOs.Attendance
         public DateTime ClockIn { get; set; }
         public DateTime? ClockOut { get; set; }
         public AttendanceStatus Status { get; set; }
+        public List<BreakDTO> Breaks { get; set; } = new();
+        public TimeSpan? TotalWorkingTime { get; set; }
+        public TimeSpan TotalBreakTime { get; set; }
     }
 }

@@ -6,6 +6,7 @@ using Core.Interfaces;
 using Core.Models;
 using Infrastructure.Data;
 using Infrastructure.Exceptions;
+using Infrastructure.Services.Tasks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
@@ -15,25 +16,25 @@ namespace Infrastructure.Services.InternalTasks
     public class InternalTaskService : IInternalTaskService
     {
         private readonly MinaretOpsDbContext context;
-        private readonly IEmailService emailService;
+        private readonly TaskHelperService helperService;
         private readonly IMapper mapper;
         private readonly UserManager<ApplicationUser> userManager;
         public InternalTaskService(
             MinaretOpsDbContext minaret,
-            IEmailService email,
+            TaskHelperService _helperService,
             IMapper _mapper,
             UserManager<ApplicationUser> manager
             )
         {
             context = minaret;
-            emailService = email;
+            helperService = _helperService;
             mapper = _mapper;
             userManager = manager;
         }
         public async Task<bool> ChangeTaskStatusAsync(int taskId, CustomTaskStatus status)
         {
-            var task = await context.InternalTasks.FirstOrDefaultAsync(t => t.Id == taskId)
-                ?? throw new InvalidObjectException("لم يتم العثور على تاسك بهذا المعرف");
+            var task = await GetTaskOrThrow(taskId);
+            //var emp = await helperService.GetUserOrThrow(task.Assignments.)
 
             using var transaction = await context.Database.BeginTransactionAsync();
             try
@@ -44,29 +45,35 @@ namespace Infrastructure.Services.InternalTasks
                     task.CompletedAt = DateTime.UtcNow;
                 }
                 context.Update(task);
-                await context.SaveChangesAsync();
                 foreach (var ass in task.Assignments)
                 {
                     if (!string.IsNullOrEmpty(ass.User.Email))
                     {
-                        Dictionary<string, string> replacements = new()
+                        var emailPayload = new
                         {
-                            { "TaskTitle", task.Title },
-                            { "TaskId", $"{task.Id}" },
-                            { "TaskType", $"{task.TaskType}" },
-                            { "TaskStatus", status.ToString() },
-                            { "TaskDeadline", task.Deadline.ToString("yyyy-MM-dd") }
+                            To = ass.User.Email,
+                            Subject = "Internal Task Status Changes",
+                            Template = "ChangeTaskStatus",
+                            Replacements = new Dictionary<string, string>
+                            {
+                                { "TaskTitle", task.Title },
+                                { "TaskId", $"{task.Id}" },
+                                { "TaskType", $"{task.TaskType}" },
+                                { "TaskStatus", status.ToString() },
+                                { "TaskDeadline", task.Deadline.ToString("yyyy-MM-dd") }
+                            }
                         };
-                        await emailService.SendEmailWithTemplateAsync(ass.User.Email, "Task Status Changes", "ChangeTaskStatus", replacements);
+                        await helperService.AddOutboxAsync(OutboxTypes.Email, "Internal Task Email", emailPayload);
                     }
                 }
+                await context.SaveChangesAsync();
                 await transaction.CommitAsync();
                 return true;
             }
-            catch(Exception ex)
+            catch(Exception)
             {
                 await transaction.RollbackAsync();
-                throw new Exception(ex.Message);
+                throw;
             }
 
         }
@@ -110,25 +117,18 @@ namespace Infrastructure.Services.InternalTasks
                 };
 
                 await context.AddAsync(task);
-                await context.SaveChangesAsync();
-
 
                 foreach (var assignment in internalTaskDTO.Assignments)
                 {
                     var taskAssignment = new InternalTaskAssignment
                     {
-                        InternalTaskId = task.Id,
+                        Task = task,
                         UserId = assignment.UserId,
                         IsLeader = assignment.IsLeader
                     };
-
-                    task.Assignments.Add(taskAssignment);
                     await context.AddAsync(taskAssignment);
-
                 }
                 
-                await context.SaveChangesAsync();
-
                 var assignmentsWithUsers = await context.InternalTaskAssignments
                     .Where(a => a.InternalTaskId == task.Id)
                     .Include(a => a.User)
@@ -138,43 +138,39 @@ namespace Infrastructure.Services.InternalTasks
                 {
                     if (!string.IsNullOrEmpty(ass.User.Email))
                     {
-                        Dictionary<string, string> replacements = new()
+                        var emailPayload = new
                         {
-                            { "TaskTitle", task.Title },
-                            { "TaskId", $"{task.Id}" },
-                            { "TaskType", $"{task.TaskType}" },
-                            { "TaskStatus", task.Status.ToString() },
-                            { "TaskDeadline", task.Deadline.ToString("yyyy-MM-dd") }
+                            To = ass.User.Email,
+                            Subject = "New Internal Task",
+                            Template = "NewTaskAssignment",
+                            Replacements = new Dictionary<string, string>
+                            {
+                                { "TaskTitle", task.Title },
+                                { "TaskId", $"{task.Id}" },
+                                { "TaskType", $"{task.TaskType}" },
+                                { "TaskStatus", task.Status.ToString() },
+                                { "TaskDeadline", task.Deadline.ToString("yyyy-MM-dd") }
+                            }
                         };
-                        await emailService.SendEmailWithTemplateAsync(
-                            ass.User.Email,
-                            "New Internal Task",
-                            "NewTaskAssignment",
-                            replacements
-                        );
+                        await helperService.AddOutboxAsync(OutboxTypes.Email, "New Internal Task Email", emailPayload);
                     }
                 }
+                await context.SaveChangesAsync();
                 await transaction.CommitAsync();
                 return mapper.Map<InternalTaskDTO>(task);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 await transaction.RollbackAsync();
-                throw new NotImplementedOperationException($"حدث خطا اثناء اضافة التاسك, {ex.Message}");
+                throw;
             }
 
         }
         public async Task<bool> DeleteInternalTaskAsync(int taskId)
         {
-            var task = await context.InternalTasks
-                .SingleOrDefaultAsync(t => t.Id == taskId)
-                ?? throw new Exception();
+            var task = await GetTaskOrThrow(taskId);
 
-            var assignments = await context.InternalTaskAssignments
-                .Where(t => t.InternalTaskId == taskId)
-                .ToListAsync();
-
-            foreach (var ass in assignments)
+            foreach (var ass in task.Assignments)
             {
                 context.Remove(ass);
                 await context.SaveChangesAsync();
@@ -195,11 +191,7 @@ namespace Infrastructure.Services.InternalTasks
         }
         public async Task<InternalTaskDTO> GetInternalTaskById(int taskId)
         {
-            var task = await context.InternalTasks
-                .Include(t => t.Assignments)
-                    .ThenInclude(a => a.User)
-                .FirstOrDefaultAsync(t => t.Id == taskId)
-                ?? throw new InvalidObjectException("لم يتم العثور على التاسك");
+            var task = await GetTaskOrThrow(taskId);
 
             return mapper.Map<InternalTaskDTO>(task);
         }
@@ -241,10 +233,7 @@ namespace Infrastructure.Services.InternalTasks
         }
         public async Task<InternalTaskDTO> UpdateInternalTaskAsync(int taskId, UpdateInternalTaskDTO internalTaskDTO)
         {
-            var task = await context.InternalTasks
-                .Include(t => t.Assignments)
-                .SingleOrDefaultAsync(t => t.Id == taskId) ??
-                    throw new InvalidObjectException("لم يتم العثور على التاسك");
+            var task = await GetTaskOrThrow(taskId);
 
             // Validate users existence if assignments are provided
             if (internalTaskDTO.Assignments?.Any() == true)
@@ -296,7 +285,6 @@ namespace Infrastructure.Services.InternalTasks
                 }
 
                 context.Update(task);
-                await context.SaveChangesAsync();
 
                 // Update assignments if provided
                 if (internalTaskDTO.Assignments?.Any() == true)
@@ -325,8 +313,6 @@ namespace Infrastructure.Services.InternalTasks
                     }
                 }
 
-                await context.SaveChangesAsync();
-
                 var updatedAssignments = await context.InternalTaskAssignments
                     .Where(a => a.InternalTaskId == taskId)
                     .Include(a => a.User)
@@ -336,22 +322,24 @@ namespace Infrastructure.Services.InternalTasks
                 {
                     if (!string.IsNullOrEmpty(ass.User?.Email))
                     {
-                        Dictionary<string, string> replacements = new()
+                        var emailPayload = new
                         {
-                            { "TaskTitle", task.Title },
-                            { "TaskId", $"{task.Id}" },
-                            { "TaskType", $"{task.TaskType}" },
-                            { "TaskStatus", task.Status.ToString() },
-                            { "TaskDeadline", task.Deadline.ToString("yyyy-MM-dd") }
+                            To = ass.User.Email,
+                            Subject = "Updated Internal Task",
+                            Template = "TaskUpdates",
+                            Replacements = new Dictionary<string, string>
+                            {
+                                { "TaskTitle", task.Title },
+                                { "TaskId", $"{task.Id}" },
+                                { "TaskType", $"{task.TaskType}" },
+                                { "TaskStatus", task.Status.ToString() },
+                                { "TaskDeadline", task.Deadline.ToString("yyyy-MM-dd") }
+                            }
                         };
-                        await emailService.SendEmailWithTemplateAsync(
-                            ass.User.Email,
-                            "Updated Internal Task",
-                            "TaskUpdates",
-                            replacements
-                        );
+                        await helperService.AddOutboxAsync(OutboxTypes.Email, "Internal Task Update Email", emailPayload);
                     }
                 }
+                await context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
                 // Return updated task with assignments
@@ -362,10 +350,10 @@ namespace Infrastructure.Services.InternalTasks
 
                 return mapper.Map<InternalTaskDTO>(updatedTask);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 await transaction.RollbackAsync();
-                throw new NotImplementedOperationException($"حدث خطأ أثناء تحديث التاسك: {ex.Message}");
+                throw;
             }
         }
         public async Task<InternalTaskDTO> ToggleArchiveInternalTaskAsync(int taskId)
@@ -379,8 +367,11 @@ namespace Infrastructure.Services.InternalTasks
         }
         private async Task<InternalTask> GetTaskOrThrow(int taskId)
         {
-            var task = await context.InternalTasks.FirstOrDefaultAsync(t => t.Id == taskId)
-                ?? throw new InvalidObjectException("لم يتم العثور على تاسك بهذا المعرف");
+            var task = await context.InternalTasks
+                .Include(t => t.Assignments)
+                    .ThenInclude(a => a.User)
+                .FirstOrDefaultAsync(t => t.Id == taskId)
+                ?? throw new InvalidObjectException("لم يتم العثور على التاسك");
             return task;
         }
     }

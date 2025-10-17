@@ -30,9 +30,6 @@ namespace Infrastructure.Services.Notifications
         }
         public async Task<NotificationDTO> CreateAsync(CreateNotificationDTO dto)
         {
-            if (dto is null)
-                throw new InvalidObjectException("");
-
             var notification = new PushNotification
             {
                 Title = dto.Title,
@@ -76,6 +73,8 @@ namespace Infrastructure.Services.Notifications
 
         public async Task SendNotificationAsync(string userId, string title, string body, string url)
         {
+            if (string.IsNullOrEmpty(userId)) return;
+
             var subscriptions = await context.PushSubscriptions
                 .Where(s => s.UserId == userId)
                 .ToListAsync();
@@ -89,8 +88,17 @@ namespace Infrastructure.Services.Notifications
             {
                 title,
                 body,
-                url
+                url,
+                icon = "assets/icons/icon-192x192.png",
+                badge = "assets/icons/icon-72x72.jpg",
+                sound = "default",
+                vibrate = new int[] { 200, 100, 200 },
+                requireInteraction = true,
+                tag = "announcement",
+                timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
             });
+
+            var expiredSubscriptions = new List<CustomPushSubscription>();
 
             foreach (var sub in subscriptions)
             {
@@ -110,9 +118,65 @@ namespace Infrastructure.Services.Notifications
                 }
                 catch (Exception)
                 {
-                    // handle expired subscription (remove it from DB)
-                    context.PushSubscriptions.Remove(sub);
+                    expiredSubscriptions.Add(sub);
                 }
+            }
+            // Remove expired subscriptions
+            if (expiredSubscriptions.Any())
+            {
+                context.PushSubscriptions.RemoveRange(expiredSubscriptions);
+                await context.SaveChangesAsync();
+            }
+        }
+
+        public async Task SubscribeUserAsync(PushSubscriptionDTO subscription)
+        {
+            if (subscription == null)
+                throw new InvalidObjectException("Subscription data cannot be null");
+
+            if (string.IsNullOrEmpty(subscription.UserId) || string.IsNullOrEmpty(subscription.Endpoint))
+                throw new InvalidObjectException("UserId and Endpoint are required");
+
+            // Check if subscription already exists for this user and endpoint
+            var existingSubscription = await context.PushSubscriptions
+                .FirstOrDefaultAsync(s => s.UserId == subscription.UserId && s.Endpoint == subscription.Endpoint);
+
+            if (existingSubscription != null)
+            {
+                // Update existing subscription
+                existingSubscription.P256DH = subscription.Keys.GetProperty("p256dh").GetString();
+                existingSubscription.Auth = subscription.Keys.GetProperty("auth").GetString();
+            }
+            else
+            {
+                // Create new subscription
+                var newSubscription = new CustomPushSubscription
+                {
+                    UserId = subscription.UserId,
+                    Endpoint = subscription.Endpoint,
+                    P256DH = subscription.Keys.GetProperty("p256dh").GetString(),
+                    Auth = subscription.Keys.GetProperty("auth").GetString()
+                };
+
+                await context.PushSubscriptions.AddAsync(newSubscription);
+            }
+
+            await context.SaveChangesAsync();
+        }
+
+        public async Task UnsubscribeUserAsync(string userId)
+        {
+            if (string.IsNullOrEmpty(userId))
+                throw new InvalidObjectException("UserId is required");
+
+            var subscriptions = await context.PushSubscriptions
+                .Where(s => s.UserId == userId)
+                .ToListAsync();
+
+            if (subscriptions.Any())
+            {
+                context.PushSubscriptions.RemoveRange(subscriptions);
+                await context.SaveChangesAsync();
             }
         }
     }

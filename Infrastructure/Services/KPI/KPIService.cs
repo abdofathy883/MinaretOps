@@ -6,6 +6,7 @@ using Core.Models;
 using Infrastructure.Data;
 using Infrastructure.Exceptions;
 using Infrastructure.Services.MediaUploads;
+using Infrastructure.Services.Tasks;
 using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Services.KPI
@@ -13,18 +14,18 @@ namespace Infrastructure.Services.KPI
     public class KPIService : IKPIService
     {
         private readonly MinaretOpsDbContext context;
-        private readonly IEmailService emailService;
+        private readonly TaskHelperService helperService;
         private readonly MediaUploadService mediaUploadService;
         private readonly IMapper mapper;
         public KPIService(
             MinaretOpsDbContext minaret,
-            IEmailService email,
+            TaskHelperService _helperService,
             MediaUploadService uploadService,
             IMapper _mapper
             )
         {
             context = minaret;
-            emailService = email;
+            helperService = _helperService;
             mediaUploadService = uploadService;
             mapper = _mapper;
         }
@@ -107,8 +108,8 @@ namespace Infrastructure.Services.KPI
         }
         public async Task<IncedintDTO> NewKPIIncedintAsync(CreateIncedintDTO dto)
         {
-            var employee = await context.Users.FindAsync(dto.EmployeeId)
-                ?? throw new InvalidObjectException("لم يتم العثور على الموظف");
+            var employee = await helperService.GetUserOrThrow(dto.EmployeeId)
+                ?? throw new InvalidObjectException("الموظف غير موجود");
 
             using var transaction = await context.Database.BeginTransactionAsync();
             try
@@ -124,7 +125,7 @@ namespace Infrastructure.Services.KPI
                 }
                 var incedint = new KPIIncedint
                 {
-                    EmployeeId = dto.EmployeeId,
+                    EmployeeId = employee.Id,
                     Aspect = dto.Aspect,
                     Description = dto.Description,
                     EvidenceURL = evidenceURL,
@@ -132,29 +133,34 @@ namespace Infrastructure.Services.KPI
                     Date = dto.Date
                 };
                 await context.KPIIncedints.AddAsync(incedint);
-                await context.SaveChangesAsync();
 
                 if (!string.IsNullOrEmpty(employee.Email))
                 {
-                    Dictionary<string, string> replacements = new Dictionary<string, string>
+                    var emailPayload = new
                     {
-                        { "{{EmployeeName}}", $"{employee.FirstName} {employee.LastName}" },
-                        { "{{Aspect}}", dto.Aspect.ToString() },
-                        { "{{Description}}", dto.Description ?? "N/A" },
-                        { "{{TimeStamp}}", incedint.TimeStamp.ToString("f") },
-                        { "{{PenaltyPercentage}}", incedint.PenaltyPercentage.ToString() },
-                        { "{{EvidenceURL}}", incedint.EvidenceURL ?? "N/A" }
+                        To = employee.Email,
+                        Subject = "New KPI Incedient",
+                        Template = "NewIncedient",
+                        Replacements = new Dictionary<string, string>
+                        {
+                            { "{{EmployeeName}}", $"{employee.FirstName} {employee.LastName}" },
+                            { "{{Aspect}}", dto.Aspect.ToString() },
+                            { "{{Description}}", dto.Description ?? "N/A" },
+                            { "{{TimeStamp}}", incedint.TimeStamp.ToString("f") },
+                            { "{{PenaltyPercentage}}", incedint.PenaltyPercentage.ToString() },
+                            { "{{EvidenceURL}}", incedint.EvidenceURL ?? "N/A" }
+                        }
                     };
-                    
-                    await emailService.SendEmailWithTemplateAsync(employee.Email, "New KPI Incedient", "NewIncedient", replacements);
+                    await helperService.AddOutboxAsync(OutboxTypes.Email, "KPI Incedient Email", emailPayload);
                 }
+                await context.SaveChangesAsync();
                 await transaction.CommitAsync();
                 return mapper.Map<IncedintDTO>(incedint);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 await transaction.RollbackAsync();
-                throw new Exception($"Failed to create incedint: {ex.Message}" );
+                throw;
             }
         }
         public async Task<List<IncedintDTO>> GetAllIncedientsAsync()

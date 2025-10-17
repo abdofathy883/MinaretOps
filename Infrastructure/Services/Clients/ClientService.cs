@@ -55,7 +55,8 @@ namespace Infrastructure.Services.Clients
         }
         public async Task<ClientDTO> AddClientAsync(CreateClientDTO clientDTO, string userId)
         {
-            var user = await taskHelperService.GetUserOrThrow(userId);
+            var user = await taskHelperService.GetUserOrThrow(userId)
+                ?? throw new InvalidObjectException("المستخدم غير موجود");
 
             var existingClient = await dbContext.Clients
                 .AnyAsync(c => c.Name == clientDTO.Name);
@@ -83,7 +84,7 @@ namespace Infrastructure.Services.Clients
                 {
                     var clientService = new Core.Models.ClientService
                     {
-                        ClientId = newClient.Id,
+                        Client = newClient,
                         ServiceId = csDto.ServiceId,
                         TaskGroups = new List<TaskGroup>()
                     };
@@ -94,7 +95,7 @@ namespace Infrastructure.Services.Clients
                     {
                         var taskGroup = new TaskGroup
                         {
-                            ClientServiceId = clientService.Id,
+                            ClientService = clientService,
                             Month = DateTime.Now.Month,
                             Year = DateTime.Now.Year,
                             MonthLabel = $"{DateTime.Now.ToString("MMMM")} {DateTime.Now.ToString("yyyy")}",
@@ -105,7 +106,14 @@ namespace Infrastructure.Services.Clients
 
                         foreach (var taskDto in tgDto.Tasks)
                         {
-                            var emp = await taskHelperService.GetUserOrThrow(taskDto.EmployeeId);
+                            ApplicationUser? emp = null;
+                            var normalizedEmployeeId = string.IsNullOrWhiteSpace(taskDto.EmployeeId)
+                                ? null : taskDto.EmployeeId;
+
+                            if (normalizedEmployeeId is not null)
+                            {
+                                emp = await taskHelperService.GetUserOrThrow(normalizedEmployeeId);
+                            }
 
                             var task = new TaskItem
                             {
@@ -115,25 +123,24 @@ namespace Infrastructure.Services.Clients
                                 Deadline = taskDto.Deadline,
                                 Priority = taskDto.Priority,
                                 Refrence = taskDto.Refrence,
-                                EmployeeId = emp.Id,
+                                EmployeeId = normalizedEmployeeId,
                                 Employee = emp,
-                                TaskGroupId = taskGroup.Id,
-                                ClientServiceId = clientService.Id
+                                TaskGroup = taskGroup,
+                                ClientService = clientService,
                             };
                             await dbContext.Tasks.AddAsync(task);
 
                             var taskHistory = new TaskItemHistory
                             {
-                                TaskItemId = task.Id,
+                                TaskItem = task,
                                 PropertyName = "انشاء التاسك",
                                 UpdatedById = user.Id,
-                                UpdatedBy = user,
                                 UpdatedAt = DateTime.UtcNow
                             };
                             await dbContext.TaskHistory.AddAsync(taskHistory);
 
                             // Get employee information from the database to avoid null reference
-                            if (!string.IsNullOrEmpty(emp.Email))
+                            if (emp is not null && !string.IsNullOrEmpty(emp.Email))
                             {
                                 var emailPayload = new
                                 {
@@ -142,8 +149,8 @@ namespace Infrastructure.Services.Clients
                                     Template = "NewTaskAssignment",
                                     Replacements = new Dictionary<string, string>
                                     {
-                                        {"FullName", $"{task.Employee.FirstName} {task.Employee.LastName}" },
-                                        {"Email", $"{task.Employee.Email}" },
+                                        {"FullName", $"{emp.FirstName} {emp.LastName}" },
+                                        {"Email", $"{emp.Email}" },
                                         {"TaskTitle", $"{task.Title}" },
                                         {"TaskType", $"task.TaskType" },
                                         {"TaskId", $"{task.Id}" },
@@ -173,7 +180,7 @@ namespace Infrastructure.Services.Clients
             {
                 await dbTransaction.RollbackAsync();
                 logger.LogError($"Error adding new client: {ex}");
-                throw new NotImplementedOperationException("خطأ في اضافة العميل, حاول مرة اخرى");
+                throw;
             }
         }
         public async Task<bool> DeleteClientAsync(int clientId)

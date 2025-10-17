@@ -8,6 +8,7 @@ namespace Core.Interfaces
         Task<JDDTO> CreateJDAsync(CreateJDDTO jdDTO);
         Task<List<JDDTO>> GetAllJDsAsync();
         Task<JDDTO> GetJDById(int jdId);
+        Task<JDDTO> UpdateJdAsync(int jdId, CreateJDDTO updateDTO);
         Task<List<IdentityRole>> GetAllRolesAsync();
     }
 }

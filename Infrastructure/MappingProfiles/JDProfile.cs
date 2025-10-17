@@ -11,7 +11,7 @@ namespace Infrastructure.MappingProfiles
             CreateMap<JobDescription, JDDTO>()
                 .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id))
                 .ForMember(dest => dest.RoleId, opt => opt.MapFrom(src => src.RoleId))
-                .ForMember(dest => dest.Role, opt => opt.MapFrom(src => src.Role))
+                .ForMember(dest => dest.Role, opt => opt.MapFrom(src => src.Role.Name))
                 .ForMember(dest => dest.JobResponsibilities, opt => opt.MapFrom(src => src.JobResponsibilities));
 
             CreateMap<JobResponsibility, JRDTO>()

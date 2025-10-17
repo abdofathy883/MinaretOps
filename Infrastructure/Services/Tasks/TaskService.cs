@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Core.DTOs.Notifications;
 using Core.DTOs.Payloads;
 using Core.DTOs.Tasks;
 using Core.Enums;
@@ -15,16 +16,19 @@ namespace Infrastructure.Services.Tasks
     {
         private readonly MinaretOpsDbContext context;
         private readonly TaskHelperService helperService;
+        private readonly INotificationService notificationService;
         private readonly IMapper mapper;
         private readonly UserManager<ApplicationUser> userManager;
         public TaskService(
             MinaretOpsDbContext minaret,
             TaskHelperService taskHelper,
+            INotificationService _notificationService,
             IMapper _mapper,
             UserManager<ApplicationUser> manager
             )
         {
             context = minaret;
+            notificationService = _notificationService;
             mapper = _mapper;
             userManager = manager;
             helperService = taskHelper;
@@ -78,12 +82,20 @@ namespace Infrastructure.Services.Tasks
                     };
                     await helperService.AddOutboxAsync(OutboxTypes.Email, "Task Updates", emailPayload);
                 }
-                //string? channel = task.ClientService?.Client?.DiscordChannelId;
-                //if (!string.IsNullOrEmpty(channel))
-                //{
-                //    var discordPayload = new DiscordPayload(channel, task, DiscordOperationType.ChangeTaskStatus, status);
-                //    await helperService.AddOutboxAsync(OutboxTypes.Discord, "Task Updates Discord", discordPayload);
-                //}
+                string? channel = task.ClientService?.Client?.DiscordChannelId;
+                if (!string.IsNullOrEmpty(channel))
+                {
+                    var discordPayload = new DiscordPayload(channel, task, DiscordOperationType.ChangeTaskStatus, status);
+                    await helperService.AddOutboxAsync(OutboxTypes.Discord, "Task Updates Discord", discordPayload);
+                }
+                var notification = new CreateNotificationDTO
+                {
+                    Title = $"New Status Update - {task.Title}",
+                    Body = $"Task Status Updated From {oldStatus} To {status}",
+                    UserId = emp.Id,
+                    Url = $"https://internal.theminaretagency.com/tasks/{task.Id}"
+                };
+                await notificationService.CreateAsync(notification);
                 await context.SaveChangesAsync();
                 await transaction.CommitAsync();
                 return true;
@@ -157,6 +169,7 @@ namespace Infrastructure.Services.Tasks
         {
             var task = await context.Tasks
                 .Include(t => t.TaskHistory)
+                    .ThenInclude(t => t.UpdatedBy)
                 .Include(t => t.CompletionResources)
                 .Include(t => t.ClientService)
                     .ThenInclude(cs => cs.Service)
@@ -478,7 +491,6 @@ namespace Infrastructure.Services.Tasks
                 throw;
             }
         }
-        //----------To be edited -------------//
         public async Task<TaskGroupDTO> CreateTaskGroupAsync(CreateTaskGroupDTO createTaskGroup, string userId)
         {
             var user = await helperService.GetUserOrThrow(userId)
@@ -514,14 +526,13 @@ namespace Infrastructure.Services.Tasks
                     throw new AlreadyExistObjectException("مجموعة التاسكات لهذا الشهر موجودة بالفعل");
                 var taskGroup = new TaskGroup
                 {
-                    ClientServiceId = clientService.Id,
+                    ClientService = clientService,
                     Month = DateTime.Now.Month,
                     Year = DateTime.Now.Year,
                     MonthLabel = $"{DateTime.Now.ToString("MMMM")} {DateTime.Now.ToString("yyyy")}"
                 };
 
                 await context.TaskGroups.AddAsync(taskGroup);
-                await context.SaveChangesAsync();
 
                 // Create tasks if provided
                 if (createTaskGroup.Tasks.Any())
@@ -529,9 +540,12 @@ namespace Infrastructure.Services.Tasks
                     foreach (var taskDto in createTaskGroup.Tasks)
                     {
                         ApplicationUser? employee = null;
-                        if (!string.IsNullOrEmpty(taskDto.EmployeeId))
+                        var normalizedEmployeeId = string.IsNullOrWhiteSpace(taskDto.EmployeeId)
+                            ? null : taskDto.EmployeeId;
+
+                        if (normalizedEmployeeId is not null)
                         {
-                            employee = await helperService.GetUserOrThrow(taskDto.EmployeeId);
+                            employee = await helperService.GetUserOrThrow(normalizedEmployeeId);
                         }
                         var task = new TaskItem
                         {
@@ -543,16 +557,15 @@ namespace Infrastructure.Services.Tasks
                             Deadline = taskDto.Deadline,
                             Priority = taskDto.Priority,
                             Refrence = taskDto.Refrence,
-                            EmployeeId = taskDto.EmployeeId ?? string.Empty,
-                            Employee = employee,
-                            TaskGroupId = taskGroup.Id
+                            EmployeeId = normalizedEmployeeId,
+                            TaskGroup = taskGroup
                         };
 
                         context.Tasks.Add(task);
 
                         var taskHistory = new TaskItemHistory
                         {
-                            TaskItemId = task.Id,
+                            TaskItem = task,
                             PropertyName = "انشاء التاسك",
                             UpdatedById = user.Id,
                             UpdatedBy = user,

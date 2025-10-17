@@ -21,29 +21,46 @@ namespace Infrastructure.Services.JobDescription
 
         public async Task<JDDTO> CreateJDAsync(CreateJDDTO jdDTO)
         {
-            var jd = new Core.Models.JobDescription
-            {
-                RoleId = jdDTO.RoleId
-            };
-            await context.JobDescriptions.AddAsync(jd);
-            await context.SaveChangesAsync();
+            var existingJD = await context.JobDescriptions.FirstOrDefaultAsync(jd => jd.RoleId == jdDTO.RoleId);
+            if (existingJD is not null)
+                throw new InvalidOperationException("لا يمكن تكرار الوصف الوظيفي للدور");
 
-            foreach (var item in jdDTO.JobResponsibilities)
+            using var transaction = await context.Database.BeginTransactionAsync();
+            try 
             {
-                var jr = new JobResponsibility
+                var role = await context.Roles.FirstOrDefaultAsync(r => r.Id == jdDTO.RoleId)
+                    ?? throw new Exception();
+                var jd = new Core.Models.JobDescription
                 {
-                    JobDescriptionId = jd.Id,
-                    Text = item.Text
+                    RoleId = role.Id,
+                    Role = role
                 };
-                await context.JobResponsibilities.AddAsync(jr);
+                await context.JobDescriptions.AddAsync(jd);
+
+                foreach (var item in jdDTO.JobResponsibilities)
+                {
+                    var jr = new JobResponsibility
+                    {
+                        JobDescription = jd,
+                        Text = item.Text
+                    };
+                    await context.JobResponsibilities.AddAsync(jr);
+                }
                 await context.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return mapper.Map<JDDTO>(jd);
             }
-            return mapper.Map<JDDTO>(jd);
+            catch(Exception)
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
         }
 
         public async Task<List<JDDTO>> GetAllJDsAsync()
         {
             var jds = await context.JobDescriptions
+                .Include(jd => jd.Role)
                 .Include(jd => jd.JobResponsibilities)
                 .ToListAsync();
             return mapper.Map<List<JDDTO>>(jds);
@@ -52,6 +69,7 @@ namespace Infrastructure.Services.JobDescription
         public async Task<JDDTO> GetJDById(int jdId)
         {
             var jd = await context.JobDescriptions
+                .Include(jd => jd.Role)
                 .Include(jd => jd.JobResponsibilities)
                 .FirstOrDefaultAsync(jd => jd.Id == jdId);
             return mapper.Map<JDDTO>(jd);
@@ -61,6 +79,51 @@ namespace Infrastructure.Services.JobDescription
         {
             var roles = await context.Roles.ToListAsync();
             return roles;
+        }
+
+        public async Task<JDDTO> UpdateJdAsync(int jdId, CreateJDDTO updateDTO)
+        {
+            using var transaction = await context.Database.BeginTransactionAsync();
+            try
+            {
+                var existingJd = await context.JobDescriptions
+                    .Include(jd => jd.JobResponsibilities)
+                    .FirstOrDefaultAsync(jd => jd.Id == jdId);
+
+                if (existingJd == null)
+                    throw new ArgumentException($"لم يتم العثور على هذا الوصف الوظيفي");
+
+                
+
+                // Remove existing responsibilities
+                context.JobResponsibilities.RemoveRange(existingJd.JobResponsibilities);
+
+                // Add new responsibilities
+                foreach (var item in updateDTO.JobResponsibilities)
+                {
+                    var jr = new JobResponsibility
+                    {
+                        JobDescriptionId = existingJd.Id,
+                        Text = item.Text
+                    };
+                    await context.JobResponsibilities.AddAsync(jr);
+                }
+
+                await context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                // Return updated JD with responsibilities
+                var updatedJd = await context.JobDescriptions
+                    .Include(jd => jd.JobResponsibilities)
+                    .FirstOrDefaultAsync(jd => jd.Id == jdId);
+
+                return mapper.Map<JDDTO>(updatedJd);
+            }
+            catch (Exception)
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
         }
     }
 }

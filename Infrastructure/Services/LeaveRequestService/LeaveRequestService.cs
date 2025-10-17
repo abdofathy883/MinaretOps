@@ -6,38 +6,37 @@ using Core.Models;
 using Infrastructure.Data;
 using Infrastructure.Exceptions;
 using Infrastructure.Services.MediaUploads;
+using Infrastructure.Services.Tasks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
-using System.Text.Json;
-using System.Threading.Tasks;
 
 namespace Infrastructure.Services.LeaveRequestService
 {
     public class LeaveRequestService : ILeaveRequestService
     {
         private readonly MinaretOpsDbContext context;
+        private readonly TaskHelperService helperService;
         private readonly MediaUploadService mediaUploadService;
         private readonly IMapper mapper;
         private readonly UserManager<ApplicationUser> userManager;
-        private readonly ILogger<LeaveRequestService> logger;
         public LeaveRequestService(
             MinaretOpsDbContext dbContext,
+            TaskHelperService _helperService,
             MediaUploadService _mediaUploadService,
             IMapper _mapper,
-            UserManager<ApplicationUser> _userManager,
-            ILogger<LeaveRequestService> _logger
+            UserManager<ApplicationUser> _userManager
             )
         {
             context = dbContext;
+            helperService = _helperService;
             mediaUploadService = _mediaUploadService;
             mapper = _mapper;
             userManager = _userManager;
-            logger = _logger;
         }
         public async Task<LeaveRequestDTO> ChangeLeaveRequestStatusByAdminAsync(string adminId, int requestId, LeaveStatus newStatus)
         {
-            var admin = await GetUserOrThrow(adminId);
+            var admin = await helperService.GetUserOrThrow(adminId)
+                ?? throw new InvalidObjectException("المستخدم غير موجود");
             if (!await userManager.IsInRoleAsync(admin, "Admin"))
                 throw new UnauthorizedAccessException("هذا المستخدم غير مصرح له بهذا الاجراء");
 
@@ -46,7 +45,8 @@ namespace Infrastructure.Services.LeaveRequestService
                 .FirstOrDefaultAsync(r => r.Id == requestId)
                 ?? throw new InvalidObjectException($"لم يتم العثور على طلب الاجازة بهذا المعرف {requestId}");
 
-            var emp = await GetUserOrThrow(request.EmployeeId);
+            var emp = await helperService.GetUserOrThrow(request.EmployeeId)
+                ?? throw new InvalidObjectException("الموظف غير موجود");
 
             using var transaction = await context.Database.BeginTransactionAsync();
             try
@@ -54,7 +54,6 @@ namespace Infrastructure.Services.LeaveRequestService
                 request.Status = newStatus;
                 request.ActionDate = DateTime.UtcNow;
                 context.Update(request);
-                await context.SaveChangesAsync();
 
                 if (!string.IsNullOrEmpty(emp.Email))
                 {
@@ -74,24 +73,16 @@ namespace Infrastructure.Services.LeaveRequestService
                             { "TimeStamp", $"{request.RequestDate.ToString("yyyy-MM-dd")}" }
                         }
                     };
-
-                    var emailOutBox = new Outbox
-                    {
-                        OpType = OutboxTypes.Email,
-                        OpTitle = "Send Leave Request Updates Email",
-                        PayLoad = JsonSerializer.Serialize(emailPayload)
-                    };
-
-                    await context.OutboxMessages.AddAsync(emailOutBox);
-                    await context.SaveChangesAsync();
+                    await helperService.AddOutboxAsync(OutboxTypes.Email, "Leave Request Updates Email", emailPayload);
                 }
+                await context.SaveChangesAsync();
                 await transaction.CommitAsync();
                 return mapper.Map<LeaveRequestDTO>(request);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 await transaction.RollbackAsync();
-                throw new Exception(ex.Message);
+                throw;
             }
         }
         public async Task<List<LeaveRequestDTO>> GetAllLeaveRequests()
@@ -103,17 +94,19 @@ namespace Infrastructure.Services.LeaveRequestService
         }
         public async Task<List<LeaveRequestDTO>> GetLeaveRequestsByEmployee(string employeeId)
         {
-            var emp = await GetUserOrThrow(employeeId);
+            var emp = await helperService.GetUserOrThrow(employeeId)
+                ?? throw new InvalidObjectException("الموظف غير موجود");
 
             var requests = await context.LeaveRequests
-                .Where(r => r.EmployeeId == employeeId)
+                .Where(r => r.EmployeeId == emp.Id)
                 .ToListAsync();
 
             return mapper.Map<List<LeaveRequestDTO>>(requests);
         }
         public async Task<LeaveRequestDTO> SubmitLeaveRequest(CreateLeaveRequestDTO leaveRequestDTO)
         {
-            var emp = await GetUserOrThrow(leaveRequestDTO.EmployeeId);
+            var emp = await helperService.GetUserOrThrow(leaveRequestDTO.EmployeeId)
+                ?? throw new InvalidObjectException("الموظف غير موجود");
 
             using var transaction = await context.Database.BeginTransactionAsync();
             try
@@ -147,7 +140,6 @@ namespace Infrastructure.Services.LeaveRequestService
                     ProofFile = fileUrl
                 };
                 await context.LeaveRequests.AddAsync(request);
-                await context.SaveChangesAsync();
 
                 if (!string.IsNullOrEmpty(emp.Email))
                 {
@@ -168,32 +160,18 @@ namespace Infrastructure.Services.LeaveRequestService
                             { "TimeStamp", $"{request.RequestDate.ToString("yyyy-MM-dd")}" }
                         }
                     };
-
-                    var emailOutBox = new Outbox
-                    {
-                        OpType = OutboxTypes.Email,
-                        OpTitle = "Send New Leave Request Email",
-                        PayLoad = JsonSerializer.Serialize(emailPayload)
-                    };
-
-                    await context.OutboxMessages.AddAsync(emailOutBox);
-                    await context.SaveChangesAsync();
+                    await helperService.AddOutboxAsync(OutboxTypes.Email, "New Leave Request Email", emailPayload);
                 }
 
+                await context.SaveChangesAsync();
                 await transaction.CommitAsync();
                 return mapper.Map<LeaveRequestDTO>(request);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 await transaction.RollbackAsync();
-                throw new NotImplementedOperationException(ex.Message);
+                throw;
             }
-        }
-        private async Task<ApplicationUser> GetUserOrThrow(string userId)
-        {
-            var user = await userManager.FindByIdAsync(userId)
-                ?? throw new InvalidObjectException($"لم يتم العثور على موظف بهذا المعرف {userId}");
-            return user;
         }
     }
 }

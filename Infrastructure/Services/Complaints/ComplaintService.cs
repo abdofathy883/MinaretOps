@@ -4,7 +4,7 @@ using Core.Interfaces;
 using Core.Models;
 using Infrastructure.Data;
 using Infrastructure.Exceptions;
-using Microsoft.AspNetCore.Identity;
+using Infrastructure.Services.Tasks;
 using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Services.Complaints
@@ -12,19 +12,16 @@ namespace Infrastructure.Services.Complaints
     public class ComplaintService : IComplaintService
     {
         private readonly MinaretOpsDbContext context;
-        private readonly IEmailService emailService;
-        private readonly UserManager<ApplicationUser> userManager;
+        private readonly TaskHelperService helperService;
         private readonly IMapper mapper;
         public ComplaintService(
             MinaretOpsDbContext minaret,
-            IEmailService email,
-            UserManager<ApplicationUser> user,
+            TaskHelperService _helperService,
             IMapper _mapper
             )
         {
             context = minaret;
-            emailService = email;
-            userManager = user;
+            helperService = _helperService;
             mapper = _mapper;
         }
         public async Task<ComplaintDTO> CreateComplaintAsync(CreateComplaintDTO complaintDTO)
@@ -35,8 +32,8 @@ namespace Infrastructure.Services.Complaints
             if (existingComplaint is not null)
                 throw new AlreadyExistObjectException("شكوى او مقترح بهذا العنوان والرسالة موجودين بالفعل");
 
-            var emp = await userManager.FindByIdAsync(complaintDTO.EmployeeId)
-                ?? throw new InvalidObjectException("لم يتم العثور على هذا الموظف");
+            var emp = await helperService.GetUserOrThrow(complaintDTO.EmployeeId)
+                ?? throw new InvalidObjectException("الموظف غير موجود");
 
             using var transaction = await context.Database.BeginTransactionAsync();
             try
@@ -45,30 +42,35 @@ namespace Infrastructure.Services.Complaints
                 {
                     Subject = complaintDTO.Subject,
                     Content = complaintDTO.Content,
-                    EmployeeId = complaintDTO.EmployeeId,
-                    User = emp,
+                    EmployeeId = emp.Id,
                     CreatedAt = DateTime.UtcNow
                 };
                 await context.Complaints.AddAsync(complaint);
-                await context.SaveChangesAsync();
                 if (!string.IsNullOrEmpty(emp.Email))
                 {
-                    Dictionary<string, string> replacements = new Dictionary<string, string>
+                    var emailPayload = new
                     {
-                        { "Subject", complaintDTO.Subject },
-                        { "SubmissionMessage", complaintDTO.Content },
-                        { "SubmittedBy", $"{emp.FirstName} {emp.LastName}" },
-                        { "TimeStamp", complaint.CreatedAt.ToString() }
+                        To = emp.Email,
+                        Subject = "New Complaint Received",
+                        Template = "Complaint",
+                        Replacement = new Dictionary<string, string>
+                        {
+                            { "Subject", complaintDTO.Subject },
+                            { "SubmissionMessage", complaintDTO.Content },
+                            { "SubmittedBy", $"{emp.FirstName} {emp.LastName}" },
+                            { "TimeStamp", complaint.CreatedAt.ToString() }
+                        }
                     };
-                    await emailService.SendEmailWithTemplateAsync(emp.Email, "New Complaint Received", "Complaint", replacements);
+                    await helperService.AddOutboxAsync(Core.Enums.OutboxTypes.Email, "New Complaint Email", emailPayload);
                 }
+                await context.SaveChangesAsync();
                 await transaction.CommitAsync();
                 return mapper.Map<ComplaintDTO>(complaint);
             }
-            catch(Exception ex)
+            catch(Exception)
             {
                 await transaction.RollbackAsync();
-                throw new Exception(ex.Message);
+                throw;
             }
         }
         public async Task<List<ComplaintDTO>> GetAllComplaintsAsync()
