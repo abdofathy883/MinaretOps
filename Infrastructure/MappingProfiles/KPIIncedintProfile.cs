@@ -6,6 +6,7 @@ namespace Infrastructure.MappingProfiles
 {
     public class KPIIncedintProfile: Profile
     {
+        private readonly TimeZoneInfo tz = TimeZoneInfo.FindSystemTimeZoneById("Egypt Standard Time");
         public KPIIncedintProfile()
         {
             CreateMap<KPIIncedint, IncedintDTO>()
@@ -13,7 +14,8 @@ namespace Infrastructure.MappingProfiles
                 .ForMember(dest => dest.EmployeeId, opt => opt.MapFrom(src => src.EmployeeId))
                 .ForMember(dest => dest.EmployeeName, opt => opt.MapFrom(src => $"{src.Employee.FirstName} {src.Employee.LastName}"))
                 .ForMember(dest => dest.Aspect, opt => opt.MapFrom(src => src.Aspect))
-                .ForMember(dest => dest.TimeStamp, opt => opt.MapFrom(src => src.TimeStamp))
+                .ForMember(dest => dest.TimeStamp, 
+                opt => opt.MapFrom(src => TimeZoneInfo.ConvertTimeFromUtc(src.TimeStamp, tz)))
                 .ForMember(dest => dest.PenaltyPercentage, opt => opt.MapFrom(src => src.PenaltyPercentage))
                 .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description))
                 .ForMember(dest => dest.EvidenceURL, opt => opt.MapFrom(src => src.EvidenceURL))

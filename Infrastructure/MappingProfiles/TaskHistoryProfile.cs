@@ -11,6 +11,7 @@ namespace Infrastructure.MappingProfiles
 {
     public class TaskHistoryProfile : Profile
     {
+        private readonly TimeZoneInfo tz = TimeZoneInfo.FindSystemTimeZoneById("Egypt Standard Time");
         public TaskHistoryProfile()
         {
             CreateMap<TaskItemHistory, TaskHistoryDTO>()
@@ -19,7 +20,8 @@ namespace Infrastructure.MappingProfiles
                 .ForMember(dest => dest.PropertyName, opt => opt.MapFrom(src => src.PropertyName))
                 .ForMember(dest => dest.OldValue, opt => opt.MapFrom(src => src.OldValue))
                 .ForMember(dest => dest.NewValue, opt => opt.MapFrom(src => src.NewValue))
-                .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => src.UpdatedAt))
+                .ForMember(dest => dest.UpdatedAt, 
+                opt => opt.MapFrom(src => TimeZoneInfo.ConvertTimeFromUtc(src.UpdatedAt, tz)))
                 .ForMember(dest => dest.UpdatedById, opt => opt.MapFrom(src => src.UpdatedById))
                 .ForMember(dest => dest.UpdatedByName, opt => opt.MapFrom(src => $"{src.UpdatedBy.FirstName} {src.UpdatedBy.LastName}"));
         }

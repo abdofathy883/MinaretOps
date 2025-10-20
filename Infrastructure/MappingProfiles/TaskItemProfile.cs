@@ -1,11 +1,13 @@
 ﻿using AutoMapper;
 using Core.DTOs.Tasks;
 using Core.Models;
+using SixLabors.ImageSharp.ColorSpaces.Companding;
 
 namespace Infrastructure.MappingProfiles
 {
     public class TaskItemProfile: Profile
     {
+        private readonly TimeZoneInfo tz = TimeZoneInfo.FindSystemTimeZoneById("Egypt Standard Time");
         public TaskItemProfile()
         {
             CreateMap<TaskItem, TaskDTO>()
@@ -15,11 +17,15 @@ namespace Infrastructure.MappingProfiles
                 .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description))
                 .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status))
                 .ForMember(dest => dest.ClientServiceId, opt => opt.MapFrom(src => src.ClientServiceId))
-                .ForMember(dest => dest.Deadline, opt => opt.MapFrom(src => src.Deadline))
+                .ForMember(dest => dest.Deadline, 
+                opt => opt.MapFrom(src => TimeZoneInfo.ConvertTimeFromUtc(src.Deadline, tz)))
                 .ForMember(dest => dest.Priority, opt => opt.MapFrom(src => src.Priority))
                 .ForMember(dest => dest.Refrence, opt => opt.MapFrom(src => src.Refrence))
                 .ForMember(dest => dest.EmployeeId, opt => opt.MapFrom(src => src.EmployeeId))
-                .ForMember(dest => dest.CompletedAt, opt => opt.MapFrom(src => src.CompletedAt))
+                .ForMember(dest => dest.CompletedAt, 
+                opt => opt.MapFrom(src => src.CompletedAt.HasValue 
+                    ? TimeZoneInfo.ConvertTimeFromUtc(src.CompletedAt.Value, tz) 
+                    : (DateTime?)null))
                 .ForMember(dest => dest.IsArchived, opt => opt.MapFrom(src => src.IsArchived))
                 .ForMember(dest => dest.IsCompletedOnDeadline, opt => opt.MapFrom(src => src.IsCompletedOnDeadline))
                 .ForMember(dest => dest.EmployeeName, opt =>
@@ -34,7 +40,7 @@ namespace Infrastructure.MappingProfiles
                 .ForMember(dest => dest.TaskHistory, opt => opt.MapFrom(src => src.TaskHistory))
                 .ForMember(dest => dest.TaskResources, opt => opt.MapFrom(src => src.CompletionResources))
                 .ForMember(dest => dest.CompletionNotes, opt => opt.MapFrom(src => src.CompletionNotes))
-                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => src.CreatedAt));
+                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => TimeZoneInfo.ConvertTimeFromUtc(src.CreatedAt, tz)));
         }
     }
 }

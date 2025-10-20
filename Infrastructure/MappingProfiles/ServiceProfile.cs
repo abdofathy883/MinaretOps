@@ -6,6 +6,7 @@ namespace Infrastructure.MappingProfiles
 {
     public class ServiceProfile: Profile
     {
+        private readonly TimeZoneInfo tz = TimeZoneInfo.FindSystemTimeZoneById("Egypt Standard Time");
         public ServiceProfile()
         {
             CreateMap<Service, ServiceDTO>()

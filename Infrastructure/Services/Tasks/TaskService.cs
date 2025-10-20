@@ -19,6 +19,7 @@ namespace Infrastructure.Services.Tasks
         private readonly INotificationService notificationService;
         private readonly IMapper mapper;
         private readonly UserManager<ApplicationUser> userManager;
+        private readonly TimeZoneInfo tz = TimeZoneInfo.FindSystemTimeZoneById("Egypt Standard Time");
         public TaskService(
             MinaretOpsDbContext minaret,
             TaskHelperService taskHelper,
