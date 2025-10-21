@@ -7,10 +7,10 @@ namespace Core.Interfaces
     {
         Task<AttendanceRecordDTO> ClockInAsync(CreateAttendanceRecordDTO recordDTO);
         Task<AttendanceRecordDTO> ClockOutAsync(string empId);
-        Task<List<AttendanceRecordDTO>> GetAllAttendanceRecords();
+        Task<List<AttendanceRecordDTO>> GetAllAttendanceRecords(DateOnly date);
         Task<AttendanceRecordDTO> ChangeAttendanceStatusByAdminAsync(string adminId, int recordId, AttendanceStatus newStatus);
         Task<AttendanceRecordDTO> GetTodayAttendanceForEmployeeAsync(string empId);
-
+        Task<PaginatedAttendanceResultDTO> GetAttendanceRecordsAsync(AttendanceFilterDTO filter);
         Task MarkAbsenteesAsync();
         //Task<List<AttendanceRecordDTO>> GetMonthlyReportForEmpAsync();
     }

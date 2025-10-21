@@ -2,6 +2,7 @@
 using Core.DTOs.AttendanceBreaks;
 using Core.Enums;
 using Core.Interfaces;
+using Infrastructure.Services.Attendance;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ClientAPI.Controllers
@@ -70,18 +71,39 @@ namespace ClientAPI.Controllers
             }
         }
 
-        [HttpGet("all-attendance")]
-        public async Task<IActionResult> GetAllAttendanceRecordsAsync()
+        [HttpGet("all-attendance/{date}")]
+        public async Task<IActionResult> GetAllAttendanceRecordsAsync(DateOnly date)
         {
             try
             {
-                var records = await attendanceService.GetAllAttendanceRecords();
+                var records = await attendanceService.GetAllAttendanceRecords(date);
                 return Ok(records);
             }
             catch (Exception ex)
             {
                 return StatusCode(500, ex.Message);
             }
+        }
+
+        [HttpGet("paginated")]
+        public async Task<IActionResult> GetPaginatedAttendance(
+            [FromQuery] string? fromDate,
+            [FromQuery] string? toDate,
+            [FromQuery] string? employeeId,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 50)
+        {
+            var filter = new AttendanceFilterDTO
+            {
+                FromDate = string.IsNullOrEmpty(fromDate) ? null : DateOnly.Parse(fromDate),
+                ToDate = string.IsNullOrEmpty(toDate) ? null : DateOnly.Parse(toDate),
+                EmployeeId = employeeId,
+                PageNumber = pageNumber,
+                PageSize = pageSize
+            };
+
+            var result = await attendanceService.GetAttendanceRecordsAsync(filter);
+            return Ok(result);
         }
 
         [HttpPut("admin-change-attendance/{adminId}/{recordId}")]

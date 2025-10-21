@@ -9,7 +9,9 @@ namespace Core.Models
         public ApplicationUser Employee { get; set; } = default!;
         public DateTime ClockIn { get; set; }
         public DateTime? ClockOut { get; set; }
-        public TimeSpan? TotalWorkingTime => ClockOut.HasValue ? ClockOut.Value - ClockIn : null;
+        public DateOnly WorkDate { get; set; }
+        public TimeSpan? TotalWorkingTime => 
+            ClockOut.HasValue ? ClockOut.Value - ClockIn : null;
         public bool? MissingClockOut { get; set; }
         public AttendanceStatus Status { get; set; }
         public required string DeviceId { get; set; }

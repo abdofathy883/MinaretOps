@@ -41,6 +41,7 @@ namespace Infrastructure.Services.OutboxProcessor
                         {
                             await handler.HandleAsync(msg, stoppingToken);
                             msg.ProcessedAt = DateTime.UtcNow;
+                            await context.SaveChangesAsync(stoppingToken);
                         }
                         catch (Exception msgEx)
                         {

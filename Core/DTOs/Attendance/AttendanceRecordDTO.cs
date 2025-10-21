@@ -10,7 +10,9 @@ namespace Core.DTOs.Attendance
         public required string EmployeeName { get; set; }
         public DateTime ClockIn { get; set; }
         public DateTime? ClockOut { get; set; }
+        public DateOnly WorkDate { get; set; }
         public AttendanceStatus Status { get; set; }
+        public bool? MissingClockOut { get; set; }
         public List<BreakDTO> Breaks { get; set; } = new();
         public TimeSpan? TotalWorkingTime { get; set; }
         public TimeSpan TotalBreakTime { get; set; }

@@ -5,6 +5,7 @@ using Core.Interfaces;
 using Core.Models;
 using Infrastructure.Data;
 using Infrastructure.Exceptions;
+using Infrastructure.Helpers;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -44,66 +45,96 @@ namespace Infrastructure.Services.Attendance
             await context.SaveChangesAsync();
             return mapper.Map<AttendanceRecordDTO>(record);
         }
-        public async Task<List<AttendanceRecordDTO>> GetAllAttendanceRecords()
+        public async Task<List<AttendanceRecordDTO>> GetAllAttendanceRecords(DateOnly date)
         {
             var records = await context.AttendanceRecords
                 .Include(r => r.Employee)
+                .Where(r => r.ClockIn.Date == date.ToDateTime(TimeOnly.MinValue).Date)
                 .OrderBy(r => r.ClockIn)
                 .ToListAsync();
 
-            var tz = TimeZoneInfo.FindSystemTimeZoneById("Egypt Standard Time");
+            return mapper.Map<List<AttendanceRecordDTO>>(records);
+        }
 
-            foreach (var record in records)
+        public async Task<PaginatedAttendanceResultDTO> GetAttendanceRecordsAsync(AttendanceFilterDTO filter)
+        {
+            var query = context.AttendanceRecords
+                .Include(r => r.Employee)
+                .Include(r => r.BreakPeriods)
+                .AsQueryable();
+
+            // Apply date range filter
+            if (filter.FromDate.HasValue)
             {
-                record.ClockIn = TimeZoneInfo.ConvertTimeFromUtc(record.ClockIn, tz);
-                if (record.ClockOut.HasValue)
-                {
-                    record.ClockOut = TimeZoneInfo.ConvertTimeFromUtc((DateTime)record.ClockOut, tz);
-                }
+                query = query.Where(r => r.WorkDate >= filter.FromDate.Value);
             }
 
-            return mapper.Map<List<AttendanceRecordDTO>>(records);
+            if (filter.ToDate.HasValue)
+            {
+                query = query.Where(r => r.WorkDate <= filter.ToDate.Value);
+            }
+
+            // Apply employee filter
+            if (!string.IsNullOrEmpty(filter.EmployeeId))
+            {
+                query = query.Where(r => r.EmployeeId == filter.EmployeeId);
+            }
+
+            // Get total count before pagination
+            var totalRecords = await query.CountAsync();
+
+            // Apply ordering and pagination
+            var records = await query
+                .OrderByDescending(r => r.WorkDate)
+                .Skip((filter.PageNumber - 1) * filter.PageSize)
+                .Take(filter.PageSize)
+                .ToListAsync();
+
+            var totalPages = (int)Math.Ceiling(totalRecords / (double)filter.PageSize);
+
+            return new PaginatedAttendanceResultDTO
+            {
+                Records = mapper.Map<List<AttendanceRecordDTO>>(records),
+                TotalRecords = totalRecords,
+                PageNumber = filter.PageNumber,
+                PageSize = filter.PageSize,
+                TotalPages = totalPages
+            };
         }
 
         public async Task<AttendanceRecordDTO> GetTodayAttendanceForEmployeeAsync(string empId)
         {
             var emp = await GetUserOrThrow(empId);
 
-            var attendanceRecord = await context.AttendanceRecords
-                .Where(a => a.ClockIn >= DateTime.UtcNow.Date && a.EmployeeId == empId)
-                .FirstOrDefaultAsync();
+            var egyptToday = TimeZoneHelper.GetEgyptToday();
 
-            if (attendanceRecord is not null)
-            {
-                var tz = TimeZoneInfo.FindSystemTimeZoneById("Egypt Standard Time");
-                attendanceRecord.ClockIn = TimeZoneInfo.ConvertTimeFromUtc(attendanceRecord.ClockIn, tz);
-                if (attendanceRecord.ClockOut.HasValue)
-                {
-                    attendanceRecord.ClockOut = TimeZoneInfo.ConvertTimeFromUtc((DateTime)attendanceRecord.ClockOut, tz);
-                }
-            }
+            var attendanceRecord = await context.AttendanceRecords
+                .Include(r => r.BreakPeriods)
+                .FirstOrDefaultAsync(a => a.EmployeeId == emp.Id && a.WorkDate == egyptToday);
 
             return mapper.Map<AttendanceRecordDTO>(attendanceRecord);
         }
 
         public async Task MarkAbsenteesAsync()
         {
-            var today = DateTime.UtcNow.Date;
+            var egyptYesterday = TimeZoneHelper.GetEgyptYesterday();
 
-            if (today.DayOfWeek == DayOfWeek.Friday) return;
+            var yesterdayDayOfWeek = egyptYesterday.ToDateTime(TimeOnly.MinValue).DayOfWeek;
+            if (yesterdayDayOfWeek == DayOfWeek.Friday) return;
 
             var employees = await context.Users.ToListAsync();
 
             foreach (var emp in employees)
             {
                 var existingRecord = await context.AttendanceRecords
-                    .FirstOrDefaultAsync(a => a.EmployeeId == emp.Id && a.ClockIn.Date == today);
+                    .FirstOrDefaultAsync(a => a.EmployeeId == emp.Id && a.WorkDate == egyptYesterday);
 
+                var yesterdayDateTime = egyptYesterday.ToDateTime(TimeOnly.MinValue);
                 bool hasApprovedLeave = await context.LeaveRequests
                     .AnyAsync(l => l.EmployeeId == emp.Id &&
                     l.Status == LeaveStatus.Approved &&
-                    l.FromDate.Date <= today &&
-                    l.ToDate.Date >= today);
+                    l.FromDate.Date <= yesterdayDateTime &&
+                    l.ToDate.Date >= yesterdayDateTime);
 
                 // Case 1: Employee has no attendance record at all
                 if (existingRecord == null)
@@ -111,7 +142,9 @@ namespace Infrastructure.Services.Attendance
                     var record = new AttendanceRecord
                     {
                         EmployeeId = emp.Id,
-                        ClockIn = today,
+                        WorkDate = egyptYesterday,
+                        ClockIn = yesterdayDateTime,
+                        ClockOut = yesterdayDateTime.AddHours(23).AddMinutes(59),
                         Status = hasApprovedLeave ? AttendanceStatus.Leave : AttendanceStatus.Absent,
                         DeviceId = "System",
                         IpAddress = "System"
@@ -121,7 +154,8 @@ namespace Infrastructure.Services.Attendance
                 // Case 2: Employee clocked in but didn't clock out (missing clock out)
                 else if (existingRecord.ClockOut == null && existingRecord.Status == AttendanceStatus.Present)
                 {
-                    // Update status to MissingClockOut
+                    // Close the record at end of yesterday
+                    existingRecord.ClockOut = yesterdayDateTime.AddHours(23).AddMinutes(59);
                     existingRecord.MissingClockOut = true;
                     context.Update(existingRecord);
                 }
@@ -133,9 +167,11 @@ namespace Infrastructure.Services.Attendance
         {
             var user = await GetUserOrThrow(recordDTO.EmployeeId);
 
+            var egyptToday = TimeZoneHelper.GetEgyptToday();
+
             var existingRecord = await context.AttendanceRecords
                 .FirstOrDefaultAsync(r => r.EmployeeId == recordDTO.EmployeeId 
-                && r.ClockIn.Date == DateTime.UtcNow.Date);
+                && r.WorkDate == egyptToday);
 
             if (existingRecord != null)
                 throw new InvalidObjectException("تم تسجيل الحضور اليوم بالفعل.");
@@ -155,16 +191,12 @@ namespace Infrastructure.Services.Attendance
                 {
                     EmployeeId = recordDTO.EmployeeId,
                     ClockIn = DateTime.UtcNow,
+                    WorkDate = egyptToday,
                     DeviceId = recordDTO.DeviceId,
                     IpAddress = recordDTO.IpAddress,
                     Status = AttendanceStatus.Present
                 };
-
-                logger.LogInformation("Creating new attendance record for employee {EmployeeId} at {CheckInTime}", recordDTO.EmployeeId, attendanceRecord.ClockIn);
                 await context.AddAsync(attendanceRecord);
-                await context.SaveChangesAsync();
-
-                logger.LogInformation("Attendance record created with Id {RecordId}", attendanceRecord.Id);
 
                 if (otherEmpsWithSameIp.Any())
                 {
@@ -195,27 +227,27 @@ namespace Infrastructure.Services.Attendance
                         OpType = OutboxTypes.Email,
                         PayLoad = JsonSerializer.Serialize(emailPayload)
                     };
-
                     await context.OutboxMessages.AddAsync(emailOutbox);
-                    await context.SaveChangesAsync();
                 }
 
+                await context.SaveChangesAsync();
                 await transaction.CommitAsync();
                 return mapper.Map<AttendanceRecordDTO>(attendanceRecord);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                logger.LogError("Error occurred while creating attendance record for employee {EmployeeId}, with error message: {ex}", recordDTO.EmployeeId, ex.Message);
                 await transaction.RollbackAsync();
-                throw new Exception(ex.Message);
+                throw;
             }
         }
         public async Task<AttendanceRecordDTO> ClockOutAsync(string empId)
         {
             var user = await GetUserOrThrow(empId);
 
+            var egyptToday = TimeZoneHelper.GetEgyptToday();
+
             var existingRecord = await context.AttendanceRecords
-                .FirstOrDefaultAsync(r => r.EmployeeId == empId && r.ClockIn.Date == DateTime.UtcNow.Date);
+                .FirstOrDefaultAsync(r => r.EmployeeId == empId && r.WorkDate == egyptToday);
 
             if (existingRecord == null)
                 throw new InvalidObjectException("لم يتم تسجيل الحضور بعد اليوم.");
@@ -235,9 +267,9 @@ namespace Infrastructure.Services.Attendance
             try
             {
                 existingRecord.ClockOut = DateTime.UtcNow;
+                existingRecord.MissingClockOut = false;
 
                 context.Update(existingRecord);
-                await context.SaveChangesAsync();
 
                 if (otherEmpsWithSameIp.Any())
                 {
@@ -270,17 +302,16 @@ namespace Infrastructure.Services.Attendance
                     };
 
                     await context.OutboxMessages.AddAsync(emailOutbox);
-                    await context.SaveChangesAsync();
                 }
 
+                await context.SaveChangesAsync();
                 await transaction.CommitAsync();
                 return mapper.Map<AttendanceRecordDTO>(existingRecord);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                logger.LogError("Error occurred while creating attendance record for employee {EmployeeId}, with error message: {ex}", existingRecord.EmployeeId, ex.Message);
                 await transaction.RollbackAsync();
-                throw new Exception(ex.Message);
+                throw;
             }
         }
 

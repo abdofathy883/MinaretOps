@@ -4,6 +4,7 @@ using Core.Interfaces;
 using Core.Models;
 using Infrastructure.Data;
 using Infrastructure.Exceptions;
+using Infrastructure.Helpers;
 using Infrastructure.Services.Tasks;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -31,9 +32,11 @@ namespace Infrastructure.Services.Attendance
         {
             var user = await helperService.GetUserOrThrow(breakDTO.EmployeeId);
 
+            var egyptToday = TimeZoneHelper.GetEgyptToday();
+
             // Get today's attendance record
             var attendanceRecord = await context.AttendanceRecords
-                .FirstOrDefaultAsync(r => r.EmployeeId == breakDTO.EmployeeId && r.ClockIn.Date == DateTime.UtcNow.Date);
+                .FirstOrDefaultAsync(r => r.EmployeeId == breakDTO.EmployeeId && r.WorkDate == egyptToday);
 
             if (attendanceRecord == null)
                 throw new InvalidObjectException("لا يوجد سجل حضور لهذا اليوم");
@@ -54,8 +57,9 @@ namespace Infrastructure.Services.Attendance
 
         public async Task<BreakDTO?> GetActiveBreakAsync(string employeeId)
         {
+            var egyptToday = TimeZoneHelper.GetEgyptToday();
             var attendanceRecord = await context.AttendanceRecords
-                .FirstOrDefaultAsync(r => r.EmployeeId == employeeId && r.ClockIn.Date == DateTime.UtcNow.Date);
+                .FirstOrDefaultAsync(r => r.EmployeeId == employeeId && r.WorkDate == egyptToday);
 
             if (attendanceRecord == null)
                 return null;
@@ -70,9 +74,11 @@ namespace Infrastructure.Services.Attendance
         {
             var user = await helperService.GetUserOrThrow(breakDTO.EmployeeId);
 
+            var egyptToday = TimeZoneHelper.GetEgyptToday();
+
             // Get today's attendance record
             var attendanceRecord = await context.AttendanceRecords
-                .FirstOrDefaultAsync(r => r.EmployeeId == breakDTO.EmployeeId && r.ClockIn.Date == DateTime.UtcNow.Date);
+                .FirstOrDefaultAsync(r => r.EmployeeId == breakDTO.EmployeeId && r.WorkDate == egyptToday);
 
             if (attendanceRecord == null)
                 throw new InvalidObjectException("يجب تسجيل الحضور أولاً قبل بدء الاستراحة");
