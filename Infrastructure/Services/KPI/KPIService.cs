@@ -37,10 +37,10 @@ namespace Infrastructure.Services.KPI
             { KPIAspectType.QualityOfWork, 20 },
             { KPIAspectType.CustomerSatisfaction, 10 }
         };
-        public async Task<EmployeeMonthlyKPIDTO> GetEmployeeMonthlyAsync(string employeeId)
+        public async Task<EmployeeMonthlyKPIDTO> GetEmployeeMonthlyAsync(string employeeId, int? month = null, int? year = null)
         {
-            var currentMonth = DateTime.Now.Month;
-            var currentyear = DateTime.Now.Year;
+            var currentMonth = month ?? DateTime.Now.Month;
+            var currentyear = year ?? DateTime.Now.Year;
             var from = new DateTime(currentyear, currentMonth, 1);
             var to = from.AddMonths(1);
 
@@ -98,12 +98,12 @@ namespace Infrastructure.Services.KPI
 
             return mapper.Map<List<IncedintDTO>>(incedients);
         }
-        public async Task<List<EmployeeMonthlyKPIDTO>> GetMonthlySummeriesAsync()
+        public async Task<List<EmployeeMonthlyKPIDTO>> GetMonthlySummeriesAsync(int? month = null, int? year = null)
         {
             var employeeIds = await context.Users.Select(u => u.Id).ToListAsync();
             var summaries = new List<EmployeeMonthlyKPIDTO>(employeeIds.Count);
             foreach (var id in employeeIds)
-                summaries.Add(await GetEmployeeMonthlyAsync(id));
+                summaries.Add(await GetEmployeeMonthlyAsync(id, month, year));
             return summaries.OrderBy(x => x.EmployeeName).ToList();
         }
         public async Task<IncedintDTO> NewKPIIncedintAsync(CreateIncedintDTO dto)

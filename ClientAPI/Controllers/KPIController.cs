@@ -41,9 +41,9 @@ namespace ClientAPI.Controllers
         }
 
         [HttpGet("all-summaries")]
-        public async Task<IActionResult> GetAllSummaries()
+        public async Task<IActionResult> GetAllSummaries([FromQuery] int? month, [FromQuery] int? year)
         {
-            var res = await kPIService.GetMonthlySummeriesAsync();
+            var res = await kPIService.GetMonthlySummeriesAsync(month, year);
             return Ok(res);
         }
 
