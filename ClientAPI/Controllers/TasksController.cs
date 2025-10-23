@@ -198,5 +198,55 @@ namespace ClientAPI.Controllers
             var result = await taskService.CompleteTaskAsync(taskId, createTaskResourcesDTO, userId);
             return Ok(result);
         }
+
+        [HttpGet("paginated")]
+        public async Task<IActionResult> GetPaginatedTasks(
+            [FromQuery] string? fromDate,
+            [FromQuery] string? toDate,
+            [FromQuery] string? employeeId,
+            [FromQuery] int? clientId,
+            [FromQuery] int? status,
+            [FromQuery] string? priority,
+            [FromQuery] string? onDeadline,
+            [FromQuery] string? team,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 20,
+            [FromQuery] string? currentUserId = null)
+        {
+            try
+            {
+                var filter = new TaskFilterDTO
+                {
+                    FromDate = string.IsNullOrEmpty(fromDate) ? null : DateTime.Parse(fromDate),
+                    ToDate = string.IsNullOrEmpty(toDate) ? null : DateTime.Parse(toDate),
+                    EmployeeId = employeeId,
+                    ClientId = clientId,
+                    Status = status,
+                    Priority = priority,
+                    OnDeadline = onDeadline,
+                    Team = team,
+                    PageNumber = pageNumber,
+                    PageSize = pageSize
+                };
+
+                // If no currentUserId provided, try to get from claims
+                if (string.IsNullOrEmpty(currentUserId))
+                {
+                    currentUserId = User.FindFirst("sub")?.Value;
+                }
+
+                if (string.IsNullOrEmpty(currentUserId))
+                {
+                    return BadRequest("User ID is required");
+                }
+
+                var result = await taskService.GetPaginatedTasksAsync(filter, currentUserId);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
     }
 }

@@ -7,6 +7,7 @@ namespace Core.Interfaces
     {
         Task<List<TaskDTO>> GetAllArchivedTasksAsync();
         Task<List<TaskDTO>> GetTasksByEmployeeIdAsync(string empId);
+        Task<PaginatedTaskResultDTO> GetPaginatedTasksAsync(TaskFilterDTO filter, string currentUserId);
         Task<TaskDTO> GetTaskByIdAsync(int taskId);
         Task<bool> ChangeTaskStatusAsync(int taskId, CustomTaskStatus status, string userId);
         Task<TaskDTO> CompleteTaskAsync(int taskId, CreateTaskResourcesDTO taskResourcesDTO, string userId);

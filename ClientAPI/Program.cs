@@ -92,7 +92,8 @@ namespace ClientAPI
                     .ForJob(jobKey)
                     .WithIdentity("AttendanceJob-trigger")
                     //.WithCronSchedule("59 23 * * *") // CRON: sec min hour day month day-of-week
-                    .WithSchedule(CronScheduleBuilder.DailyAtHourAndMinute(0, 5).InTimeZone(egyptTZ))
+                    //.WithSchedule(CronScheduleBuilder.DailyAtHourAndMinute(0, 5).InTimeZone(egyptTZ))
+                    .WithSchedule(CronScheduleBuilder.DailyAtHourAndMinute(hour: 14, minute: 26).InTimeZone(egyptTZ))
                 );
             });
 

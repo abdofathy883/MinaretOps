@@ -775,5 +775,195 @@ namespace Infrastructure.Services.Tasks
             }
 
         }
+        // Update the GetPaginatedTasksAsync method to include team filtering
+
+        public async Task<PaginatedTaskResultDTO> GetPaginatedTasksAsync(TaskFilterDTO filter, string currentUserId)
+        {
+            var emp = await helperService.GetUserOrThrow(currentUserId);
+            var roles = await userManager.GetRolesAsync(emp);
+
+            IQueryable<TaskItem> query = context.Tasks
+                .Where(t => !t.IsArchived)
+                .Include(t => t.ClientService)
+                    .ThenInclude(cs => cs.Service)
+                .Include(t => t.ClientService)
+                    .ThenInclude(cs => cs.Client)
+                .Include(t => t.Employee);
+
+            // Role-based filtering
+            if (roles.Contains(UserRoles.Admin.ToString()) || roles.Contains(UserRoles.AccountManager.ToString()))
+            {
+                // Return all tasks (no empId filter)
+            }
+            else if (roles.Contains("ContentCreatorTeamLeader"))
+            {
+                var contentTypes = new[] { TaskType.ContentWriting, TaskType.ContentStrategy };
+                query = query.Where(t => contentTypes.Contains(t.TaskType));
+            }
+            else if (roles.Contains("GraphicDesignerTeamLeader"))
+            {
+                var contentTypes = new[]
+                {
+                    TaskType.Illustrations,
+                    TaskType.LogoDesign,
+                    TaskType.VisualIdentity,
+                    TaskType.DesignDirections,
+                    TaskType.SM_Design,
+                    TaskType.Motion,
+                    TaskType.VideoEditing
+                };
+                query = query.Where(t => contentTypes.Contains(t.TaskType));
+            }
+            else
+            {
+                // Default: return only tasks assigned to this employee
+                query = query.Where(t => t.EmployeeId == currentUserId);
+            }
+
+            // Apply team filter
+            if (!string.IsNullOrEmpty(filter.Team) && filter.Team != "all")
+            {
+                var teamTaskTypes = GetTaskTypesForTeam(filter.Team);
+                if (teamTaskTypes.Any())
+                {
+                    query = query.Where(t => teamTaskTypes.Contains(t.TaskType));
+                }
+            }
+
+            // Apply date range filter (using CreatedAt for task creation date)
+            if (filter.FromDate.HasValue)
+            {
+                query = query.Where(t => t.CreatedAt.Date >= filter.FromDate.Value.Date);
+            }
+
+            if (filter.ToDate.HasValue)
+            {
+                query = query.Where(t => t.CreatedAt.Date <= filter.ToDate.Value.Date);
+            }
+
+            // Apply employee filter
+            if (!string.IsNullOrEmpty(filter.EmployeeId))
+            {
+                query = query.Where(t => t.EmployeeId == filter.EmployeeId);
+            }
+
+            // Apply client filter
+            if (filter.ClientId.HasValue)
+            {
+                query = query.Where(t => t.ClientService.ClientId == filter.ClientId.Value);
+            }
+
+            // Apply status filter
+            if (filter.Status.HasValue)
+            {
+                query = query.Where(t => (int)t.Status == filter.Status.Value);
+            }
+
+            // Apply priority filter
+            if (!string.IsNullOrEmpty(filter.Priority))
+            {
+                query = query.Where(t => t.Priority == filter.Priority);
+            }
+
+            // Apply deadline filter
+            if (!string.IsNullOrEmpty(filter.OnDeadline))
+            {
+                var currentDate = DateTime.UtcNow;
+
+                if (filter.OnDeadline == "yes")
+                {
+                    // Task completed on deadline: must have completedAt AND isCompletedOnDeadline = true
+                    query = query.Where(t => t.CompletedAt.HasValue &&
+                        t.CompletedAt.Value.Date <= t.Deadline.Date);
+                }
+                else if (filter.OnDeadline == "no")
+                {
+                    // Task completed late OR deadline passed but not completed
+                    query = query.Where(t =>
+                        (t.CompletedAt.HasValue && t.CompletedAt.Value.Date > t.Deadline.Date) ||
+                        (!t.CompletedAt.HasValue && currentDate >= t.Deadline));
+                }
+                else if (filter.OnDeadline == "not-yet")
+                {
+                    // Task not completed and deadline hasn't arrived yet
+                    query = query.Where(t => !t.CompletedAt.HasValue && currentDate < t.Deadline);
+                }
+            }
+
+            // Get total count before pagination
+            var totalRecords = await query.CountAsync();
+
+            // Apply ordering and pagination
+            var tasks = await query
+                .OrderByDescending(t => t.CreatedAt)
+                .Skip((filter.PageNumber - 1) * filter.PageSize)
+                .Take(filter.PageSize)
+                .ToListAsync();
+
+            var totalPages = (int)Math.Ceiling(totalRecords / (double)filter.PageSize);
+
+            return new PaginatedTaskResultDTO
+            {
+                Records = mapper.Map<List<TaskDTO>>(tasks),
+                TotalRecords = totalRecords,
+                PageNumber = filter.PageNumber,
+                PageSize = filter.PageSize,
+                TotalPages = totalPages
+            };
+        }
+
+        // Update the helper method to match your new team structure
+        private TaskType[] GetTaskTypesForTeam(string team)
+        {
+            return team switch
+            {
+                "content-creation" => new[]
+                {
+                    TaskType.ContentStrategy,
+                    TaskType.ContentWriting
+                },
+                "video" => new[]
+                {
+                    TaskType.Voiceover,
+                    TaskType.VideoEditing,
+                    TaskType.Motion
+                },
+                "seo" => new[]
+                {
+                    TaskType.SEO
+                },
+                "ads" => new[]
+                {
+                    TaskType.Ad_Management,
+                    TaskType.E_mailMarketing,
+                    TaskType.WhatsAppMarketing
+                },
+                "design" => new[]
+                {
+                    TaskType.LogoDesign,
+                    TaskType.VisualIdentity,
+                    TaskType.DesignDirections,
+                    TaskType.SM_Design,
+                    TaskType.PrintingsDesign,
+                    TaskType.Illustrations,
+                    TaskType.UI_UX
+                },
+                "software" => new[]
+                {
+                    TaskType.WordPress,
+                    TaskType.Backend,
+                    TaskType.Frontend
+                },
+                "management" => new[]
+                {
+                    TaskType.Planning,
+                    TaskType.Meeting,
+                    TaskType.HostingManagement,
+                    TaskType.Publishing,
+                    TaskType.Moderation
+                },
+                _ => Array.Empty<TaskType>()
+            };
+        }
     }
 }
