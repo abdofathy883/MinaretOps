@@ -10,9 +10,11 @@ namespace ClientAPI.Controllers
     public class TasksController : ControllerBase
     {
         private readonly ITaskService taskService;
-        public TasksController(ITaskService service)
+        private readonly IArchivedTaskService archivedTaskService;
+        public TasksController(ITaskService service, IArchivedTaskService archivedTaskService)
         {
             taskService = service;
+            this.archivedTaskService = archivedTaskService;
         }
 
         [HttpGet("archived-tasks")]
@@ -91,15 +93,51 @@ namespace ClientAPI.Controllers
             }
         }
 
-        [HttpPatch("toggle-archive/{taskId}")]
-        public async Task<IActionResult> ArchiveTaskAsync(int taskId)
+        // In MinaretOps-Server/ClientAPI/Controllers/TasksController.cs
+
+        // Replace the archive endpoint
+        [HttpPut("archive-task/{taskId}")]
+        public async Task<IActionResult> ArchiveTask(int taskId)
         {
             if (taskId == 0)
-                return BadRequest("Task Id Is Null");
+                return BadRequest("Task Id Can't Be Zero");
             try
             {
-                var result = await taskService.ToggleArchiveTaskAsync(taskId);
-                return Ok(result);
+                var task = await archivedTaskService.ArchiveTaskAsync(taskId);
+                return Ok(task);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        // Add new restore endpoint
+        [HttpPut("restore-task/{taskId}")]
+        public async Task<IActionResult> RestoreTask(int taskId)
+        {
+            if (taskId == 0)
+                return BadRequest("Task Id Can't Be Zero");
+            try
+            {
+                var task = await archivedTaskService.RestoreTaskAsync(taskId);
+                return Ok(task);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpGet("archived-task/{taskId}")]
+        public async Task<IActionResult> GetArchivedTaskById(int taskId)
+        {
+            if (taskId == 0)
+                return BadRequest("Task Id Can't Be Zero");
+            try
+            {
+                var task = await archivedTaskService.GetArchivedTaskByIdAsync(taskId);
+                return Ok(task);
             }
             catch (Exception ex)
             {
@@ -246,6 +284,38 @@ namespace ClientAPI.Controllers
             catch (Exception ex)
             {
                 return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpGet("task-unified/{taskId}/{isArchived}")]
+        public async Task<IActionResult> GetTaskUnified(int taskId, bool isArchived)
+        {
+            if (taskId == 0)
+                return BadRequest("Task Id Can't Be Zero");
+
+            if (!isArchived)
+            {
+                try
+                {
+                    var task = await taskService.GetTaskByIdAsync(taskId);
+                    return Ok(task);
+                }
+                catch(Exception ex)
+                {
+                    return BadRequest(ex.Message);
+                }
+            }
+            else
+            {
+                try
+                {
+                    var task = await archivedTaskService.GetArchivedTaskByIdAsync(taskId);
+                    return Ok(task);
+                }
+                catch (Exception ex)
+                {
+                    return BadRequest(ex.Message);
+                }
             }
         }
     }

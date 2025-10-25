@@ -40,6 +40,9 @@ namespace Infrastructure.Data.Model_Configurations
             builder.Property(ar => ar.IpAddress)
                 .IsRequired();
 
+            builder.Property(ar => ar.EarlyLeave)
+                .HasDefaultValue(false);
+
             builder.HasOne(ar => ar.Employee)
                 .WithMany(e => e.AttendanceRecords)
                 .HasForeignKey(ar => ar.EmployeeId)

@@ -37,6 +37,7 @@ namespace Infrastructure.Services.LeaveRequestService
         {
             var admin = await helperService.GetUserOrThrow(adminId)
                 ?? throw new InvalidObjectException("المستخدم غير موجود");
+
             if (!await userManager.IsInRoleAsync(admin, "Admin"))
                 throw new UnauthorizedAccessException("هذا المستخدم غير مصرح له بهذا الاجراء");
 
@@ -65,8 +66,8 @@ namespace Infrastructure.Services.LeaveRequestService
                         Replacements = new Dictionary<string, string>
                         {
                             { "EmployeeName", $"{request.Employee.FirstName} {request.Employee.LastName}" },
-                            { "FromDate", $"{request.FromDate}" },
-                            { "ToDate", $"{request.ToDate}" },
+                            { "RequestFromDate", $"{request.FromDate}" },
+                            { "RequestToDate", $"{request.ToDate}" },
                             { "RequestStatus", $"{request.Status.ToString()}" },
                             { "LeaveType", request.Type.ToString() },
                             { "RequestReason", request.Reason },

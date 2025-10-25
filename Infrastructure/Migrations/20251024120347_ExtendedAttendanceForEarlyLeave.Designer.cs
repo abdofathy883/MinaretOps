@@ -4,6 +4,7 @@ using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Infrastructure.Migrations
 {
     [DbContext(typeof(MinaretOpsDbContext))]
-    partial class MinaretOpsDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251024120347_ExtendedAttendanceForEarlyLeave")]
+    partial class ExtendedAttendanceForEarlyLeave
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -168,73 +171,6 @@ namespace Infrastructure.Migrations
                         .HasFilter("[NormalizedUserName] IS NOT NULL");
 
                     b.ToTable("AspNetUsers", (string)null);
-                });
-
-            modelBuilder.Entity("Core.Models.ArchivedTask", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("ClientServiceId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("CompletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CompletionNotes")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETDATE()");
-
-                    b.Property<DateTime>("Deadline")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
-
-                    b.Property<string>("EmployeeId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("Priority")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Refrence")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("TaskGroupId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("TaskType")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ClientServiceId");
-
-                    b.HasIndex("EmployeeId");
-
-                    b.HasIndex("TaskGroupId");
-
-                    b.ToTable("ArchivedTasks");
                 });
 
             modelBuilder.Entity("Core.Models.AttendanceRecord", b =>
@@ -985,9 +921,6 @@ namespace Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int?>("ArchivedTaskId")
-                        .HasColumnType("int");
-
                     b.Property<int>("TaskId")
                         .HasColumnType("int");
 
@@ -997,8 +930,6 @@ namespace Infrastructure.Migrations
                         .HasColumnType("nvarchar(300)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("ArchivedTaskId");
 
                     b.HasIndex("TaskId");
 
@@ -1072,6 +1003,11 @@ namespace Infrastructure.Migrations
                     b.Property<string>("EmployeeId")
                         .HasColumnType("nvarchar(450)");
 
+                    b.Property<bool>("IsArchived")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
                     b.Property<string>("Priority")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -1115,9 +1051,6 @@ namespace Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int?>("ArchivedTaskId")
-                        .HasColumnType("int");
-
                     b.Property<string>("NewValue")
                         .IsRequired()
                         .HasMaxLength(2000)
@@ -1146,8 +1079,6 @@ namespace Infrastructure.Migrations
                         .HasColumnType("nvarchar(450)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("ArchivedTaskId");
 
                     b.HasIndex("TaskItemId");
 
@@ -1326,32 +1257,6 @@ namespace Infrastructure.Migrations
                     b.Navigation("RefreshTokens");
                 });
 
-            modelBuilder.Entity("Core.Models.ArchivedTask", b =>
-                {
-                    b.HasOne("Core.Models.ClientService", "ClientService")
-                        .WithMany()
-                        .HasForeignKey("ClientServiceId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Core.Models.ApplicationUser", "Employee")
-                        .WithMany()
-                        .HasForeignKey("EmployeeId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("Core.Models.TaskGroup", "TaskGroup")
-                        .WithMany()
-                        .HasForeignKey("TaskGroupId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("ClientService");
-
-                    b.Navigation("Employee");
-
-                    b.Navigation("TaskGroup");
-                });
-
             modelBuilder.Entity("Core.Models.AttendanceRecord", b =>
                 {
                     b.HasOne("Core.Models.ApplicationUser", "Employee")
@@ -1509,10 +1414,6 @@ namespace Infrastructure.Migrations
 
             modelBuilder.Entity("Core.Models.TaskCompletionResources", b =>
                 {
-                    b.HasOne("Core.Models.ArchivedTask", null)
-                        .WithMany("CompletionResources")
-                        .HasForeignKey("ArchivedTaskId");
-
                     b.HasOne("Core.Models.TaskItem", "Task")
                         .WithMany("CompletionResources")
                         .HasForeignKey("TaskId")
@@ -1538,7 +1439,7 @@ namespace Infrastructure.Migrations
                     b.HasOne("Core.Models.ClientService", "ClientService")
                         .WithMany()
                         .HasForeignKey("ClientServiceId")
-                        .OnDelete(DeleteBehavior.NoAction)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("Core.Models.ApplicationUser", "Employee")
@@ -1561,10 +1462,6 @@ namespace Infrastructure.Migrations
 
             modelBuilder.Entity("Core.Models.TaskItemHistory", b =>
                 {
-                    b.HasOne("Core.Models.ArchivedTask", null)
-                        .WithMany("TaskHistory")
-                        .HasForeignKey("ArchivedTaskId");
-
                     b.HasOne("Core.Models.TaskItem", "TaskItem")
                         .WithMany("TaskHistory")
                         .HasForeignKey("TaskItemId")
@@ -1653,13 +1550,6 @@ namespace Infrastructure.Migrations
                     b.Navigation("LeaveRequests");
 
                     b.Navigation("TaskItems");
-                });
-
-            modelBuilder.Entity("Core.Models.ArchivedTask", b =>
-                {
-                    b.Navigation("CompletionResources");
-
-                    b.Navigation("TaskHistory");
                 });
 
             modelBuilder.Entity("Core.Models.AttendanceRecord", b =>

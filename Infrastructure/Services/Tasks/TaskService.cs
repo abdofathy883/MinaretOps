@@ -19,7 +19,6 @@ namespace Infrastructure.Services.Tasks
         private readonly INotificationService notificationService;
         private readonly IMapper mapper;
         private readonly UserManager<ApplicationUser> userManager;
-        private readonly TimeZoneInfo tz = TimeZoneInfo.FindSystemTimeZoneById("Egypt Standard Time");
         public TaskService(
             MinaretOpsDbContext minaret,
             TaskHelperService taskHelper,
@@ -155,8 +154,7 @@ namespace Infrastructure.Services.Tasks
         }
         public async Task<List<TaskDTO>> GetAllArchivedTasksAsync()
         {
-            var tasks = await context.Tasks
-                .Where(t => t.IsArchived)
+            var tasks = await context.ArchivedTasks
                 .Include(t => t.ClientService)
                     .ThenInclude(cs => cs.Service)
                 .Include(t => t.ClientService)
@@ -168,16 +166,39 @@ namespace Infrastructure.Services.Tasks
         }
         public async Task<TaskDTO> GetTaskByIdAsync(int taskId)
         {
+            //var task = await context.Tasks
+            //    .Include(t => t.TaskHistory)
+            //        .ThenInclude(t => t.UpdatedBy)
+            //    .Include(t => t.CompletionResources)
+            //    .Include(t => t.ClientService)
+            //        .ThenInclude(cs => cs.Service)
+            //    .Include(t => t.ClientService)
+            //        .ThenInclude(cs => cs.Client)
+            //    .Include(t => t.Employee)
+            //    .FirstOrDefaultAsync(t => t.Id == taskId);
+
+            // First, get the main task with basic includes
             var task = await context.Tasks
-                .Include(t => t.TaskHistory)
-                    .ThenInclude(t => t.UpdatedBy)
-                .Include(t => t.CompletionResources)
                 .Include(t => t.ClientService)
                     .ThenInclude(cs => cs.Service)
                 .Include(t => t.ClientService)
                     .ThenInclude(cs => cs.Client)
                 .Include(t => t.Employee)
                 .FirstOrDefaultAsync(t => t.Id == taskId);
+
+            if (task == null)
+                return null;
+
+            // Load related data separately if needed
+            await context.Entry(task)
+                .Collection(t => t.TaskHistory)
+                .Query()
+                .Include(th => th.UpdatedBy)
+                .LoadAsync();
+
+            await context.Entry(task)
+                .Collection(t => t.CompletionResources)
+                .LoadAsync();
 
             return mapper.Map<TaskDTO>(task);
         }
@@ -188,7 +209,6 @@ namespace Infrastructure.Services.Tasks
             var roles = await userManager.GetRolesAsync(emp);
 
             IQueryable<TaskItem> query = context.Tasks
-                .Where(t => !t.IsArchived)
                 .Include(t => t.ClientService)
                     .ThenInclude(cs => cs.Service)
                 .Include(t => t.ClientService)
@@ -643,14 +663,7 @@ namespace Infrastructure.Services.Tasks
 
             return mapper.Map<List<TaskGroupDTO>>(taskGroups);
         }
-        public async Task<TaskDTO> ToggleArchiveTaskAsync(int taskId)
-        {
-            var task = await helperService.GetTaskOrThrow(taskId);
-            task.IsArchived = !task.IsArchived;
-            context.Update(task);
-            await context.SaveChangesAsync();
-            return mapper.Map<TaskDTO>(task);
-        }
+
         public async Task<List<TaskDTO>> SearchTasks(string query, string currentUserId)
         {
             if (string.IsNullOrWhiteSpace(query))
@@ -783,7 +796,6 @@ namespace Infrastructure.Services.Tasks
             var roles = await userManager.GetRolesAsync(emp);
 
             IQueryable<TaskItem> query = context.Tasks
-                .Where(t => !t.IsArchived)
                 .Include(t => t.ClientService)
                     .ThenInclude(cs => cs.Service)
                 .Include(t => t.ClientService)
@@ -965,5 +977,7 @@ namespace Infrastructure.Services.Tasks
                 _ => Array.Empty<TaskType>()
             };
         }
+
+        
     }
 }

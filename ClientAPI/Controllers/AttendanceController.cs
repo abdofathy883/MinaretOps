@@ -180,5 +180,21 @@ namespace ClientAPI.Controllers
                 return StatusCode(500, ex.Message);
             }
         }
+
+        [HttpPut("submit-early-leave")]
+        public async Task<IActionResult> SubmitEarlyLeaveAsync(ToggleEarlyLeaveDTO earlyLeave)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+            try
+            {
+                var result = await attendanceService.SubmitEarlyLeaveByEmpIdAsync(earlyLeave);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
     }
 }

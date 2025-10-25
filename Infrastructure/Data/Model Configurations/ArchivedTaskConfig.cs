@@ -4,14 +4,12 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Infrastructure.Data.Model_Configurations
 {
-    public class TaskConfig : IEntityTypeConfiguration<TaskItem>
+    public class ArchivedTaskConfig : IEntityTypeConfiguration<ArchivedTask>
     {
-        public void Configure(EntityTypeBuilder<TaskItem> builder)
+        public void Configure(EntityTypeBuilder<ArchivedTask> builder)
         {
             builder.HasKey(t => t.Id);
-
-            builder.Property(t => t.Id)
-                .UseIdentityColumn(1, 1);
+            builder.Property(t => t.Id).UseIdentityColumn(1, 1);
 
             builder.Property(t => t.Title)
                 .IsRequired()
@@ -49,27 +47,23 @@ namespace Infrastructure.Data.Model_Configurations
                 .IsRequired()
                 .HasDefaultValueSql("GETDATE()");
 
-            // Relationship with TaskGroup
+            // Relationships
             builder.HasOne(t => t.TaskGroup)
-                .WithMany(tg => tg.Tasks)
+                .WithMany()
                 .HasForeignKey(t => t.TaskGroupId)
-                .OnDelete(DeleteBehavior.Restrict); // Changed from Cascade
+                .OnDelete(DeleteBehavior.Cascade);
 
-            // Relationship with ApplicationUser (Employee)
             builder.HasOne(t => t.Employee)
-                .WithMany(u => u.TaskItems)
+                .WithMany()
                 .HasForeignKey(t => t.EmployeeId)
                 .OnDelete(DeleteBehavior.SetNull);
 
-            // Relationship with ClientService - ADDED
             builder.HasOne(t => t.ClientService)
-                .WithMany() // ClientService doesn't have a Tasks collection
+                .WithMany()
                 .HasForeignKey(t => t.ClientServiceId)
-                .OnDelete(DeleteBehavior.NoAction); // Prevent cascade cycle
+                .OnDelete(DeleteBehavior.Restrict);
 
-            // Add indexes for foreign keys
-            builder.HasIndex(t => t.TaskGroupId);
-            builder.HasIndex(t => t.EmployeeId);
+            // Indexes
             builder.HasIndex(t => t.ClientServiceId);
         }
     }

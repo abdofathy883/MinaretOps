@@ -16,6 +16,7 @@ namespace Core.Models
         public AttendanceStatus Status { get; set; }
         public required string DeviceId { get; set; }
         public required string IpAddress { get; set; }
+        public bool EarlyLeave { get; set; } = false;
         public List<BreakPeriod> BreakPeriods { get; set; } = new();
         public TimeSpan TotalBreakTime => TimeSpan.FromMinutes(
         BreakPeriods.Where(b => b.EndTime.HasValue)

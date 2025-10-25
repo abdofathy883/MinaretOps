@@ -34,9 +34,9 @@ namespace ClientAPI.Controllers
         }
 
         [HttpGet("summary/{employeeId}")]
-        public async Task<IActionResult> GetEmployeeSummary(string employeeId)
+        public async Task<IActionResult> GetEmployeeSummary(string employeeId, [FromQuery] int? month, [FromQuery] int? year)
         {
-            var res = await kPIService.GetEmployeeMonthlyAsync(employeeId);
+            var res = await kPIService.GetEmployeeMonthlyAsync(employeeId, month, year);
             return Ok(res);
         }
 
@@ -48,9 +48,9 @@ namespace ClientAPI.Controllers
         }
 
         [HttpGet("incidents/{employeeId}")]
-        public async Task<IActionResult> GetIncidents(string employeeId)
+        public async Task<IActionResult> GetIncidents(string employeeId, [FromQuery] int? month = null, [FromQuery] int? year = null)
         {
-            var res = await kPIService.GetIncedientsByEmpIdAsync(employeeId);
+            var res = await kPIService.GetIncedientsByEmpIdAsync(employeeId, month, year);
             return Ok(res);
         }
 

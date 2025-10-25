@@ -136,41 +136,21 @@
             <div class="title">A new incident has been reported</div>
 
             <p style="text-align: center; color: #666; line-height: 1.6;">
-                Hello {{RecipientName}}, a new incident was submitted and requires your attention.
+                Hello {{EmployeeName}}, a new incident was submitted and requires your attention.
             </p>
 
             <div class="details">
                 <div class="detail-row">
-                    <span class="detail-label">Incident ID:</span>
-                    <span class="detail-value">{{IncidentId}}</span>
+                    <span class="detail-label">Aspect:</span>
+                    <span class="detail-value">{{Aspect}}</span>
                 </div>
                 <div class="detail-row">
-                    <span class="detail-label">Reported By:</span>
-                    <span class="detail-value">{{ReporterName}}</span>
-                </div>
-                <div class="detail-row">
-                    <span class="detail-label">Category:</span>
-                    <span class="detail-value">{{Category}}</span>
-                </div>
-                <div class="detail-row">
-                    <span class="detail-label">Priority:</span>
-                    <span class="detail-value {{PriorityClass}}">{{Priority}}</span>
-                </div>
-                <div class="detail-row">
-                    <span class="detail-label">Status:</span>
-                    <span class="detail-value {{StatusClass}}">{{Status}}</span>
+                    <span class="detail-label">PenaltyPercentage:</span>
+                    <span class="detail-value">{{PenaltyPercentage}}</span>
                 </div>
                 <div class="detail-row">
                     <span class="detail-label">Occurred At:</span>
-                    <span class="detail-value">{{OccurredAt}}</span>
-                </div>
-                <div class="detail-row">
-                    <span class="detail-label">Location:</span>
-                    <span class="detail-value">{{Location}}</span>
-                </div>
-                <div class="detail-row">
-                    <span class="detail-label">Assigned To:</span>
-                    <span class="detail-value">{{AssignedTo}}</span>
+                    <span class="detail-value">{{TimeStamp}}</span>
                 </div>
             </div>
 
@@ -186,7 +166,7 @@
             </p>
 
             <div style="text-align: center;">
-                <a href="https://internal.theminaretagency.com/incidents/{{IncidentId}}" class="cta-button">View Incident</a>
+                <a href="{{EvidenceURL}}" class="cta-button">View Evidence</a>
             </div>
         </div>
 

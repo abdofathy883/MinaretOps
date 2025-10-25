@@ -18,18 +18,15 @@ namespace Infrastructure.Services.Attendance
         private readonly MinaretOpsDbContext context;
         private readonly IMapper mapper;
         private readonly UserManager<ApplicationUser> userManager;
-        private readonly ILogger<AttendanceService> logger;
         public AttendanceService(
             MinaretOpsDbContext dbContext,
             IMapper _mapper,
-            UserManager<ApplicationUser> _userManager,
-            ILogger<AttendanceService> _logger
+            UserManager<ApplicationUser> _userManager
             )
         {
             context = dbContext;
             mapper = _mapper;
             userManager = _userManager;
-            logger = _logger;
         }
 
         public async Task<AttendanceRecordDTO> ChangeAttendanceStatusByAdminAsync(string adminId, int recordId, AttendanceStatus newStatus)
@@ -328,6 +325,19 @@ namespace Infrastructure.Services.Attendance
                 .FirstOrDefaultAsync(r => r.Id == recordId)
                 ?? throw new InvalidObjectException($"لم يتم العثور على الحضور بهذا المعرف {recordId}");
             return record;
+        }
+
+        public async Task<bool> SubmitEarlyLeaveByEmpIdAsync(ToggleEarlyLeaveDTO earlyLeave)
+        {
+            var emp = await GetUserOrThrow(earlyLeave.EmployeeId);
+
+            var attendanceRecord = await context.AttendanceRecords
+                .FirstOrDefaultAsync(a => a.EmployeeId == emp.Id && a.WorkDate == earlyLeave.WorkDate)
+                ?? throw new Exception("لم يتم العثور على سجل الحضور للموظف.");
+
+            attendanceRecord.EarlyLeave = true;
+            context.Update(attendanceRecord);
+            return await context.SaveChangesAsync() > 0;
         }
 
         //public Task<List<AttendanceRecordDTO>> GetMonthlyReportForEmpAsync()

@@ -21,7 +21,8 @@ namespace Infrastructure.MappingProfiles
                 : (DateTime?)null))
                 .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status))
                 .ForMember(dest => dest.WorkDate, opt => opt.MapFrom(src => src.WorkDate))
-                .ForMember(dest => dest.MissingClockOut, opt => opt.MapFrom(src => src.MissingClockOut));
+                .ForMember(dest => dest.MissingClockOut, opt => opt.MapFrom(src => src.MissingClockOut))
+                .ForMember(dest => dest.EarlyLeave, opt => opt.MapFrom(src => src.EarlyLeave));
         }
     }
 }

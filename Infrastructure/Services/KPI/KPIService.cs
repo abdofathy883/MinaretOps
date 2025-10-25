@@ -90,10 +90,15 @@ namespace Infrastructure.Services.KPI
             }
             return dto;
         }
-        public async Task<List<IncedintDTO>> GetIncedientsByEmpIdAsync(string employeeId)
+        public async Task<List<IncedintDTO>> GetIncedientsByEmpIdAsync(string employeeId, int? month = null, int? year = null)
         {
+            var currentMonth = month ?? DateTime.Now.Month;
+            var currentyear = year ?? DateTime.Now.Year;
+            var from = new DateTime(currentyear, currentMonth, 1);
+            var to = from.AddMonths(1);
+
             var incedients = await context.KPIIncedints
-                .Where(i => i.EmployeeId == employeeId)
+                .Where(i => i.EmployeeId == employeeId && i.TimeStamp >= from && i.TimeStamp < to)
                 .ToListAsync();
 
             return mapper.Map<List<IncedintDTO>>(incedients);

@@ -58,6 +58,7 @@ namespace ClientAPI
             builder.Services.AddScoped<IClientServices, ClientService>();
             builder.Services.AddScoped<IServiceService, ServiceService>();
             builder.Services.AddScoped<ITaskService, TaskService>();
+            builder.Services.AddScoped<IArchivedTaskService, ArchivedTaskService>();
             builder.Services.AddScoped<TaskHelperService>();
             builder.Services.AddScoped<IInternalTaskService, InternalTaskService>();
             builder.Services.AddScoped<IEmailService, EmailService>();
@@ -107,6 +108,7 @@ namespace ClientAPI
                 cfg.AddProfile<ClientServiceProfile>();
                 cfg.AddProfile<TaskGroupProfile>();
                 cfg.AddProfile<TaskItemProfile>();
+                cfg.AddProfile<ArchivedTaskProfile>();
                 cfg.AddProfile<InternalTaskProfile>();
                 cfg.AddProfile<InternalTaskAssignmentProfile>();
                 cfg.AddProfile<ContactFormProfile>();
