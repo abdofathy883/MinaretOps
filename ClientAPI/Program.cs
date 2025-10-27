@@ -67,6 +67,7 @@ namespace ClientAPI
             //builder.Services.AddScoped<IPortfolioService, PortfolioService>();
             builder.Services.AddScoped<MediaUploadService>();
             builder.Services.AddScoped<IAttendanceService, AttendanceService>();
+            builder.Services.AddScoped<IAttendanceDashboard, AttendanceDashboard>();
             builder.Services.AddScoped<ILeaveRequestService, LeaveRequestService>();
             builder.Services.AddScoped<IBreakService, BreakService>();
             builder.Services.AddScoped<INotificationService, NotificatonService>();
