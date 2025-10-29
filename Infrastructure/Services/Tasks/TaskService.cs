@@ -192,6 +192,8 @@ namespace Infrastructure.Services.Tasks
 
             await context.Entry(task)
                 .Collection(t => t.TaskComments)
+                .Query()
+                .Include(t => t.Employee)
                 .LoadAsync();
 
             return mapper.Map<TaskDTO>(task);
@@ -745,6 +747,18 @@ namespace Infrastructure.Services.Tasks
 
                 await context.AddRangeAsync(taskLinks);
                 context.Update(task);
+
+                var taskHistory = new TaskItemHistory
+                {
+                    TaskItem = task,
+                    PropertyName = "انهاء التاسك",
+                    UpdatedById = user.Id,
+                    OldValue = "لا يوجد",
+                    NewValue = "تم انهاء التاسك",
+                    UpdatedBy = user,
+                    UpdatedAt = DateTime.UtcNow
+                };
+                await context.AddAsync(taskHistory);
 
                 if (emp is not null && !string.IsNullOrEmpty(emp.Email))
                 {

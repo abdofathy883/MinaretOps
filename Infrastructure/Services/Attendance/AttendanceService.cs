@@ -192,7 +192,7 @@ namespace Infrastructure.Services.Attendance
                             EmployeeId = emp.Id,
                             WorkDate = egyptYesterday,
                             ClockIn = yesterdayDateTime,
-                            ClockOut = yesterdayDateTime.AddHours(23).AddMinutes(59),
+                            ClockOut = yesterdayDateTime,
                             Status = hasApprovedLeave ? AttendanceStatus.Leave : AttendanceStatus.Absent,
                             DeviceId = "System",
                             IpAddress = "System"
@@ -203,7 +203,7 @@ namespace Infrastructure.Services.Attendance
                     else if (existingRecord.ClockOut == null && existingRecord.Status == AttendanceStatus.Present)
                     {
                         // Close the record at end of yesterday
-                        existingRecord.ClockOut = yesterdayDateTime.AddHours(23).AddMinutes(59);
+                        existingRecord.ClockOut = yesterdayDateTime;
                         existingRecord.MissingClockOut = true;
                         context.Update(existingRecord);
                     }
@@ -241,7 +241,7 @@ namespace Infrastructure.Services.Attendance
                             EmployeeId = empId,
                             WorkDate = egyptTomorrow,
                             ClockIn = tomorrowDateTime,
-                            ClockOut = tomorrowDateTime.AddHours(23).AddMinutes(59),
+                            ClockOut = tomorrowDateTime,
                             Status = AttendanceStatus.Leave,
                             DeviceId = "System",
                             IpAddress = "System"
@@ -253,7 +253,6 @@ namespace Infrastructure.Services.Attendance
 
             await context.SaveChangesAsync();
         }
-
         public async Task<AttendanceRecordDTO> ClockInAsync(CreateAttendanceRecordDTO recordDTO)
         {
             var user = await GetUserOrThrow(recordDTO.EmployeeId);
@@ -405,7 +404,6 @@ namespace Infrastructure.Services.Attendance
                 throw;
             }
         }
-
         private async Task<ApplicationUser> GetUserOrThrow(string userId)
         {
             var user = await userManager.FindByIdAsync(userId)
