@@ -22,7 +22,7 @@ namespace Core.Models
         public bool IsCompletedOnDeadline =>
             Status == CustomTaskStatus.Completed &&
             CompletedAt.HasValue &&
-            CompletedAt.Value.Date <= Deadline.Date;
+            CompletedAt.Value <= Deadline;
         public int TaskGroupId { get; set; }
         public TaskGroup TaskGroup { get; set; } = default!;
         public List<TaskItemHistory> TaskHistory { get; set; } = new();

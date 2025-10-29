@@ -1,12 +1,13 @@
 ﻿using AutoMapper;
 using Core.DTOs.Attendance;
 using Core.Models;
+using Infrastructure.Helpers;
 
 namespace Infrastructure.MappingProfiles
 {
     public class AttendanceRecordProfile: Profile
     {
-        private readonly TimeZoneInfo tz = TimeZoneInfo.FindSystemTimeZoneById("Egypt Standard Time");
+        private readonly TimeZoneInfo tz = TimeZoneHelper.EgyptTimeZone;
         public AttendanceRecordProfile()
         {
             CreateMap<AttendanceRecord, AttendanceRecordDTO>()

@@ -1,13 +1,14 @@
 ﻿using AutoMapper;
 using Core.DTOs.Tasks;
 using Core.Models;
+using Infrastructure.Helpers;
 using SixLabors.ImageSharp.ColorSpaces.Companding;
 
 namespace Infrastructure.MappingProfiles
 {
     public class TaskItemProfile: Profile
     {
-        private readonly TimeZoneInfo tz = TimeZoneInfo.FindSystemTimeZoneById("Egypt Standard Time");
+        private readonly TimeZoneInfo tz = TimeZoneHelper.EgyptTimeZone;
         public TaskItemProfile()
         {
             CreateMap<TaskItem, TaskDTO>()
@@ -38,6 +39,7 @@ namespace Infrastructure.MappingProfiles
                 .ForMember(dest => dest.ServiceId, opt => opt.MapFrom(src => src.ClientService.ServiceId))
                 .ForMember(dest => dest.TaskHistory, opt => opt.MapFrom(src => src.TaskHistory))
                 .ForMember(dest => dest.TaskResources, opt => opt.MapFrom(src => src.CompletionResources))
+                .ForMember(dest => dest.TaskComments, opt => opt.MapFrom(src => src.TaskComments))
                 .ForMember(dest => dest.CompletionNotes, opt => opt.MapFrom(src => src.CompletionNotes))
                 .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => TimeZoneInfo.ConvertTimeFromUtc(src.CreatedAt, tz)));
         }

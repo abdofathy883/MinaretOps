@@ -93,9 +93,6 @@ namespace ClientAPI.Controllers
             }
         }
 
-        // In MinaretOps-Server/ClientAPI/Controllers/TasksController.cs
-
-        // Replace the archive endpoint
         [HttpPut("archive-task/{taskId}")]
         public async Task<IActionResult> ArchiveTask(int taskId)
         {
@@ -112,7 +109,6 @@ namespace ClientAPI.Controllers
             }
         }
 
-        // Add new restore endpoint
         [HttpPut("restore-task/{taskId}")]
         public async Task<IActionResult> RestoreTask(int taskId)
         {
@@ -316,6 +312,24 @@ namespace ClientAPI.Controllers
                 {
                     return BadRequest(ex.Message);
                 }
+            }
+        }
+
+        [HttpPost("new-comment")]
+        public async Task<IActionResult> AddCommentAsync(CreateTaskCommentDTO taskCommentDTO)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest();
+            }
+            try
+            {
+                var result = await taskService.AddCommentAsync(taskCommentDTO);
+                return Ok(result);
+            }
+            catch(Exception ex)
+            {
+                return BadRequest(ex.Message);
             }
         }
     }

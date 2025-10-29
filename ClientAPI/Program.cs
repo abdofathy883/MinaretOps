@@ -87,15 +87,21 @@ namespace ClientAPI
                 var jobKey = new JobKey("AttendanceJob");
                 q.AddJob<AttendanceJob>(opts => opts.WithIdentity(jobKey));
 
-                TimeZoneInfo egyptTZ = TimeZoneInfo.FindSystemTimeZoneById("Egypt Standard Time");
-                
+                //TimeZoneInfo egyptTZ = TimeZoneInfo.FindSystemTimeZoneById("Egypt Standard Time");
+
+                // Hardcode Egypt timezone as UTC+3
+                TimeZoneInfo egyptTZ = TimeZoneInfo.CreateCustomTimeZone(
+                    "Egypt Time",
+                    TimeSpan.FromHours(3),
+                    "Egypt Time",
+                    "Egypt Time");
+
                 // Run at 23:59 every day
                 q.AddTrigger(opts => opts
                     .ForJob(jobKey)
                     .WithIdentity("AttendanceJob-trigger")
                     //.WithCronSchedule("59 23 * * *") // CRON: sec min hour day month day-of-week
-                    //.WithSchedule(CronScheduleBuilder.DailyAtHourAndMinute(0, 5).InTimeZone(egyptTZ))
-                    .WithSchedule(CronScheduleBuilder.DailyAtHourAndMinute(hour: 14, minute: 26).InTimeZone(egyptTZ))
+                    .WithSchedule(CronScheduleBuilder.DailyAtHourAndMinute(0, 5).InTimeZone(egyptTZ))
                 );
             });
 
@@ -109,6 +115,7 @@ namespace ClientAPI
                 cfg.AddProfile<ClientServiceProfile>();
                 cfg.AddProfile<TaskGroupProfile>();
                 cfg.AddProfile<TaskItemProfile>();
+                cfg.AddProfile<TaskCommentProfile>();
                 cfg.AddProfile<ArchivedTaskProfile>();
                 cfg.AddProfile<InternalTaskProfile>();
                 cfg.AddProfile<InternalTaskAssignmentProfile>();

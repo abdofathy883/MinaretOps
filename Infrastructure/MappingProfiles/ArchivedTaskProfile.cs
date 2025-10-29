@@ -1,12 +1,13 @@
 ﻿using AutoMapper;
 using Core.DTOs.Tasks;
 using Core.Models;
+using Infrastructure.Helpers;
 
 namespace Infrastructure.MappingProfiles
 {
     public class ArchivedTaskProfile : Profile
     {
-        private readonly TimeZoneInfo tz = TimeZoneInfo.FindSystemTimeZoneById("Egypt Standard Time");
+        private readonly TimeZoneInfo tz = TimeZoneHelper.EgyptTimeZone;
 
         public ArchivedTaskProfile()
         {

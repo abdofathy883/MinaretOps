@@ -8,8 +8,16 @@ namespace Infrastructure.Helpers
 {
     public class TimeZoneHelper
     {
+        //public static readonly TimeZoneInfo EgyptTimeZone =
+        //    TimeZoneInfo.FindSystemTimeZoneById("Egypt Standard Time");
+
+        // Hardcode Egypt timezone as UTC+3
         public static readonly TimeZoneInfo EgyptTimeZone =
-            TimeZoneInfo.FindSystemTimeZoneById("Egypt Standard Time");
+            TimeZoneInfo.CreateCustomTimeZone(
+                "Egypt Time",
+                TimeSpan.FromHours(3),
+                "Egypt Time",
+                "Egypt Time");
 
         /// Gets current date and time in Egypt timezone
         public static DateTime GetEgyptNow()

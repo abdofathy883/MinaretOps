@@ -19,6 +19,7 @@ namespace Infrastructure.Data
         public DbSet<ArchivedTask> ArchivedTasks { get; set; }
         public DbSet<TaskItemHistory> TaskHistory { get; set; }
         public DbSet<TaskCompletionResources> TaskCompletionResources { get; set; }
+        public DbSet<TaskComment> TaskComments { get; set; }
         public DbSet<TaskGroup> TaskGroups { get; set; }
         public DbSet<InternalTask> InternalTasks { get; set; }
         public DbSet<InternalTaskAssignment> InternalTaskAssignments { get; set; }
@@ -47,6 +48,7 @@ namespace Infrastructure.Data
             builder.ApplyConfiguration(new ServiceConfig());
             builder.ApplyConfiguration(new ClientServiceConfig());
             builder.ApplyConfiguration(new TaskConfig());
+            builder.ApplyConfiguration(new TaskCommentConfig());
             builder.ApplyConfiguration(new ArchivedTaskConfig());
             builder.ApplyConfiguration(new TaskLinksConfig());
             builder.ApplyConfiguration(new TaskHistoryConfig());

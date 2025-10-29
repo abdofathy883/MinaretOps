@@ -6,15 +6,6 @@ namespace Infrastructure.MappingProfiles
 {
     public class ClientProfile: Profile
     {
-        //private static long? ParseDiscordId(string value)
-        //{
-        //    if (string.IsNullOrWhiteSpace(value))
-        //        return null;
-
-        //    return long.TryParse(value, out var channelId)
-        //        ? channelId
-        //        : null;
-        //}
         public ClientProfile()
         {
             CreateMap<Client, ClientDTO>()

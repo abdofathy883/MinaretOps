@@ -17,5 +17,6 @@ namespace Core.Interfaces
         Task<TaskGroupDTO> CreateTaskGroupAsync(CreateTaskGroupDTO createTaskGroup, string userId);
         Task<List<TaskGroupDTO>> GetTaskGroupsByClientServiceAsync(int clientServiceId);
         Task<List<TaskDTO>> SearchTasks(string query, string currentUserId);
+        Task<TaskCommentDTO> AddCommentAsync(CreateTaskCommentDTO taskComment);
     }
 }

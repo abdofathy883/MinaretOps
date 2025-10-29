@@ -19,10 +19,11 @@ namespace Core.DTOs.Tasks
         public bool IsCompletedOnDeadline =>
             Status == CustomTaskStatus.Completed &&
             CompletedAt.HasValue &&
-            CompletedAt.Value.Date <= Deadline.Date;
+            CompletedAt.Value <= Deadline;
         public int TaskGroupId { get; set; }
         public List<TaskHistoryDTO> TaskHistory { get; set; } = new();
         public List<TaskResourcesDTO> TaskResources { get; set; } = new();
+        public List<TaskCommentDTO> TaskComments { get; set; } = new();
         public string? CompletionNotes { get; set; }
         public int ServiceId { get; set; }
         public string? ServiceName { get; set; }

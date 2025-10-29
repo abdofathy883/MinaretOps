@@ -143,6 +143,47 @@ namespace Infrastructure.Services.Discord
 
             await channel.SendMessageAsync(embed: embed.Build());
         }
+        public async Task NewComment(string channelId, TaskItem task)
+        {
+            var parsedChannel = ulong.Parse(channelId);
+            var channel = client.GetChannel(parsedChannel) as IMessageChannel;
+            if (channel is null)
+                throw new InvalidObjectException("لم يتم العثور على قناة ديسكورد لهذا المعرف");
+
+            var embed = new EmbedBuilder
+            {
+                Title = $"New Comment On Task: {task.Title}",
+                Color = new Color(145, 240, 11), // RGB for lime
+                Timestamp = DateTimeOffset.UtcNow
+            };
+
+            embed.AddField("Assigned To", $"{task.Employee.FirstName} {task.Employee.LastName}" ?? "Unknown", inline: true);
+            embed.AddField("Task Id", task.Id, inline: true);
+            embed.AddField("Status", task.Status.ToString(), inline: true);
+            embed.AddField("Reference", task.Refrence ?? "N/A", inline: true);
+
+            // Get last comment (defensive: null / empty checks). Prefer latest by Id if no created timestamp.
+            var lastComment = task.TaskComments?.OrderByDescending(c => c.Id).FirstOrDefault();
+
+            var author = !string.IsNullOrWhiteSpace(lastComment.Employee?.FirstName) || !string.IsNullOrWhiteSpace(lastComment.Employee?.LastName)
+                ? $"{lastComment.Employee?.FirstName} {lastComment.Employee?.LastName}".Trim()
+                : lastComment.EmployeeId ?? "Unknown";
+
+            // Limit length to avoid overly large embed fields (Discord max ~1024 chars per field)
+            var trimmedComment = lastComment.Comment?.Trim() ?? string.Empty;
+            if (trimmedComment.Length > 900)
+                trimmedComment = trimmedComment[..900] + "…";
+
+            var commentText = $"{trimmedComment}\n— {author}";
+
+            embed.AddField("Comment", commentText);
+            embed.AddField("Added By", author);
+            embed.AddField("Task Link", $"https://internal.theminaretagency.com/tasks/{task.Id}");
+
+            embed.WithFooter("The Minaret Agency Task Management");
+
+            await channel.SendMessageAsync(embed: embed.Build());
+        }
         public async Task ChangeTaskStatus(string channelId, TaskItem task, CustomTaskStatus status)
         {
             var parsedChannel = ulong.Parse(channelId);

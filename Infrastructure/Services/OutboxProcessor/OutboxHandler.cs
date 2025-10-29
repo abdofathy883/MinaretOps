@@ -55,6 +55,9 @@ namespace Infrastructure.Services.OutboxProcessor
                                 throw new InvalidOperationException("NewStatus is required for ChangeTaskStatus operation");
                             await discordService.ChangeTaskStatus(discordData.ChannelId, discordData.Task, discordData.NewStatus.Value);
                             break;
+                        case DiscordOperationType.NewComment:
+                            await discordService.NewComment(discordData.ChannelId, discordData.Task);
+                            break;
                         default:
                             throw new InvalidOperationException($"Unknown Discord operation type: {discordData.OperationType}");
                     }

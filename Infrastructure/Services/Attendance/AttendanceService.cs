@@ -112,51 +112,145 @@ namespace Infrastructure.Services.Attendance
             return mapper.Map<AttendanceRecordDTO>(attendanceRecord);
         }
 
+        //public async Task MarkAbsenteesAsync()
+        //{
+        //    var egyptYesterday = TimeZoneHelper.GetEgyptYesterday();
+
+        //    var yesterdayDayOfWeek = egyptYesterday.ToDateTime(TimeOnly.MinValue).DayOfWeek;
+        //    if (yesterdayDayOfWeek == DayOfWeek.Friday) return;
+
+        //    var employees = await context.Users.ToListAsync();
+
+        //    foreach (var emp in employees)
+        //    {
+        //        var existingRecord = await context.AttendanceRecords
+        //            .FirstOrDefaultAsync(a => a.EmployeeId == emp.Id && a.WorkDate == egyptYesterday);
+
+        //        var yesterdayDateTime = egyptYesterday.ToDateTime(TimeOnly.MinValue);
+        //        bool hasApprovedLeave = await context.LeaveRequests
+        //            .AnyAsync(l => l.EmployeeId == emp.Id &&
+        //            l.Status == LeaveStatus.Approved &&
+        //            l.FromDate.Date <= yesterdayDateTime &&
+        //            l.ToDate.Date >= yesterdayDateTime);
+
+        //        // Case 1: Employee has no attendance record at all
+        //        if (existingRecord == null)
+        //        {
+        //            var record = new AttendanceRecord
+        //            {
+        //                EmployeeId = emp.Id,
+        //                WorkDate = egyptYesterday,
+        //                ClockIn = yesterdayDateTime,
+        //                ClockOut = yesterdayDateTime.AddHours(23).AddMinutes(59),
+        //                Status = hasApprovedLeave ? AttendanceStatus.Leave : AttendanceStatus.Absent,
+        //                DeviceId = "System",
+        //                IpAddress = "System"
+        //            };
+        //            await context.AttendanceRecords.AddAsync(record);
+        //        }
+        //        // Case 2: Employee clocked in but didn't clock out (missing clock out)
+        //        else if (existingRecord.ClockOut == null && existingRecord.Status == AttendanceStatus.Present)
+        //        {
+        //            // Close the record at end of yesterday
+        //            existingRecord.ClockOut = yesterdayDateTime.AddHours(23).AddMinutes(59);
+        //            existingRecord.MissingClockOut = true;
+        //            context.Update(existingRecord);
+        //        }
+        //    }
+        //    await context.SaveChangesAsync();
+        //}
+
         public async Task MarkAbsenteesAsync()
         {
             var egyptYesterday = TimeZoneHelper.GetEgyptYesterday();
+            var egyptToday = TimeZoneHelper.GetEgyptToday();
+            var egyptTomorrow = egyptToday.AddDays(1);
 
+            // Process yesterday's absentees
             var yesterdayDayOfWeek = egyptYesterday.ToDateTime(TimeOnly.MinValue).DayOfWeek;
-            if (yesterdayDayOfWeek == DayOfWeek.Friday) return;
-
-            var employees = await context.Users.ToListAsync();
-
-            foreach (var emp in employees)
+            if (yesterdayDayOfWeek != DayOfWeek.Friday)
             {
-                var existingRecord = await context.AttendanceRecords
-                    .FirstOrDefaultAsync(a => a.EmployeeId == emp.Id && a.WorkDate == egyptYesterday);
+                var employees = await context.Users.ToListAsync();
 
-                var yesterdayDateTime = egyptYesterday.ToDateTime(TimeOnly.MinValue);
-                bool hasApprovedLeave = await context.LeaveRequests
-                    .AnyAsync(l => l.EmployeeId == emp.Id &&
-                    l.Status == LeaveStatus.Approved &&
-                    l.FromDate.Date <= yesterdayDateTime &&
-                    l.ToDate.Date >= yesterdayDateTime);
-
-                // Case 1: Employee has no attendance record at all
-                if (existingRecord == null)
+                foreach (var emp in employees)
                 {
-                    var record = new AttendanceRecord
+                    var existingRecord = await context.AttendanceRecords
+                        .FirstOrDefaultAsync(a => a.EmployeeId == emp.Id && a.WorkDate == egyptYesterday);
+
+                    var yesterdayDateTime = egyptYesterday.ToDateTime(TimeOnly.MinValue);
+                    bool hasApprovedLeave = await context.LeaveRequests
+                        .AnyAsync(l => l.EmployeeId == emp.Id &&
+                        l.Status == LeaveStatus.Approved &&
+                        l.FromDate.Date <= yesterdayDateTime &&
+                        l.ToDate.Date >= yesterdayDateTime);
+
+                    // Case 1: Employee has no attendance record at all
+                    if (existingRecord == null)
                     {
-                        EmployeeId = emp.Id,
-                        WorkDate = egyptYesterday,
-                        ClockIn = yesterdayDateTime,
-                        ClockOut = yesterdayDateTime.AddHours(23).AddMinutes(59),
-                        Status = hasApprovedLeave ? AttendanceStatus.Leave : AttendanceStatus.Absent,
-                        DeviceId = "System",
-                        IpAddress = "System"
-                    };
-                    await context.AttendanceRecords.AddAsync(record);
-                }
-                // Case 2: Employee clocked in but didn't clock out (missing clock out)
-                else if (existingRecord.ClockOut == null && existingRecord.Status == AttendanceStatus.Present)
-                {
-                    // Close the record at end of yesterday
-                    existingRecord.ClockOut = yesterdayDateTime.AddHours(23).AddMinutes(59);
-                    existingRecord.MissingClockOut = true;
-                    context.Update(existingRecord);
+                        var record = new AttendanceRecord
+                        {
+                            EmployeeId = emp.Id,
+                            WorkDate = egyptYesterday,
+                            ClockIn = yesterdayDateTime,
+                            ClockOut = yesterdayDateTime.AddHours(23).AddMinutes(59),
+                            Status = hasApprovedLeave ? AttendanceStatus.Leave : AttendanceStatus.Absent,
+                            DeviceId = "System",
+                            IpAddress = "System"
+                        };
+                        await context.AttendanceRecords.AddAsync(record);
+                    }
+                    // Case 2: Employee clocked in but didn't clock out (missing clock out)
+                    else if (existingRecord.ClockOut == null && existingRecord.Status == AttendanceStatus.Present)
+                    {
+                        // Close the record at end of yesterday
+                        existingRecord.ClockOut = yesterdayDateTime.AddHours(23).AddMinutes(59);
+                        existingRecord.MissingClockOut = true;
+                        context.Update(existingRecord);
+                    }
                 }
             }
+
+            // Process tomorrow's leaves (create records for employees with approved leave for tomorrow)
+            var tomorrowDayOfWeek = egyptTomorrow.ToDateTime(TimeOnly.MinValue).DayOfWeek;
+            if (tomorrowDayOfWeek != DayOfWeek.Friday)
+            {
+                var tomorrowDateTime = egyptTomorrow.ToDateTime(TimeOnly.MinValue);
+
+                // Find all employees with approved leave requests for tomorrow
+                var employeesWithLeaveForTomorrow = await context.LeaveRequests
+                    .Where(l => l.Status == LeaveStatus.Approved &&
+                            l.FromDate.Date <= tomorrowDateTime &&
+                            l.ToDate.Date >= tomorrowDateTime)
+                    .Select(l => l.EmployeeId)
+                    .Distinct()
+                    .ToListAsync();
+
+                // Check if we already have records for tomorrow (shouldn't happen, but just to be safe)
+                var existingTomorrowRecords = await context.AttendanceRecords
+                    .Where(a => a.WorkDate == egyptTomorrow)
+                    .Select(a => a.EmployeeId)
+                    .ToListAsync();
+
+                // Create records for employees with leave for tomorrow who don't already have a record
+                foreach (var empId in employeesWithLeaveForTomorrow)
+                {
+                    if (!existingTomorrowRecords.Contains(empId))
+                    {
+                        var record = new AttendanceRecord
+                        {
+                            EmployeeId = empId,
+                            WorkDate = egyptTomorrow,
+                            ClockIn = tomorrowDateTime,
+                            ClockOut = tomorrowDateTime.AddHours(23).AddMinutes(59),
+                            Status = AttendanceStatus.Leave,
+                            DeviceId = "System",
+                            IpAddress = "System"
+                        };
+                        await context.AttendanceRecords.AddAsync(record);
+                    }
+                }
+            }
+
             await context.SaveChangesAsync();
         }
 

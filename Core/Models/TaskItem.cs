@@ -22,11 +22,12 @@ namespace Core.Models
         public bool IsCompletedOnDeadline =>
             Status == CustomTaskStatus.Completed &&
             CompletedAt.HasValue &&
-            CompletedAt.Value.Date <= Deadline.Date;
+            CompletedAt.Value <= Deadline;
         public int TaskGroupId { get; set; }
         public TaskGroup TaskGroup { get; set; } = default!;
         public List<TaskItemHistory> TaskHistory { get; set; } = new();
         public List<TaskCompletionResources> CompletionResources { get; set; } = new();
+        public List<TaskComment> TaskComments { get; set; } = new();
         public string? CompletionNotes { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }

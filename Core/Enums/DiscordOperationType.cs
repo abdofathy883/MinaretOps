@@ -12,6 +12,7 @@ namespace Core.Enums
         UpdateTask = 1,
         DeleteTask = 2,
         CompleteTask = 3,
-        ChangeTaskStatus = 4
+        ChangeTaskStatus = 4,
+        NewComment = 5
     }
 }

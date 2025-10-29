@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Core.DTOs.Tasks;
 using Core.Models;
+using Infrastructure.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,7 +12,7 @@ namespace Infrastructure.MappingProfiles
 {
     public class TaskHistoryProfile : Profile
     {
-        private readonly TimeZoneInfo tz = TimeZoneInfo.FindSystemTimeZoneById("Egypt Standard Time");
+        private readonly TimeZoneInfo tz = TimeZoneHelper.EgyptTimeZone;
         public TaskHistoryProfile()
         {
             CreateMap<TaskItemHistory, TaskHistoryDTO>()

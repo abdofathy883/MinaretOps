@@ -1,12 +1,13 @@
 ﻿using AutoMapper;
 using Core.DTOs.KPI;
 using Core.Models;
+using Infrastructure.Helpers;
 
 namespace Infrastructure.MappingProfiles
 {
     public class KPIIncedintProfile: Profile
     {
-        private readonly TimeZoneInfo tz = TimeZoneInfo.FindSystemTimeZoneById("Egypt Standard Time");
+        private readonly TimeZoneInfo tz = TimeZoneHelper.EgyptTimeZone;
         public KPIIncedintProfile()
         {
             CreateMap<KPIIncedint, IncedintDTO>()

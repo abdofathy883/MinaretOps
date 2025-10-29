@@ -9,6 +9,7 @@ using Infrastructure.Data;
 using Infrastructure.Exceptions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 namespace Infrastructure.Services.Tasks
 {
@@ -166,17 +167,6 @@ namespace Infrastructure.Services.Tasks
         }
         public async Task<TaskDTO> GetTaskByIdAsync(int taskId)
         {
-            //var task = await context.Tasks
-            //    .Include(t => t.TaskHistory)
-            //        .ThenInclude(t => t.UpdatedBy)
-            //    .Include(t => t.CompletionResources)
-            //    .Include(t => t.ClientService)
-            //        .ThenInclude(cs => cs.Service)
-            //    .Include(t => t.ClientService)
-            //        .ThenInclude(cs => cs.Client)
-            //    .Include(t => t.Employee)
-            //    .FirstOrDefaultAsync(t => t.Id == taskId);
-
             // First, get the main task with basic includes
             var task = await context.Tasks
                 .Include(t => t.ClientService)
@@ -187,7 +177,7 @@ namespace Infrastructure.Services.Tasks
                 .FirstOrDefaultAsync(t => t.Id == taskId);
 
             if (task == null)
-                return null;
+                throw new Exception();
 
             // Load related data separately if needed
             await context.Entry(task)
@@ -198,6 +188,10 @@ namespace Infrastructure.Services.Tasks
 
             await context.Entry(task)
                 .Collection(t => t.CompletionResources)
+                .LoadAsync();
+
+            await context.Entry(task)
+                .Collection(t => t.TaskComments)
                 .LoadAsync();
 
             return mapper.Map<TaskDTO>(task);
@@ -788,8 +782,6 @@ namespace Infrastructure.Services.Tasks
             }
 
         }
-        // Update the GetPaginatedTasksAsync method to include team filtering
-
         public async Task<PaginatedTaskResultDTO> GetPaginatedTasksAsync(TaskFilterDTO filter, string currentUserId)
         {
             var emp = await helperService.GetUserOrThrow(currentUserId);
@@ -886,13 +878,13 @@ namespace Infrastructure.Services.Tasks
                 {
                     // Task completed on deadline: must have completedAt AND isCompletedOnDeadline = true
                     query = query.Where(t => t.CompletedAt.HasValue &&
-                        t.CompletedAt.Value.Date <= t.Deadline.Date);
+                        t.CompletedAt.Value <= t.Deadline);
                 }
                 else if (filter.OnDeadline == "no")
                 {
                     // Task completed late OR deadline passed but not completed
                     query = query.Where(t =>
-                        (t.CompletedAt.HasValue && t.CompletedAt.Value.Date > t.Deadline.Date) ||
+                        (t.CompletedAt.HasValue && t.CompletedAt.Value > t.Deadline) ||
                         (!t.CompletedAt.HasValue && currentDate >= t.Deadline));
                 }
                 else if (filter.OnDeadline == "not-yet")
@@ -923,8 +915,6 @@ namespace Infrastructure.Services.Tasks
                 TotalPages = totalPages
             };
         }
-
-        // Update the helper method to match your new team structure
         private TaskType[] GetTaskTypesForTeam(string team)
         {
             return team switch
@@ -977,7 +967,58 @@ namespace Infrastructure.Services.Tasks
                 _ => Array.Empty<TaskType>()
             };
         }
+        public async Task<TaskCommentDTO> AddCommentAsync(CreateTaskCommentDTO taskComment)
+        {
+            var task = await helperService.GetTaskOrThrow(taskComment.TaskId)
+                ?? throw new Exception();
+            var employee = await helperService.GetUserOrThrow(taskComment.EmployeeId)
+                ?? throw new Exception();
+            if (string.IsNullOrEmpty(taskComment.Comment))
+                throw new Exception();
 
-        
+            using var transaction = await context.Database.BeginTransactionAsync();
+            try
+            {
+                var newComment = new TaskComment
+                {
+                    Comment = taskComment.Comment,
+                    TaskId = task.Id,
+                    EmployeeId = employee.Id,
+                    CreatedAt = DateTime.UtcNow
+                };
+                await context.TaskComments.AddAsync(newComment);
+
+                var emailPayload = new
+                {
+                    To = employee.Email,
+                    Subject = "New Comment On Task Assigned To You",
+                    Template = "NewTaskComment",
+                    Replacements = new Dictionary<string, string>
+                    {
+                        { "TaskId", task.Id.ToString() },
+                        { "TaskTitle", task.Title },
+                        { "TaskComment", taskComment.Comment },
+                        { "ByEmployee", $"{employee.FirstName} {employee.LastName}" },
+                        { "TimeSpan", DateTime.Now.ToString() }
+                    }
+                };
+                await helperService.AddOutboxAsync(OutboxTypes.Email, "New Task Comment Email", emailPayload);
+
+                string? channel = task?.ClientService?.Client?.DiscordChannelId;
+                if (channel is not null)
+                {
+                    var discordPayload = new DiscordPayload(channel, task, DiscordOperationType.NewComment);
+                    await helperService.AddOutboxAsync(OutboxTypes.Discord, "New Task Comment Discord", discordPayload);
+                }
+                await context.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return mapper.Map<TaskCommentDTO>(newComment);
+            }
+            catch(Exception)
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }
     }
 }
