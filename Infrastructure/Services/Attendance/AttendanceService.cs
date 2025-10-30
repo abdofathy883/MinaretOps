@@ -258,6 +258,7 @@ namespace Infrastructure.Services.Attendance
             var user = await GetUserOrThrow(recordDTO.EmployeeId);
 
             var egyptToday = TimeZoneHelper.GetEgyptToday();
+            var egyptNow = TimeZoneHelper.GetEgyptNow();
 
             var existingRecord = await context.AttendanceRecords
                 .FirstOrDefaultAsync(r => r.EmployeeId == recordDTO.EmployeeId 
@@ -277,6 +278,10 @@ namespace Infrastructure.Services.Attendance
             using var transaction = await context.Database.BeginTransactionAsync();
             try
             {
+                // Check if clocking in after 10:30 AM in Egypt timezone
+                var scheduledTime = new TimeSpan(10, 30, 0); // 10:30 AM
+                var isClockedInAfterSchedule = egyptNow.TimeOfDay > scheduledTime;
+
                 var attendanceRecord = new AttendanceRecord
                 {
                     EmployeeId = recordDTO.EmployeeId,
@@ -284,7 +289,8 @@ namespace Infrastructure.Services.Attendance
                     WorkDate = egyptToday,
                     DeviceId = recordDTO.DeviceId,
                     IpAddress = recordDTO.IpAddress,
-                    Status = AttendanceStatus.Present
+                    Status = AttendanceStatus.Present,
+                    IsClockedInAfterSchedule = isClockedInAfterSchedule
                 };
                 await context.AddAsync(attendanceRecord);
 

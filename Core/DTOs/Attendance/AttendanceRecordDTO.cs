@@ -9,6 +9,7 @@ namespace Core.DTOs.Attendance
         public required string EmployeeId { get; set; }
         public required string EmployeeName { get; set; }
         public DateTime ClockIn { get; set; }
+        public bool IsClockedInAfterSchedule { get; set; }
         public DateTime? ClockOut { get; set; }
         public DateOnly WorkDate { get; set; }
         public AttendanceStatus Status { get; set; }

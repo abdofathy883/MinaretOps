@@ -16,6 +16,7 @@ namespace Infrastructure.MappingProfiles
                 .ForMember(dest => dest.EmployeeName, opt => opt.MapFrom(src => $"{src.Employee.FirstName} {src.Employee.LastName}"))
                 .ForMember(dest => dest.ClockIn,
                 opt => opt.MapFrom(src => TimeZoneInfo.ConvertTimeFromUtc(src.ClockIn, tz)))
+                .ForMember(dest => dest.IsClockedInAfterSchedule, opt => opt.MapFrom(src => src.IsClockedInAfterSchedule))
                 .ForMember(dest => dest.ClockOut,
                 opt => opt.MapFrom(src => src.ClockOut.HasValue
                 ? TimeZoneInfo.ConvertTimeFromUtc(src.ClockOut.Value, tz)

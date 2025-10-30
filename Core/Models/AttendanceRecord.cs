@@ -8,6 +8,7 @@ namespace Core.Models
         public required string EmployeeId { get; set; }
         public ApplicationUser Employee { get; set; } = default!;
         public DateTime ClockIn { get; set; }
+        public bool IsClockedInAfterSchedule { get; set; }
         public DateTime? ClockOut { get; set; }
         public DateOnly WorkDate { get; set; }
         public TimeSpan? TotalWorkingTime => 
