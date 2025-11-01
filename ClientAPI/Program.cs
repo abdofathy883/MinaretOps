@@ -26,6 +26,7 @@ using Microsoft.EntityFrameworkCore;
 using Quartz;
 using Serilog;
 using ClientService = Infrastructure.Services.Clients.ClientService;
+using Infrastructure.Services.Reporting;
 
 namespace ClientAPI
 {
@@ -76,6 +77,7 @@ namespace ClientAPI
             builder.Services.AddScoped<IKPIService, KPIService>();
             builder.Services.AddScoped<IJobDescribtionService, JobDescriptionService>();
             builder.Services.AddScoped<IOutboxHandler, OutboxHandler>();
+            builder.Services.AddScoped<IReportingService, ReportingService>();
             builder.Services.AddSingleton<DiscordService>();
             builder.Services.AddHostedService<DiscordHostedService>();
             builder.Services.AddHostedService<OutboxProcessor>();
@@ -92,7 +94,7 @@ namespace ClientAPI
                 // Hardcode Egypt timezone as UTC+3
                 TimeZoneInfo egyptTZ = TimeZoneInfo.CreateCustomTimeZone(
                     "Egypt Time",
-                    TimeSpan.FromHours(3),
+                    TimeSpan.FromHours(2),
                     "Egypt Time",
                     "Egypt Time");
 

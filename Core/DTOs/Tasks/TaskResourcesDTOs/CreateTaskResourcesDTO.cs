@@ -1,4 +1,4 @@
-﻿namespace Core.DTOs.Tasks
+﻿namespace Core.DTOs.Tasks.TaskResourcesDTOs
 {
     public class CreateTaskResourcesDTO
     {

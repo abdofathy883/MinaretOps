@@ -15,7 +15,7 @@ namespace Infrastructure.Helpers
         public static readonly TimeZoneInfo EgyptTimeZone =
             TimeZoneInfo.CreateCustomTimeZone(
                 "Egypt Time",
-                TimeSpan.FromHours(3),
+                TimeSpan.FromHours(2),
                 "Egypt Time",
                 "Egypt Time");
 

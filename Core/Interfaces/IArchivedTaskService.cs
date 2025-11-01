@@ -1,4 +1,4 @@
-﻿using Core.DTOs.Tasks;
+﻿using Core.DTOs.Tasks.TaskDTOs;
 using System;
 using System.Collections.Generic;
 using System.Linq;

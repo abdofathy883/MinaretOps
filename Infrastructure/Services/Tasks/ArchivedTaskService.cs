@@ -1,5 +1,5 @@
 ﻿using AutoMapper;
-using Core.DTOs.Tasks;
+using Core.DTOs.Tasks.TaskDTOs;
 using Core.Interfaces;
 using Core.Models;
 using Infrastructure.Data;

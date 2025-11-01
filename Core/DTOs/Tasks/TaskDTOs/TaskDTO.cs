@@ -1,6 +1,8 @@
-﻿using Core.Enums;
+﻿using Core.DTOs.Tasks.CommentDTOs;
+using Core.DTOs.Tasks.TaskResourcesDTOs;
+using Core.Enums;
 
-namespace Core.DTOs.Tasks
+namespace Core.DTOs.Tasks.TaskDTOs
 {
     public class TaskDTO
     {

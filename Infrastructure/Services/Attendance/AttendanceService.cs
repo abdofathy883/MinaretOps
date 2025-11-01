@@ -165,6 +165,7 @@ namespace Infrastructure.Services.Attendance
             var egyptYesterday = TimeZoneHelper.GetEgyptYesterday();
             var egyptToday = TimeZoneHelper.GetEgyptToday();
             var egyptTomorrow = egyptToday.AddDays(1);
+            var egyptNow = TimeZoneHelper.GetEgyptNow();
 
             // Process yesterday's absentees
             var yesterdayDayOfWeek = egyptYesterday.ToDateTime(TimeOnly.MinValue).DayOfWeek;
@@ -191,8 +192,8 @@ namespace Infrastructure.Services.Attendance
                         {
                             EmployeeId = emp.Id,
                             WorkDate = egyptYesterday,
-                            ClockIn = yesterdayDateTime,
-                            ClockOut = yesterdayDateTime,
+                            ClockIn = egyptNow,
+                            ClockOut = egyptNow,
                             Status = hasApprovedLeave ? AttendanceStatus.Leave : AttendanceStatus.Absent,
                             DeviceId = "System",
                             IpAddress = "System"
@@ -203,7 +204,7 @@ namespace Infrastructure.Services.Attendance
                     else if (existingRecord.ClockOut == null && existingRecord.Status == AttendanceStatus.Present)
                     {
                         // Close the record at end of yesterday
-                        existingRecord.ClockOut = yesterdayDateTime;
+                        existingRecord.ClockOut = egyptNow;
                         existingRecord.MissingClockOut = true;
                         context.Update(existingRecord);
                     }

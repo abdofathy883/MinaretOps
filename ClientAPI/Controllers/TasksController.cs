@@ -1,4 +1,8 @@
 ﻿using Core.DTOs.Tasks;
+using Core.DTOs.Tasks.CommentDTOs;
+using Core.DTOs.Tasks.TaskDTOs;
+using Core.DTOs.Tasks.TaskGroupDTOs;
+using Core.DTOs.Tasks.TaskResourcesDTOs;
 using Core.Enums;
 using Core.Interfaces;
 using Microsoft.AspNetCore.Mvc;

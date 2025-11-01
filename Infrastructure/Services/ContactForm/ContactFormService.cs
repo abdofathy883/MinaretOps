@@ -3,6 +3,7 @@ using Core.DTOs.ContactFormDTOs;
 using Core.Interfaces;
 using Core.Models;
 using Infrastructure.Data;
+using Infrastructure.Services.Tasks;
 using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Services.ContactForm
@@ -10,16 +11,16 @@ namespace Infrastructure.Services.ContactForm
     public class ContactFormService : IContactFormService
     {
         private readonly MinaretOpsDbContext context;
-        private readonly IEmailService emailService;
+        private readonly TaskHelperService helperService;
         private readonly IMapper mapper;
         public ContactFormService(
             MinaretOpsDbContext dbContext,
-            IEmailService email,
+            TaskHelperService _helperService,
             IMapper _mapper
             )
         {
             context = dbContext;
-            emailService = email;
+            helperService = _helperService;
             mapper = _mapper;
         }
         public async Task<bool> DeleteEntryAsync(int id)
@@ -30,7 +31,6 @@ namespace Infrastructure.Services.ContactForm
             context.ContactFormEntries.Remove(entry);
             return await context.SaveChangesAsync() > 0;
         }
-
         public async Task<List<ContactFormEntryDTO>> GetAllEntriesAsync()
         {
             var entries = await context.ContactFormEntries.ToListAsync()
@@ -38,7 +38,6 @@ namespace Infrastructure.Services.ContactForm
 
             return mapper.Map<List<ContactFormEntryDTO>>(entries);
         }
-
         public async Task<ContactFormEntryDTO> GetEntryByIdAsync(int id)
         {
             var entry = await context.ContactFormEntries
@@ -47,40 +46,55 @@ namespace Infrastructure.Services.ContactForm
 
             return mapper.Map<ContactFormEntryDTO>(entry);
         }
-
         public async Task<bool> SubmitContactFormAsync(NewContactFormEntryDTO newEntry)
         {
             if(newEntry is null)
                 throw new Exception("Invalid entry");
 
-            ContactFormEntry entry = new ContactFormEntry
+            using var transaction = await context.Database.BeginTransactionAsync();
+            try
             {
-                FullName = newEntry.FullName,
-                CompanyName = newEntry.CompanyName,
-                Email = newEntry.Email,
-                PhoneNumber = newEntry.PhoneNumber,
-                DesiredService = newEntry.DesiredService,
-                ProjectBrief = newEntry.ProjectBrief,
-                TimeStamp = DateTime.UtcNow
-            };
+                ContactFormEntry entry = new ContactFormEntry
+                {
+                    FullName = newEntry.FullName,
+                    CompanyName = newEntry.CompanyName,
+                    Email = newEntry.Email,
+                    PhoneNumber = newEntry.PhoneNumber,
+                    DesiredService = newEntry.DesiredService,
+                    ProjectBrief = newEntry.ProjectBrief,
+                    TimeStamp = DateTime.UtcNow
+                };
 
-            await context.ContactFormEntries.AddAsync(entry);
-            await context.SaveChangesAsync();
-
-            Dictionary<string, string> placeholders = new Dictionary<string, string>
+                await context.ContactFormEntries.AddAsync(entry);
+                if (!string.IsNullOrEmpty(entry.Email))
+                {
+                    var emailPayload = new
+                    {
+                        To = entry.Email,
+                        Subject = "We Got Your Message",
+                        Template = "ContactFormSubmission",
+                        Replacements = new Dictionary<string, string>
+                        {
+                            { "{{FullName}}", entry.FullName },
+                            { "{{CompanyName}}", entry.CompanyName ?? "Company Name didn't provided" },
+                            { "{{Email}}", entry.Email },
+                            { "{{PhoneNumber}}", entry.PhoneNumber },
+                            { "{{DesiredService}}", entry.DesiredService ?? "You didn't choose specific service"},
+                            { "{{ProjectBrief}}", entry.ProjectBrief ?? "You didn't mention your project, we can talk more in a meeting"},
+                            { "{{TimeStamp}}", entry.TimeStamp.ToString("f") }
+                        }
+                    };
+                    await helperService.AddOutboxAsync(Core.Enums.OutboxTypes.Email, "New Contact Form Email", emailPayload);
+                }
+                await context.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return true;
+            }
+            catch(Exception)
             {
-                { "{{FullName}}", entry.FullName },
-                { "{{CompanyName}}", entry.CompanyName },
-                { "{{Email}}", entry.Email },
-                { "{{PhoneNumber}}", entry.PhoneNumber },
-                { "{{DesiredService}}", entry.DesiredService },
-                { "{{ProjectBrief}}", entry.ProjectBrief },
-                { "{{TimeStamp}}", entry.TimeStamp.ToString("f") }
-            };
-
-            await emailService.SendEmailWithTemplateAsync(newEntry.Email, "New Submission", "contact-form-submission", placeholders);
-
-            return true;
+                await transaction.RollbackAsync();
+                throw;
+            }
         }
     }
 }

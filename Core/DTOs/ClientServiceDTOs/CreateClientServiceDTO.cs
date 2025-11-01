@@ -1,4 +1,4 @@
-﻿using Core.DTOs.Tasks;
+﻿using Core.DTOs.Tasks.TaskGroupDTOs;
 
 namespace Core.DTOs.ClientServiceDTOs
 {

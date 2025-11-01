@@ -1,4 +1,6 @@
-﻿namespace Core.DTOs.Tasks
+﻿using Core.DTOs.Tasks.TaskDTOs;
+
+namespace Core.DTOs.Tasks.TaskGroupDTOs
 {
     public class CreateTaskGroupDTO
     {

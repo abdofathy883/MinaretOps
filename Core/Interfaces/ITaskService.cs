@@ -1,4 +1,8 @@
 ﻿using Core.DTOs.Tasks;
+using Core.DTOs.Tasks.CommentDTOs;
+using Core.DTOs.Tasks.TaskDTOs;
+using Core.DTOs.Tasks.TaskGroupDTOs;
+using Core.DTOs.Tasks.TaskResourcesDTOs;
 using Core.Enums;
 
 namespace Core.Interfaces
@@ -6,7 +10,7 @@ namespace Core.Interfaces
     public interface ITaskService
     {
         Task<List<TaskDTO>> GetAllArchivedTasksAsync();
-        Task<List<TaskDTO>> GetTasksByEmployeeIdAsync(string empId);
+        Task<List<LightWieghtTaskDTO>> GetTasksByEmployeeIdAsync(string empId);
         Task<PaginatedTaskResultDTO> GetPaginatedTasksAsync(TaskFilterDTO filter, string currentUserId);
         Task<TaskDTO> GetTaskByIdAsync(int taskId);
         Task<bool> ChangeTaskStatusAsync(int taskId, CustomTaskStatus status, string userId);
@@ -16,7 +20,7 @@ namespace Core.Interfaces
         Task<TaskDTO> CreateTaskAsync(string userId, CreateTaskDTO createTask);
         Task<TaskGroupDTO> CreateTaskGroupAsync(CreateTaskGroupDTO createTaskGroup, string userId);
         Task<List<TaskGroupDTO>> GetTaskGroupsByClientServiceAsync(int clientServiceId);
-        Task<List<TaskDTO>> SearchTasks(string query, string currentUserId);
+        Task<List<LightWieghtTaskDTO>> SearchTasks(string query, string currentUserId);
         Task<TaskCommentDTO> AddCommentAsync(CreateTaskCommentDTO taskComment);
     }
 }

@@ -1,5 +1,5 @@
 ﻿using AutoMapper;
-using Core.DTOs.Tasks;
+using Core.DTOs.Tasks.TaskResourcesDTOs;
 using Core.Models;
 using System;
 using System.Collections.Generic;

@@ -2,6 +2,10 @@
 using Core.DTOs.Notifications;
 using Core.DTOs.Payloads;
 using Core.DTOs.Tasks;
+using Core.DTOs.Tasks.CommentDTOs;
+using Core.DTOs.Tasks.TaskDTOs;
+using Core.DTOs.Tasks.TaskGroupDTOs;
+using Core.DTOs.Tasks.TaskResourcesDTOs;
 using Core.Enums;
 using Core.Interfaces;
 using Core.Models;
@@ -198,7 +202,7 @@ namespace Infrastructure.Services.Tasks
 
             return mapper.Map<TaskDTO>(task);
         }
-        public async Task<List<TaskDTO>> GetTasksByEmployeeIdAsync(string empId)
+        public async Task<List<LightWieghtTaskDTO>> GetTasksByEmployeeIdAsync(string empId)
         {
             var emp = await helperService.GetUserOrThrow(empId);
 
@@ -241,7 +245,7 @@ namespace Infrastructure.Services.Tasks
             }
 
             var tasks = await query.ToListAsync();
-            return mapper.Map<List<TaskDTO>>(tasks);
+            return mapper.Map<List<LightWieghtTaskDTO>>(tasks);
         }
         public async Task<TaskDTO> UpdateTaskAsync(int taskId, UpdateTaskDTO updateTask, string userId)
         {
@@ -660,10 +664,10 @@ namespace Infrastructure.Services.Tasks
             return mapper.Map<List<TaskGroupDTO>>(taskGroups);
         }
 
-        public async Task<List<TaskDTO>> SearchTasks(string query, string currentUserId)
+        public async Task<List<LightWieghtTaskDTO>> SearchTasks(string query, string currentUserId)
         {
             if (string.IsNullOrWhiteSpace(query))
-                return new List<TaskDTO>();
+                return new List<LightWieghtTaskDTO>();
 
             query = query.Trim();
             var isId = int.TryParse(query, out int taskId);
@@ -718,7 +722,7 @@ namespace Infrastructure.Services.Tasks
                 .OrderByDescending(t => t.Id)
                 .ToListAsync();
 
-            return mapper.Map<List<TaskDTO>>(tasks);
+            return mapper.Map<List<LightWieghtTaskDTO>>(tasks);
         }
         public async Task<TaskDTO> CompleteTaskAsync(int taskId, CreateTaskResourcesDTO taskResourcesDTO, string userId)
         {
@@ -922,7 +926,7 @@ namespace Infrastructure.Services.Tasks
 
             return new PaginatedTaskResultDTO
             {
-                Records = mapper.Map<List<TaskDTO>>(tasks),
+                Records = mapper.Map<List<LightWieghtTaskDTO>>(tasks),
                 TotalRecords = totalRecords,
                 PageNumber = filter.PageNumber,
                 PageSize = filter.PageSize,
