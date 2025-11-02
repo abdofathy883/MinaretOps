@@ -13,7 +13,6 @@ services:
       - EmailSetting__appPassword=kctmiqpsqeyccqhg
       - EmailSetting__port=587
       - EmailSetting__smtp=smtp.gmail.com
-      - Discord__BotToken=${DISCORD_BOT_TOKEN}
     depends_on:
       db:
         condition: service_healthy

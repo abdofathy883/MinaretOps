@@ -111,8 +111,16 @@ namespace Infrastructure.Services.Reporting
 
             var roles = await userManager.GetRolesAsync(currentUser);
 
-            // Helper function to get tasks for an employee
-            async Task<List<LightWieghtTaskDTO>> GetTasksForEmployeeAsync(string employeeId)
+            // Build a single query to load all tasks for all employees at once
+            var allEmployeeIds = workingEmployees.Select(e => e.EmployeeId)
+                .Concat(onBreakEmployees.Select(e => e.EmployeeId))
+                .Concat(absentEmployees.Select(e => e.EmployeeId))
+                .ToList();
+
+            // Initialize task dictionary outside the if block
+            var taskDictionary = new Dictionary<string, List<LightWieghtTaskDTO>>();
+
+            if (allEmployeeIds.Any())
             {
                 IQueryable<TaskItem> query = context.Tasks
                     .Include(t => t.ClientService)
@@ -120,14 +128,14 @@ namespace Infrastructure.Services.Reporting
                     .Include(t => t.ClientService)
                         .ThenInclude(cs => cs.Client)
                     .Include(t => t.Employee)
-                    .Where(t => t.EmployeeId == employeeId &&
+                    .Where(t => allEmployeeIds.Contains(t.EmployeeId) &&
                                t.Deadline >= todayStart &&
                                t.Status != CustomTaskStatus.Completed);
 
                 // Apply role-based filtering
                 if (roles.Contains(UserRoles.Admin.ToString()) || roles.Contains(UserRoles.AccountManager.ToString()))
                 {
-                    // Return all tasks (no empId filter needed)
+                    // Return all tasks (no additional filter needed)
                 }
                 else if (roles.Contains("ContentCreatorTeamLeader"))
                 {
@@ -138,44 +146,37 @@ namespace Infrastructure.Services.Reporting
                 {
                     var contentTypes = new[]
                     {
-                TaskType.Illustrations,
-                TaskType.LogoDesign,
-                TaskType.VisualIdentity,
-                TaskType.DesignDirections,
-                TaskType.SM_Design,
-                TaskType.Motion,
-                TaskType.VideoEditing
-            };
+                        TaskType.Illustrations,
+                        TaskType.LogoDesign,
+                        TaskType.VisualIdentity,
+                        TaskType.DesignDirections,
+                        TaskType.SM_Design,
+                        TaskType.Motion,
+                        TaskType.VideoEditing
+                    };
                     query = query.Where(t => contentTypes.Contains(t.TaskType));
                 }
-                else
-                {
-                    // Default: return only tasks assigned to this employee
-                    // Already filtered by employeeId above
-                }
+                // For other roles, the employeeId filter already limits to assigned employees
 
                 // Filter: deadline not passed and not completed
                 var currentDate = DateTime.UtcNow;
                 query = query.Where(t => t.Deadline >= currentDate && t.Status != CustomTaskStatus.Completed);
 
-                var tasks = await query.ToListAsync();
-                return mapper.Map<List<LightWieghtTaskDTO>>(tasks);
+                // Load all tasks in a single query
+                var allTasks = await query.ToListAsync();
+
+                // Group tasks by EmployeeId before mapping to DTO
+                var tasksGroupedByEmployee = allTasks
+                    .GroupBy(t => t.EmployeeId)
+                    .ToList();
+
+                // Map each group to DTOs and add to dictionary
+                foreach (var group in tasksGroupedByEmployee)
+                {
+                    var tasksDTO = mapper.Map<List<LightWieghtTaskDTO>>(group.ToList());
+                    taskDictionary[group.Key ?? string.Empty] = tasksDTO;
+                }
             }
-
-            // Load tasks for all employees in parallel
-            var allEmployeeIds = workingEmployees.Select(e => e.EmployeeId)
-                .Concat(onBreakEmployees.Select(e => e.EmployeeId))
-                .Concat(absentEmployees.Select(e => e.EmployeeId))
-                .ToList();
-
-            var taskLoadingTasks = allEmployeeIds.Select(async employeeId =>
-            {
-                var tasks = await GetTasksForEmployeeAsync(employeeId);
-                return new { EmployeeId = employeeId, Tasks = tasks };
-            });
-
-            var taskResults = await Task.WhenAll(taskLoadingTasks);
-            var taskDictionary = taskResults.ToDictionary(x => x.EmployeeId, x => x.Tasks);
 
             // Assign tasks to employees
             foreach (var emp in workingEmployees)
