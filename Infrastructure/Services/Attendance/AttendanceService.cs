@@ -196,7 +196,8 @@ namespace Infrastructure.Services.Attendance
                             ClockOut = egyptNow,
                             Status = hasApprovedLeave ? AttendanceStatus.Leave : AttendanceStatus.Absent,
                             DeviceId = "System",
-                            IpAddress = "System"
+                            IpAddress = "System",
+                            MissingClockOut = true
                         };
                         await context.AttendanceRecords.AddAsync(record);
                     }

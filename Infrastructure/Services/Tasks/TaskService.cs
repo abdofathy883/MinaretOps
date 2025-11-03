@@ -221,7 +221,10 @@ namespace Infrastructure.Services.Tasks
             }
             else if (roles.Contains("ContentCreatorTeamLeader"))
             {
-                var contentTypes = new[] { TaskType.ContentWriting, TaskType.ContentStrategy };
+                var contentTypes = new[] { 
+                    TaskType.ContentWriting, 
+                    TaskType.ContentStrategy 
+                };
                 query = query.Where(t => contentTypes.Contains(t.TaskType));
             }
             else if (roles.Contains("GraphicDesignerTeamLeader"))
@@ -467,6 +470,8 @@ namespace Infrastructure.Services.Tasks
                 };
 
                 await context.AddAsync(taskHistory);
+                // Temp save changes till i configure atomic save changes
+                await context.SaveChangesAsync();
 
                 if (emp is not null && !string.IsNullOrEmpty(emp.Email))
                 {
@@ -582,7 +587,8 @@ namespace Infrastructure.Services.Tasks
                             TaskGroup = taskGroup
                         };
 
-                        context.Tasks.Add(task);
+                        await context.Tasks.AddAsync(task);
+                        await context.SaveChangesAsync();
 
                         var taskHistory = new TaskItemHistory
                         {
