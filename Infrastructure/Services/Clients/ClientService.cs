@@ -135,6 +135,7 @@ namespace Infrastructure.Services.Clients
                                 TaskItem = task,
                                 PropertyName = "انشاء التاسك",
                                 UpdatedById = user.Id,
+                                UpdatedByName = $"{user.FirstName} {user.LastName}",
                                 UpdatedAt = DateTime.UtcNow
                             };
                             await dbContext.TaskHistory.AddAsync(taskHistory);

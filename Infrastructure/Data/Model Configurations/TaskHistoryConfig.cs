@@ -34,7 +34,11 @@ namespace Infrastructure.Data.Model_Configurations
                 .HasMaxLength(2000);
 
             builder.Property(h => h.UpdatedById)
-                .IsRequired();
+                .IsRequired(false);
+
+            builder.Property(h => h.PropertyName)
+                .IsRequired()
+                .HasMaxLength(100);
 
             builder.Property(h => h.UpdatedAt)
                 .HasDefaultValueSql("GETDATE()");
@@ -49,7 +53,7 @@ namespace Infrastructure.Data.Model_Configurations
             builder.HasOne(h => h.UpdatedBy)
                 .WithMany() // ApplicationUser doesn't have a TaskHistory collection
                 .HasForeignKey(h => h.UpdatedById)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.SetNull);
         }
     }
 }

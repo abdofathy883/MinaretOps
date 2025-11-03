@@ -24,7 +24,7 @@ namespace Infrastructure.MappingProfiles
                 .ForMember(dest => dest.UpdatedAt, 
                 opt => opt.MapFrom(src => TimeZoneInfo.ConvertTimeFromUtc(src.UpdatedAt, tz)))
                 .ForMember(dest => dest.UpdatedById, opt => opt.MapFrom(src => src.UpdatedById))
-                .ForMember(dest => dest.UpdatedByName, opt => opt.MapFrom(src => $"{src.UpdatedBy.FirstName} {src.UpdatedBy.LastName}"));
+                .ForMember(dest => dest.UpdatedByName, opt => opt.MapFrom(src => src.UpdatedByName));
         }
     }
 }

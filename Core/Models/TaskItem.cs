@@ -11,7 +11,6 @@ namespace Core.Models
         public CustomTaskStatus Status { get; set; } = CustomTaskStatus.Open;
         public int ClientServiceId { get; set; }
         public ClientService ClientService { get; set; } = default!;
-
         public DateTime Deadline { get; set; }
         public string Priority { get; set; } = "عادي"; // Default priority
         public string? Refrence { get; set; }

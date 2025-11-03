@@ -10,7 +10,8 @@
         public string? OldValue { get; set; }
         public string? NewValue { get; set; }
 
-        public string UpdatedById { get; set; } = default!;
+        public string? UpdatedById { get; set; }
+        public required string UpdatedByName { get; set; }
         public ApplicationUser UpdatedBy { get; set; } = default!;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     }

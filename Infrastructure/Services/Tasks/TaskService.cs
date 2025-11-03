@@ -62,6 +62,7 @@ namespace Infrastructure.Services.Tasks
                     OldValue = oldStatus.ToString(),
                     NewValue = status.ToString(),
                     UpdatedById = user.Id,
+                    UpdatedByName = $"{user.FirstName} {user.LastName}",
                     UpdatedAt = DateTime.UtcNow
                 };
                 context.Tasks.Update(task);
@@ -272,6 +273,7 @@ namespace Infrastructure.Services.Tasks
                         OldValue = task.Title,
                         NewValue = updateTask.Title,
                         UpdatedById = user.Id,
+                        UpdatedByName = $"{user.FirstName} {user.LastName}",
                         UpdatedAt = DateTime.UtcNow
                     });
                     task.Title = updateTask.Title;
@@ -287,6 +289,7 @@ namespace Infrastructure.Services.Tasks
                         OldValue = task.Description,
                         NewValue = updateTask.Description,
                         UpdatedById = user.Id,
+                        UpdatedByName = $"{user.FirstName} {user.LastName}",
                         UpdatedAt = DateTime.UtcNow
                     });
                     task.Description = updateTask.Description;
@@ -302,6 +305,7 @@ namespace Infrastructure.Services.Tasks
                         OldValue = task.Deadline.ToString("u"),
                         NewValue = updateTask.Deadline.Value.ToString("u"),
                         UpdatedById = user.Id,
+                        UpdatedByName = $"{user.FirstName} {user.LastName}",
                         UpdatedAt = DateTime.UtcNow
                     });
                     task.Deadline = updateTask.Deadline.Value;
@@ -317,6 +321,7 @@ namespace Infrastructure.Services.Tasks
                         OldValue = task.Priority,
                         NewValue = updateTask.Priority,
                         UpdatedById = user.Id,
+                        UpdatedByName = $"{user.FirstName} {user.LastName}",
                         UpdatedAt = DateTime.UtcNow
                     });
                     task.Priority = updateTask.Priority;
@@ -332,6 +337,7 @@ namespace Infrastructure.Services.Tasks
                         OldValue = task.Refrence,
                         NewValue = updateTask.Refrence,
                         UpdatedById = user.Id,
+                        UpdatedByName = $"{user.FirstName} {user.LastName}",
                         UpdatedAt = DateTime.UtcNow
                     });
                     task.Refrence = updateTask.Refrence;
@@ -351,6 +357,7 @@ namespace Infrastructure.Services.Tasks
                         OldValue = task.Status.ToString(),
                         NewValue = updateTask.Status.ToString(),
                         UpdatedById = user.Id,
+                        UpdatedByName = $"{user.FirstName} {user.LastName}",
                         UpdatedAt = DateTime.UtcNow
                     });
                     task.Status = updateTask.Status;
@@ -366,6 +373,7 @@ namespace Infrastructure.Services.Tasks
                         OldValue = task.Employee != null ? $"{task.Employee.FirstName} {task.Employee.LastName}" : string.Empty,
                         NewValue = $"{emp.FirstName} {emp.LastName}",
                         UpdatedById = userId,
+                        UpdatedByName = $"{user.FirstName} {user.LastName}",
                         UpdatedAt = DateTime.UtcNow
                     });
 
@@ -466,6 +474,7 @@ namespace Infrastructure.Services.Tasks
                     OldValue = "لا يوجد",
                     NewValue = "لا يوجد",
                     UpdatedBy = user,
+                    UpdatedByName = $"{user.FirstName} {user.LastName}",
                     UpdatedAt = DateTime.UtcNow
                 };
 
@@ -596,6 +605,7 @@ namespace Infrastructure.Services.Tasks
                             PropertyName = "انشاء التاسك",
                             UpdatedById = user.Id,
                             UpdatedBy = user,
+                            UpdatedByName = $"{user.FirstName} {user.LastName}",
                             UpdatedAt = DateTime.UtcNow
                         };
 
@@ -766,6 +776,7 @@ namespace Infrastructure.Services.Tasks
                     OldValue = "لا يوجد",
                     NewValue = "تم انهاء التاسك",
                     UpdatedBy = user,
+                    UpdatedByName = $"{user.FirstName} {user.LastName}",
                     UpdatedAt = DateTime.UtcNow
                 };
                 await context.AddAsync(taskHistory);
