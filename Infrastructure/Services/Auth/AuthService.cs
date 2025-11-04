@@ -17,12 +17,14 @@ namespace Infrastructure.Services.Auth
         private readonly MinaretOpsDbContext dbContext;
         private readonly TaskHelperService helperService;
         private readonly UserManager<ApplicationUser> userManager;
+        private readonly RoleManager<IdentityRole> roleManager;
         private readonly IJWTServices jwtServices;
         private readonly MediaUploadService mediaUploadService;
         public AuthService(
             MinaretOpsDbContext _context,
             TaskHelperService _helperService,
             UserManager<ApplicationUser> _userManager,
+            RoleManager<IdentityRole> _roleManager,
             IJWTServices _jwtServices,
             MediaUploadService service
             )
@@ -30,6 +32,7 @@ namespace Infrastructure.Services.Auth
             dbContext = _context;
             helperService = _helperService;
             userManager = _userManager;
+            roleManager = _roleManager;
             jwtServices = _jwtServices;
             mediaUploadService = service;
         }
@@ -303,12 +306,75 @@ namespace Infrastructure.Services.Auth
                 user.PhoneNumberConfirmed = true;
             }
             var userRoles = await userManager.GetRolesAsync(user);
-            if (!string.IsNullOrWhiteSpace(updatedUser.Role) 
-                && !userRoles.Contains(updatedUser.Role))
+            //if (!string.IsNullOrWhiteSpace(updatedUser.Role)
+            //    && !userRoles.Contains(updatedUser.Role))
+            //{
+            //    await userManager.RemoveFromRolesAsync(user, userRoles);
+            //    await userManager.AddToRoleAsync(user, updatedUser.Role.ToString());
+            //}
+
+            // before calling userManager.UpdateAsync(user)
+
+            if (!string.IsNullOrWhiteSpace(updatedUser.Role))
             {
-                await userManager.RemoveFromRolesAsync(user, userRoles);
-                await userManager.AddToRoleAsync(user, updatedUser.Role.ToString());
+                var newRole = updatedUser.Role.Trim();
+
+                // ensure role exists in the role store
+                if (!await roleManager.RoleExistsAsync(newRole))
+                {
+                    throw new InvalidOperationException($"Role '{newRole}' does not exist.");
+                }
+
+                // case-insensitive check whether user already has the role
+                var hasRole = userRoles.Any(r => r.Equals(newRole, StringComparison.OrdinalIgnoreCase));
+                if (!hasRole)
+                {
+                    // Remove existing roles (if any) and verify result
+                    if (userRoles.Any())
+                    {
+                        var removeResult = await userManager.RemoveFromRolesAsync(user, userRoles);
+                        if (!removeResult.Succeeded)
+                        {
+                            var errors = string.Join(", ", removeResult.Errors.Select(e => e.Description));
+                            throw new InvalidOperationException($"Failed to remove existing roles: {errors}");
+                        }
+                    }
+
+                    // Add new role and verify
+                    var addResult = await userManager.AddToRoleAsync(user, newRole);
+                    if (!addResult.Succeeded)
+                    {
+                        var errors = string.Join(", ", addResult.Errors.Select(e => e.Description));
+                        throw new InvalidOperationException($"Failed to add role '{newRole}': {errors}");
+                    }
+                }
             }
+
+            //if (!string.IsNullOrWhiteSpace(updatedUser.Role))
+            //{
+            //    // Use case-insensitive comparison to check if user already has the role
+            //    var normalizedNewRole = updatedUser.Role.Trim();
+            //    var hasRole = userRoles.Any(r => r.Equals(normalizedNewRole, StringComparison.OrdinalIgnoreCase));
+
+            //    if (!hasRole)
+            //    {
+            //        // Remove all existing roles first
+            //        if (userRoles.Any())
+            //        {
+            //            await userManager.RemoveFromRolesAsync(user, userRoles);
+            //            // Refresh roles after removal to ensure they're actually removed
+            //            userRoles = await userManager.GetRolesAsync(user);
+            //        }
+
+            //        // Add the new role
+            //        var addRoleResult = await userManager.AddToRoleAsync(user, normalizedNewRole);
+            //        if (!addRoleResult.Succeeded)
+            //        {
+            //            // Log or handle the error if needed
+            //            throw new InvalidOperationException($"Failed to add role: {string.Join(", ", addRoleResult.Errors.Select(e => e.Description))}");
+            //        }
+            //}
+            //}
             var result = await userManager.UpdateAsync(user);
             if (!result.Succeeded)
             {
