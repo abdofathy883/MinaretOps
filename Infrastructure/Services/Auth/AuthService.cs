@@ -303,7 +303,8 @@ namespace Infrastructure.Services.Auth
                 user.PhoneNumberConfirmed = true;
             }
             var userRoles = await userManager.GetRolesAsync(user);
-            if (!string.IsNullOrWhiteSpace(updatedUser.Role) && userRoles != updatedUser.Role.ToList())
+            if (!string.IsNullOrWhiteSpace(updatedUser.Role) 
+                && !userRoles.Contains(updatedUser.Role))
             {
                 await userManager.RemoveFromRolesAsync(user, userRoles);
                 await userManager.AddToRoleAsync(user, updatedUser.Role.ToString());

@@ -117,8 +117,6 @@ namespace Infrastructure.Services.Tasks
         public async Task<TaskDTO> GetArchivedTaskByIdAsync(int taskId)
         {
             var task = await context.ArchivedTasks
-                .Include(t => t.TaskHistory)
-                    .ThenInclude(t => t.UpdatedBy)
                 .Include(t => t.CompletionResources)
                 .Include(t => t.ClientService)
                     .ThenInclude(cs => cs.Service)
@@ -126,6 +124,25 @@ namespace Infrastructure.Services.Tasks
                     .ThenInclude(cs => cs.Client)
                 .Include(t => t.Employee)
                 .FirstOrDefaultAsync(t => t.Id == taskId);
+
+            if (task == null)
+                throw new Exception();
+
+            await context.Entry(task)
+                .Collection(t => t.TaskHistory)
+                .Query()
+                .Include(th => th.UpdatedBy)
+                .LoadAsync();
+
+            await context.Entry(task)
+                .Collection(t => t.CompletionResources)
+                .LoadAsync();
+
+            //await context.Entry(task)
+            //    .Collection(t => t.TaskComments)
+            //    .Query()
+            //    .Include(t => t.Employee)
+            //    .LoadAsync();
 
             return mapper.Map<TaskDTO>(task);
         }

@@ -52,7 +52,6 @@ namespace Infrastructure.Services.Attendance
 
             return mapper.Map<List<AttendanceRecordDTO>>(records);
         }
-
         public async Task<PaginatedAttendanceResultDTO> GetAttendanceRecordsAsync(AttendanceFilterDTO filter)
         {
             var query = context.AttendanceRecords
@@ -98,7 +97,6 @@ namespace Infrastructure.Services.Attendance
                 TotalPages = totalPages
             };
         }
-
         public async Task<AttendanceRecordDTO> GetTodayAttendanceForEmployeeAsync(string empId)
         {
             var emp = await GetUserOrThrow(empId);
@@ -111,55 +109,6 @@ namespace Infrastructure.Services.Attendance
 
             return mapper.Map<AttendanceRecordDTO>(attendanceRecord);
         }
-
-        //public async Task MarkAbsenteesAsync()
-        //{
-        //    var egyptYesterday = TimeZoneHelper.GetEgyptYesterday();
-
-        //    var yesterdayDayOfWeek = egyptYesterday.ToDateTime(TimeOnly.MinValue).DayOfWeek;
-        //    if (yesterdayDayOfWeek == DayOfWeek.Friday) return;
-
-        //    var employees = await context.Users.ToListAsync();
-
-        //    foreach (var emp in employees)
-        //    {
-        //        var existingRecord = await context.AttendanceRecords
-        //            .FirstOrDefaultAsync(a => a.EmployeeId == emp.Id && a.WorkDate == egyptYesterday);
-
-        //        var yesterdayDateTime = egyptYesterday.ToDateTime(TimeOnly.MinValue);
-        //        bool hasApprovedLeave = await context.LeaveRequests
-        //            .AnyAsync(l => l.EmployeeId == emp.Id &&
-        //            l.Status == LeaveStatus.Approved &&
-        //            l.FromDate.Date <= yesterdayDateTime &&
-        //            l.ToDate.Date >= yesterdayDateTime);
-
-        //        // Case 1: Employee has no attendance record at all
-        //        if (existingRecord == null)
-        //        {
-        //            var record = new AttendanceRecord
-        //            {
-        //                EmployeeId = emp.Id,
-        //                WorkDate = egyptYesterday,
-        //                ClockIn = yesterdayDateTime,
-        //                ClockOut = yesterdayDateTime.AddHours(23).AddMinutes(59),
-        //                Status = hasApprovedLeave ? AttendanceStatus.Leave : AttendanceStatus.Absent,
-        //                DeviceId = "System",
-        //                IpAddress = "System"
-        //            };
-        //            await context.AttendanceRecords.AddAsync(record);
-        //        }
-        //        // Case 2: Employee clocked in but didn't clock out (missing clock out)
-        //        else if (existingRecord.ClockOut == null && existingRecord.Status == AttendanceStatus.Present)
-        //        {
-        //            // Close the record at end of yesterday
-        //            existingRecord.ClockOut = yesterdayDateTime.AddHours(23).AddMinutes(59);
-        //            existingRecord.MissingClockOut = true;
-        //            context.Update(existingRecord);
-        //        }
-        //    }
-        //    await context.SaveChangesAsync();
-        //}
-
         public async Task MarkAbsenteesAsync()
         {
             var egyptYesterday = TimeZoneHelper.GetEgyptYesterday();

@@ -287,8 +287,8 @@ namespace ClientAPI.Controllers
             }
         }
 
-        [HttpGet("task-unified/{taskId}/{isArchived}")]
-        public async Task<IActionResult> GetTaskUnified(int taskId, bool isArchived)
+        [HttpGet("task-unified/{taskId}")]
+        public async Task<IActionResult> GetTaskUnified(int taskId, [FromQuery] bool isArchived = false)
         {
             if (taskId == 0)
                 return BadRequest("Task Id Can't Be Zero");
