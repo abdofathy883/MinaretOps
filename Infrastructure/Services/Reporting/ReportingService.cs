@@ -105,11 +105,11 @@ namespace Infrastructure.Services.Reporting
             }
 
             // Get current user for role-based filtering
-            var currentUser = await userManager.FindByIdAsync(currentUserId);
-            if (currentUser == null)
-                throw new Exception("User not found");
+            //var currentUser = await userManager.FindByIdAsync(currentUserId);
+            //if (currentUser == null)
+            //    throw new Exception("User not found");
 
-            var roles = await userManager.GetRolesAsync(currentUser);
+            //var roles = await userManager.GetRolesAsync(currentUser);
 
             // Build a single query to load all tasks for all employees at once
             var allEmployeeIds = workingEmployees.Select(e => e.EmployeeId)
@@ -129,38 +129,37 @@ namespace Infrastructure.Services.Reporting
                         .ThenInclude(cs => cs.Client)
                     .Include(t => t.Employee)
                     .Where(t => allEmployeeIds.Contains(t.EmployeeId) &&
-                               t.Deadline >= todayStart &&
                                t.Status != CustomTaskStatus.Completed);
 
                 // Apply role-based filtering
-                if (roles.Contains(UserRoles.Admin.ToString()) || roles.Contains(UserRoles.AccountManager.ToString()))
-                {
-                    // Return all tasks (no additional filter needed)
-                }
-                else if (roles.Contains("ContentCreatorTeamLeader"))
-                {
-                    var contentTypes = new[] { TaskType.ContentWriting, TaskType.ContentStrategy };
-                    query = query.Where(t => contentTypes.Contains(t.TaskType));
-                }
-                else if (roles.Contains("GraphicDesignerTeamLeader"))
-                {
-                    var contentTypes = new[]
-                    {
-                        TaskType.Illustrations,
-                        TaskType.LogoDesign,
-                        TaskType.VisualIdentity,
-                        TaskType.DesignDirections,
-                        TaskType.SM_Design,
-                        TaskType.Motion,
-                        TaskType.VideoEditing
-                    };
-                    query = query.Where(t => contentTypes.Contains(t.TaskType));
-                }
-                // For other roles, the employeeId filter already limits to assigned employees
+                //if (roles.Contains(UserRoles.Admin.ToString()) || roles.Contains(UserRoles.AccountManager.ToString()))
+                //{
+                //    // Return all tasks (no additional filter needed)
+                //}
+                //else if (roles.Contains("ContentCreatorTeamLeader"))
+                //{
+                //    var contentTypes = new[] { TaskType.ContentWriting, TaskType.ContentStrategy };
+                //    query = query.Where(t => contentTypes.Contains(t.TaskType));
+                //}
+                //else if (roles.Contains("GraphicDesignerTeamLeader"))
+                //{
+                //    var contentTypes = new[]
+                //    {
+                //        TaskType.Illustrations,
+                //        TaskType.LogoDesign,
+                //        TaskType.VisualIdentity,
+                //        TaskType.DesignDirections,
+                //        TaskType.SM_Design,
+                //        TaskType.Motion,
+                //        TaskType.VideoEditing
+                //    };
+                //    query = query.Where(t => contentTypes.Contains(t.TaskType));
+                //}
+                //// For other roles, the employeeId filter already limits to assigned employees
 
-                // Filter: deadline not passed and not completed
-                var currentDate = DateTime.UtcNow;
-                query = query.Where(t => t.Deadline >= currentDate && t.Status != CustomTaskStatus.Completed);
+                //// Filter: deadline not passed and not completed
+                //var currentDate = DateTime.UtcNow;
+                //query = query.Where(t => t.Deadline >= currentDate && t.Status != CustomTaskStatus.Completed);
 
                 // Load all tasks in a single query
                 var allTasks = await query.ToListAsync();

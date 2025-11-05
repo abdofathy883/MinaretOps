@@ -10,6 +10,7 @@ namespace Infrastructure.Data
         public MinaretOpsDbContext(DbContextOptions<MinaretOpsDbContext> options) : base(options)
         { }
         public DbSet<ApplicationUser> ApplicationUsers { get; set; }
+        public DbSet<EmployeeOnBoardingInvitation> EmployeeOnBoardingInvitations { get; set; }
         public DbSet<JobDescription> JobDescriptions { get; set; }
         public DbSet<JobResponsibility> JobResponsibilities { get; set; }
         public DbSet<Client> Clients { get; set; }
@@ -45,6 +46,7 @@ namespace Infrastructure.Data
 
             // Apply configurations
             builder.ApplyConfiguration(new ClientConfig());
+            builder.ApplyConfiguration(new EmployeeInvitationConfig());
             builder.ApplyConfiguration(new ServiceConfig());
             builder.ApplyConfiguration(new ClientServiceConfig());
             builder.ApplyConfiguration(new TaskConfig());
