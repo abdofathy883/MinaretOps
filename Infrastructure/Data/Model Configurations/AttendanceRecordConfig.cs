@@ -48,7 +48,8 @@ namespace Infrastructure.Data.Model_Configurations
                 .HasForeignKey(ar => ar.EmployeeId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            builder.HasIndex(ar => new { ar.EmployeeId, ar.ClockIn })
+            // Change this unique index to use WorkDate instead of ClockIn
+            builder.HasIndex(ar => new { ar.EmployeeId, ar.WorkDate })
                 .IsUnique();
 
             // One AttendanceRecord has many BreakPeriods

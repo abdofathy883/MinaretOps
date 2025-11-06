@@ -24,181 +24,497 @@ namespace Infrastructure.Services.Reporting
             this.mapper = mapper;
         }
 
-        public async Task<TaskEmployeeReportDTO> GetTaskEmployeeReportAsync(string currentUserId)
+        public async Task<TaskEmployeeReportDTO> GetTaskEmployeeReportAsync(string currentUserId, DateTime? fromDate = null, DateTime? toDate = null)
         {
             var egyptToday = TimeZoneHelper.GetEgyptToday();
             var egyptNow = TimeZoneHelper.GetEgyptNow();
-            var todayStart = egyptToday.ToDateTime(TimeOnly.MinValue);
-            var todayEnd = egyptToday.ToDateTime(TimeOnly.MaxValue);
+            var todayDateTime = egyptToday.ToDateTime(TimeOnly.MinValue);
 
-            // Get attendance data for today
-            var activeAttendanceRecords = await context.AttendanceRecords
-                .Include(r => r.Employee)
-                .Include(r => r.BreakPeriods)
-                .Where(r => r.WorkDate == egyptToday && 
-                r.Status == AttendanceStatus.Present &&
-                r.ClockOut == null)
-                .ToListAsync();
-
-            // Get all employees
-            var allEmployees = await context.Users
-                .Where(u => !u.IsDeleted)
-                .ToListAsync();
-
-            var employeeIdsWithAttendanceToday = activeAttendanceRecords
-                .Select(r => r.EmployeeId)
-                .ToList();
-
-            // Separate working and on-break employees
-            var workingEmployees = new List<EmployeeWithTasksDTO>();
-            var onBreakEmployees = new List<EmployeeWithTasksDTO>();
-
-            foreach (var record in activeAttendanceRecords)
+            // Determine date range - default to today if not provided
+            DateOnly fromDateOnly;
+            DateOnly toDateOnly;
+            
+            if (fromDate.HasValue && toDate.HasValue)
             {
-                var isOnBreak = record.BreakPeriods.Any(b => b.EndTime == null);
-                var employeeInfo = new EmployeeWithTasksDTO
-                {
-                    EmployeeId = record.EmployeeId,
-                    EmployeeName = $"{record.Employee.FirstName} {record.Employee.LastName}",
-                    IsOnBreak = isOnBreak,
-                    ClockInTime = record.ClockIn,
-                    WorkingDuration = isOnBreak ? null : egyptNow - record.ClockIn
-                };
-
-                if (isOnBreak)
-                {
-                    onBreakEmployees.Add(employeeInfo);
-                }
-                else
-                {
-                    workingEmployees.Add(employeeInfo);
-                }
+                fromDateOnly = DateOnly.FromDateTime(fromDate.Value);
+                toDateOnly = DateOnly.FromDateTime(toDate.Value);
+            }
+            else if (fromDate.HasValue)
+            {
+                fromDateOnly = DateOnly.FromDateTime(fromDate.Value);
+                toDateOnly = fromDateOnly;
+            }
+            else if (toDate.HasValue)
+            {
+                toDateOnly = DateOnly.FromDateTime(toDate.Value);
+                fromDateOnly = toDateOnly;
+            }
+            else
+            {
+                // Default to today if no dates provided
+                fromDateOnly = egyptToday;
+                toDateOnly = egyptToday;
             }
 
-            // Get absent employees
-            var absentEmployees = new List<EmployeeWithTasksDTO>();
-            foreach (var employee in allEmployees)
+            // Check if today is within the date range (for determining if we should show "On Break" employees)
+            bool includeToday = egyptToday >= fromDateOnly && egyptToday <= toDateOnly;
+
+            // Get attendance data for the date range
+            // For today: get active records (ClockOut == null) to check for breaks
+            // For historical dates: get all records regardless of ClockOut status
+            var attendanceRecordsQuery = context.AttendanceRecords
+                .Include(r => r.Employee)
+                .Include(r => r.BreakPeriods)
+                .Where(r => r.WorkDate >= fromDateOnly && r.WorkDate <= toDateOnly &&
+                           r.Status == AttendanceStatus.Present);
+
+            // If today is included, we need active records to check for breaks
+            // Otherwise, get all records for the date range
+            if (includeToday)
             {
-                if (employeeIdsWithAttendanceToday.Contains(employee.Id))
-                    continue;
+                // For today, get active records (not clocked out) to check break status
+                var activeAttendanceRecords = await attendanceRecordsQuery
+                    .Where(r => r.WorkDate == egyptToday && r.ClockOut == null)
+                    .ToListAsync();
 
-                // Check if employee has approved leave today
-                var hasApprovedLeave = await context.LeaveRequests
-                    .AnyAsync(l => l.EmployeeId == employee.Id &&
-                                 l.Status == LeaveStatus.Approved &&
-                                 l.FromDate.Date <= egyptToday.ToDateTime(TimeOnly.MinValue) &&
-                                 l.ToDate.Date >= egyptToday.ToDateTime(TimeOnly.MinValue));
+                // Also get completed records for today (already clocked out)
+                var completedTodayRecords = await attendanceRecordsQuery
+                    .Where(r => r.WorkDate == egyptToday && r.ClockOut != null)
+                    .ToListAsync();
 
-                if (!hasApprovedLeave)
+                // Get historical records (other dates in range)
+                var historicalRecords = await attendanceRecordsQuery
+                    .Where(r => r.WorkDate != egyptToday)
+                    .ToListAsync();
+
+                // Separate working and on-break employees (only for today's active records)
+                var workingEmployees = new List<EmployeeWithTasksDTO>();
+                var onBreakEmployees = new List<EmployeeWithTasksDTO>();
+
+                // Process active records for today (can be on break)
+                foreach (var record in activeAttendanceRecords)
                 {
-                    // Check if it's a working day (not Friday)
-                    var todayIsWorkingDay = egyptToday.ToDateTime(TimeOnly.MinValue).DayOfWeek != DayOfWeek.Friday;
-                    if (todayIsWorkingDay)
+                    var isOnBreak = record.BreakPeriods.Any(b => b.EndTime == null);
+                    var employeeInfo = new EmployeeWithTasksDTO
                     {
-                        absentEmployees.Add(new EmployeeWithTasksDTO
+                        EmployeeId = record.EmployeeId,
+                        EmployeeName = $"{record.Employee.FirstName} {record.Employee.LastName}",
+                        IsOnBreak = isOnBreak,
+                        ClockInTime = record.ClockIn,
+                        WorkingDuration = isOnBreak ? null : egyptNow - record.ClockIn
+                    };
+
+                    if (isOnBreak)
+                    {
+                        onBreakEmployees.Add(employeeInfo);
+                    }
+                    else
+                    {
+                        workingEmployees.Add(employeeInfo);
+                    }
+                }
+
+                // Process completed records for today (already clocked out - add to working)
+                foreach (var record in completedTodayRecords)
+                {
+                    // Check if employee is already in workingEmployees (from active records)
+                    if (!workingEmployees.Any(e => e.EmployeeId == record.EmployeeId) &&
+                        !onBreakEmployees.Any(e => e.EmployeeId == record.EmployeeId))
+                    {
+                        var clockOutTime = record.ClockOut ?? egyptNow;
+                        var workingDuration = clockOutTime - record.ClockIn;
+                        workingEmployees.Add(new EmployeeWithTasksDTO
                         {
-                            EmployeeId = employee.Id,
-                            EmployeeName = $"{employee.FirstName} {employee.LastName}"
+                            EmployeeId = record.EmployeeId,
+                            EmployeeName = $"{record.Employee.FirstName} {record.Employee.LastName}",
+                            IsOnBreak = false,
+                            ClockInTime = record.ClockIn,
+                            WorkingDuration = workingDuration
                         });
                     }
                 }
-            }
 
-            // Get current user for role-based filtering
-            //var currentUser = await userManager.FindByIdAsync(currentUserId);
-            //if (currentUser == null)
-            //    throw new Exception("User not found");
+                // Process historical records (all go to workingEmployees)
+                foreach (var record in historicalRecords)
+                {
+                    // Check if employee is already in the lists
+                    if (!workingEmployees.Any(e => e.EmployeeId == record.EmployeeId) &&
+                        !onBreakEmployees.Any(e => e.EmployeeId == record.EmployeeId))
+                    {
+                        var clockOutTime = record.ClockOut ?? egyptNow;
+                        var workingDuration = clockOutTime - record.ClockIn;
+                        workingEmployees.Add(new EmployeeWithTasksDTO
+                        {
+                            EmployeeId = record.EmployeeId,
+                            EmployeeName = $"{record.Employee.FirstName} {record.Employee.LastName}",
+                            IsOnBreak = false,
+                            ClockInTime = record.ClockIn,
+                            WorkingDuration = workingDuration
+                        });
+                    }
+                }
 
-            //var roles = await userManager.GetRolesAsync(currentUser);
+                // Get all employees for absent check
+                var allEmployees = await context.Users
+                    .Where(u => !u.IsDeleted)
+                    .ToListAsync();
 
-            // Build a single query to load all tasks for all employees at once
-            var allEmployeeIds = workingEmployees.Select(e => e.EmployeeId)
-                .Concat(onBreakEmployees.Select(e => e.EmployeeId))
-                .Concat(absentEmployees.Select(e => e.EmployeeId))
-                .ToList();
-
-            // Initialize task dictionary outside the if block
-            var taskDictionary = new Dictionary<string, List<LightWieghtTaskDTO>>();
-
-            if (allEmployeeIds.Any())
-            {
-                IQueryable<TaskItem> query = context.Tasks
-                    .Include(t => t.ClientService)
-                        .ThenInclude(cs => cs.Service)
-                    .Include(t => t.ClientService)
-                        .ThenInclude(cs => cs.Client)
-                    .Include(t => t.Employee)
-                    .Where(t => allEmployeeIds.Contains(t.EmployeeId) &&
-                               t.Status != CustomTaskStatus.Completed);
-
-                // Apply role-based filtering
-                //if (roles.Contains(UserRoles.Admin.ToString()) || roles.Contains(UserRoles.AccountManager.ToString()))
-                //{
-                //    // Return all tasks (no additional filter needed)
-                //}
-                //else if (roles.Contains("ContentCreatorTeamLeader"))
-                //{
-                //    var contentTypes = new[] { TaskType.ContentWriting, TaskType.ContentStrategy };
-                //    query = query.Where(t => contentTypes.Contains(t.TaskType));
-                //}
-                //else if (roles.Contains("GraphicDesignerTeamLeader"))
-                //{
-                //    var contentTypes = new[]
-                //    {
-                //        TaskType.Illustrations,
-                //        TaskType.LogoDesign,
-                //        TaskType.VisualIdentity,
-                //        TaskType.DesignDirections,
-                //        TaskType.SM_Design,
-                //        TaskType.Motion,
-                //        TaskType.VideoEditing
-                //    };
-                //    query = query.Where(t => contentTypes.Contains(t.TaskType));
-                //}
-                //// For other roles, the employeeId filter already limits to assigned employees
-
-                //// Filter: deadline not passed and not completed
-                //var currentDate = DateTime.UtcNow;
-                //query = query.Where(t => t.Deadline >= currentDate && t.Status != CustomTaskStatus.Completed);
-
-                // Load all tasks in a single query
-                var allTasks = await query.ToListAsync();
-
-                // Group tasks by EmployeeId before mapping to DTO
-                var tasksGroupedByEmployee = allTasks
-                    .GroupBy(t => t.EmployeeId)
+                var employeeIdsWithAttendance = activeAttendanceRecords
+                    .Select(r => r.EmployeeId)
+                    .Concat(completedTodayRecords.Select(r => r.EmployeeId))
+                    .Concat(historicalRecords.Select(r => r.EmployeeId))
+                    .Distinct()
                     .ToList();
 
-                // Map each group to DTOs and add to dictionary
-                foreach (var group in tasksGroupedByEmployee)
+                // Get absent employees (check for each date in range)
+                var absentEmployees = new List<EmployeeWithTasksDTO>();
+                var dateRange = new List<DateOnly>();
+                for (var date = fromDateOnly; date <= toDateOnly; date = date.AddDays(1))
                 {
-                    var tasksDTO = mapper.Map<List<LightWieghtTaskDTO>>(group.ToList());
-                    taskDictionary[group.Key ?? string.Empty] = tasksDTO;
+                    dateRange.Add(date);
                 }
+
+                foreach (var employee in allEmployees)
+                {
+                    foreach (var date in dateRange)
+                    {
+                        // Skip if employee already has attendance for this date
+                        var hasAttendanceForDate = await context.AttendanceRecords
+                            .AnyAsync(r => r.EmployeeId == employee.Id && 
+                                         r.WorkDate == date && 
+                                         r.Status == AttendanceStatus.Present);
+
+                        if (hasAttendanceForDate)
+                            continue;
+
+                        // Check if employee has approved leave for this date
+                        var dateDateTime = date.ToDateTime(TimeOnly.MinValue);
+                        var hasApprovedLeave = await context.LeaveRequests
+                            .AnyAsync(l => l.EmployeeId == employee.Id &&
+                                         l.Status == LeaveStatus.Approved &&
+                                         l.FromDate.Date <= dateDateTime &&
+                                         l.ToDate.Date >= dateDateTime);
+
+                        if (!hasApprovedLeave)
+                        {
+                            // Check if it's a working day (not Friday)
+                            var isWorkingDay = dateDateTime.DayOfWeek != DayOfWeek.Friday;
+                            if (isWorkingDay)
+                            {
+                                // Only add if not already in absent list
+                                if (!absentEmployees.Any(e => e.EmployeeId == employee.Id))
+                                {
+                                    absentEmployees.Add(new EmployeeWithTasksDTO
+                                    {
+                                        EmployeeId = employee.Id,
+                                        EmployeeName = $"{employee.FirstName} {employee.LastName}"
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Get all employee IDs for task query
+                var allEmployeeIds = workingEmployees.Select(e => e.EmployeeId)
+                    .Concat(onBreakEmployees.Select(e => e.EmployeeId))
+                    .Concat(absentEmployees.Select(e => e.EmployeeId))
+                    .ToList();
+
+                // Initialize task dictionary
+                var taskDictionary = new Dictionary<string, List<LightWieghtTaskDTO>>();
+
+                if (allEmployeeIds.Any())
+                {
+                    IQueryable<TaskItem> query = context.Tasks
+                        .Include(t => t.ClientService)
+                            .ThenInclude(cs => cs.Service)
+                        .Include(t => t.ClientService)
+                            .ThenInclude(cs => cs.Client)
+                        .Include(t => t.Employee)
+                        .Where(t => allEmployeeIds.Contains(t.EmployeeId) &&
+                                   t.Status != CustomTaskStatus.Completed);
+
+                    // Load all tasks in a single query
+                    var allTasks = await query.ToListAsync();
+
+                    // Group tasks by EmployeeId before mapping to DTO
+                    var tasksGroupedByEmployee = allTasks
+                        .GroupBy(t => t.EmployeeId)
+                        .ToList();
+
+                    // Map each group to DTOs and add to dictionary
+                    foreach (var group in tasksGroupedByEmployee)
+                    {
+                        var tasksDTO = mapper.Map<List<LightWieghtTaskDTO>>(group.ToList());
+                        taskDictionary[group.Key ?? string.Empty] = tasksDTO;
+                    }
+                }
+
+                // Assign tasks to employees
+                foreach (var emp in workingEmployees)
+                {
+                    emp.Tasks = taskDictionary.GetValueOrDefault(emp.EmployeeId, new List<LightWieghtTaskDTO>());
+                }
+
+                foreach (var emp in onBreakEmployees)
+                {
+                    emp.Tasks = taskDictionary.GetValueOrDefault(emp.EmployeeId, new List<LightWieghtTaskDTO>());
+                }
+
+                foreach (var emp in absentEmployees)
+                {
+                    emp.Tasks = taskDictionary.GetValueOrDefault(emp.EmployeeId, new List<LightWieghtTaskDTO>());
+                }
+
+                return new TaskEmployeeReportDTO
+                {
+                    WorkingEmployees = workingEmployees.OrderBy(e => e.EmployeeName).ToList(),
+                    OnBreakEmployees = onBreakEmployees.OrderBy(e => e.EmployeeName).ToList(),
+                    AbsentEmployees = absentEmployees.OrderBy(e => e.EmployeeName).ToList()
+                };
+            }
+            else
+            {
+                // Historical dates only - no "On Break" employees
+                var attendanceRecords = await attendanceRecordsQuery.ToListAsync();
+
+                var workingEmployees = new List<EmployeeWithTasksDTO>();
+
+                // Process all attendance records (all go to workingEmployees)
+                foreach (var record in attendanceRecords)
+                {
+                    var clockOutTime = record.ClockOut ?? egyptNow;
+                    var workingDuration = clockOutTime - record.ClockIn;
+                    workingEmployees.Add(new EmployeeWithTasksDTO
+                    {
+                        EmployeeId = record.EmployeeId,
+                        EmployeeName = $"{record.Employee.FirstName} {record.Employee.LastName}",
+                        IsOnBreak = false,
+                        ClockInTime = record.ClockIn,
+                        WorkingDuration = workingDuration
+                    });
+                }
+
+                // Get all employees for absent check
+                var allEmployees = await context.Users
+                    .Where(u => !u.IsDeleted)
+                    .ToListAsync();
+
+                var employeeIdsWithAttendance = attendanceRecords
+                    .Select(r => r.EmployeeId)
+                    .Distinct()
+                    .ToList();
+
+                // Get absent employees (check for each date in range)
+                var absentEmployees = new List<EmployeeWithTasksDTO>();
+                var dateRange = new List<DateOnly>();
+                for (var date = fromDateOnly; date <= toDateOnly; date = date.AddDays(1))
+                {
+                    dateRange.Add(date);
+                }
+
+                foreach (var employee in allEmployees)
+                {
+                    foreach (var date in dateRange)
+                    {
+                        // Skip if employee already has attendance for this date
+                        var hasAttendanceForDate = await context.AttendanceRecords
+                            .AnyAsync(r => r.EmployeeId == employee.Id && 
+                                         r.WorkDate == date && 
+                                         r.Status == AttendanceStatus.Present);
+
+                        if (hasAttendanceForDate)
+                            continue;
+
+                        // Check if employee has approved leave for this date
+                        var dateDateTime = date.ToDateTime(TimeOnly.MinValue);
+                        var hasApprovedLeave = await context.LeaveRequests
+                            .AnyAsync(l => l.EmployeeId == employee.Id &&
+                                         l.Status == LeaveStatus.Approved &&
+                                         l.FromDate.Date <= dateDateTime &&
+                                         l.ToDate.Date >= dateDateTime);
+
+                        if (!hasApprovedLeave)
+                        {
+                            // Check if it's a working day (not Friday)
+                            var isWorkingDay = dateDateTime.DayOfWeek != DayOfWeek.Friday;
+                            if (isWorkingDay)
+                            {
+                                // Only add if not already in absent list
+                                if (!absentEmployees.Any(e => e.EmployeeId == employee.Id))
+                                {
+                                    absentEmployees.Add(new EmployeeWithTasksDTO
+                                    {
+                                        EmployeeId = employee.Id,
+                                        EmployeeName = $"{employee.FirstName} {employee.LastName}"
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Get all employee IDs for task query
+                var allEmployeeIds = workingEmployees.Select(e => e.EmployeeId)
+                    .Concat(absentEmployees.Select(e => e.EmployeeId))
+                    .ToList();
+
+                // Initialize task dictionary
+                var taskDictionary = new Dictionary<string, List<LightWieghtTaskDTO>>();
+
+                if (allEmployeeIds.Any())
+                {
+                    IQueryable<TaskItem> query = context.Tasks
+                        .Include(t => t.ClientService)
+                            .ThenInclude(cs => cs.Service)
+                        .Include(t => t.ClientService)
+                            .ThenInclude(cs => cs.Client)
+                        .Include(t => t.Employee)
+                        .Where(t => allEmployeeIds.Contains(t.EmployeeId) &&
+                                   t.Status != CustomTaskStatus.Completed);
+
+                    // Load all tasks in a single query
+                    var allTasks = await query.ToListAsync();
+
+                    // Group tasks by EmployeeId before mapping to DTO
+                    var tasksGroupedByEmployee = allTasks
+                        .GroupBy(t => t.EmployeeId)
+                        .ToList();
+
+                    // Map each group to DTOs and add to dictionary
+                    foreach (var group in tasksGroupedByEmployee)
+                    {
+                        var tasksDTO = mapper.Map<List<LightWieghtTaskDTO>>(group.ToList());
+                        taskDictionary[group.Key ?? string.Empty] = tasksDTO;
+                    }
+                }
+
+                // Assign tasks to employees
+                foreach (var emp in workingEmployees)
+                {
+                    emp.Tasks = taskDictionary.GetValueOrDefault(emp.EmployeeId, new List<LightWieghtTaskDTO>());
+                }
+
+                foreach (var emp in absentEmployees)
+                {
+                    emp.Tasks = taskDictionary.GetValueOrDefault(emp.EmployeeId, new List<LightWieghtTaskDTO>());
+                }
+
+                return new TaskEmployeeReportDTO
+                {
+                    WorkingEmployees = workingEmployees.OrderBy(e => e.EmployeeName).ToList(),
+                    OnBreakEmployees = new List<EmployeeWithTasksDTO>(), // Empty for historical dates
+                    AbsentEmployees = absentEmployees.OrderBy(e => e.EmployeeName).ToList()
+                };
+            }
+        }
+        public async Task<MonthlyAttendanceReportDTO> GetMonthlyAttendanceReportAsync(DateTime fromDate, DateTime toDate, AttendanceStatus? status = null)
+        {
+            // Convert to DateOnly for comparison
+            var fromDateOnly = DateOnly.FromDateTime(fromDate);
+            var toDateOnly = DateOnly.FromDateTime(toDate);
+
+            if (fromDateOnly > toDateOnly)
+            {
+                throw new ArgumentException("FromDate cannot be greater than ToDate");
             }
 
-            // Assign tasks to employees
-            foreach (var emp in workingEmployees)
+            // Get all attendance records for the date range
+            var attendanceRecordsQuery = context.AttendanceRecords
+                .Include(r => r.Employee)
+                .Include(r => r.BreakPeriods)
+                .Where(r => r.WorkDate >= fromDateOnly && r.WorkDate <= toDateOnly);
+
+            // Apply status filter if provided
+            if (status.HasValue)
             {
-                emp.Tasks = taskDictionary.GetValueOrDefault(emp.EmployeeId, new List<LightWieghtTaskDTO>());
+                attendanceRecordsQuery = attendanceRecordsQuery.Where(r => r.Status == status.Value);
             }
 
-            foreach (var emp in onBreakEmployees)
+            var attendanceRecords = await attendanceRecordsQuery.ToListAsync();
+
+            // Get all approved leave requests that overlap with the date range
+            var leaveRequests = await context.LeaveRequests
+                .Where(l => l.Status == LeaveStatus.Approved &&
+                           l.FromDate.Date <= toDate &&
+                           l.ToDate.Date >= fromDate)
+                .ToListAsync();
+
+            // When status filter is applied, only get employees who have records matching that status
+            // Otherwise, get all employees
+            List<ApplicationUser> employeesToProcess;
+            if (status.HasValue)
             {
-                emp.Tasks = taskDictionary.GetValueOrDefault(emp.EmployeeId, new List<LightWieghtTaskDTO>());
+                // Get distinct employee IDs from filtered records
+                var employeeIdsWithMatchingStatus = attendanceRecords
+                    .Select(r => r.EmployeeId)
+                    .Distinct()
+                    .ToList();
+
+                employeesToProcess = await context.Users
+                    .Where(u => !u.IsDeleted && employeeIdsWithMatchingStatus.Contains(u.Id))
+                    .ToListAsync();
+            }
+            else
+            {
+                // Get all employees when no status filter
+                employeesToProcess = await context.Users
+                    .Where(u => !u.IsDeleted)
+                    .ToListAsync();
             }
 
-            foreach (var emp in absentEmployees)
+            var report = new MonthlyAttendanceReportDTO
             {
-                emp.Tasks = taskDictionary.GetValueOrDefault(emp.EmployeeId, new List<LightWieghtTaskDTO>());
-            }
-
-            return new TaskEmployeeReportDTO
-            {
-                WorkingEmployees = workingEmployees.OrderBy(e => e.EmployeeName).ToList(),
-                OnBreakEmployees = onBreakEmployees.OrderBy(e => e.EmployeeName).ToList(),
-                AbsentEmployees = absentEmployees.OrderBy(e => e.EmployeeName).ToList()
+                FromDate = fromDate.Date,
+                ToDate = toDate.Date,
+                Employees = new List<EmployeeMonthlyAttendanceDTO>()
             };
+
+            foreach (var employee in employeesToProcess)
+            {
+                var employeeRecords = attendanceRecords
+                    .Where(r => r.EmployeeId == employee.Id)
+                    .ToList();
+
+                var employeeAttendance = new EmployeeMonthlyAttendanceDTO
+                {
+                    EmployeeId = employee.Id,
+                    EmployeeName = $"{employee.FirstName} {employee.LastName}",
+                    TotalDaysPresent = employeeRecords.Count(r => r.Status == AttendanceStatus.Present),
+                    TotalDaysAbsent = employeeRecords.Count(r => r.Status == AttendanceStatus.Absent),
+                    TotalDaysOnLeave = employeeRecords.Count(r => r.Status == AttendanceStatus.Leave)
+                };
+
+                // Calculate total hours worked
+                double totalHours = 0;
+                foreach (var record in employeeRecords.Where(r => r.Status == AttendanceStatus.Present && r.ClockOut.HasValue))
+                {
+                    var workingTime = record.ClockOut.Value - record.ClockIn;
+                    var breakTime = record.TotalBreakTime;
+                    var actualWorkingTime = workingTime - breakTime;
+                    totalHours += actualWorkingTime.TotalHours;
+                }
+
+                // Handle records that are still active (clocked in but not clocked out)
+                foreach (var record in employeeRecords.Where(r => r.Status == AttendanceStatus.Present && !r.ClockOut.HasValue))
+                {
+                    var egyptNow = TimeZoneHelper.GetEgyptNow();
+                    var workingTime = egyptNow - record.ClockIn;
+                    var breakTime = record.TotalBreakTime;
+                    var actualWorkingTime = workingTime - breakTime;
+                    totalHours += actualWorkingTime.TotalHours;
+                }
+
+                employeeAttendance.TotalHoursWorked = Math.Round(totalHours, 2);
+
+                report.Employees.Add(employeeAttendance);
+            }
+
+            // Sort by employee name
+            report.Employees = report.Employees.OrderBy(e => e.EmployeeName).ToList();
+
+            return report;
         }
     }
 }
