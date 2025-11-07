@@ -13,6 +13,8 @@ namespace Core.DTOs.Reporting
         public int TotalDaysPresent { get; set; }
         public int TotalDaysAbsent { get; set; }
         public int TotalDaysOnLeave { get; set; }
+        public int TotalMissingClockout { get; set; }
+        public List<EmployeeMonthlyIncidentsDTO> Incidents { get; set; } = new();
         public double TotalHoursWorked { get; set; }
     }
 }

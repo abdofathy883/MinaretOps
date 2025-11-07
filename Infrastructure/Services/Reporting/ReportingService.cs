@@ -426,6 +426,11 @@ namespace Infrastructure.Services.Reporting
                 .Include(r => r.BreakPeriods)
                 .Where(r => r.WorkDate >= fromDateOnly && r.WorkDate <= toDateOnly);
 
+            var incidentsquery = await context.KPIIncedints
+                .Include(i => i.Employee)
+                .Where(i => i.Date >= fromDateOnly && i.Date <= toDateOnly)
+                .ToListAsync();
+
             // Apply status filter if provided
             if (status.HasValue)
             {
@@ -477,13 +482,24 @@ namespace Infrastructure.Services.Reporting
                     .Where(r => r.EmployeeId == employee.Id)
                     .ToList();
 
+                var employeeIncidents = incidentsquery
+                   .Where(i => i.EmployeeId == employee.Id)
+                   .Select(i => new EmployeeMonthlyIncidentsDTO
+                   {
+                       AspectType = i.Aspect,
+                       CreatedAt = TimeZoneHelper.ConvertToEgyptTime(i.TimeStamp)
+                   })
+                   .ToList();
+
                 var employeeAttendance = new EmployeeMonthlyAttendanceDTO
                 {
                     EmployeeId = employee.Id,
                     EmployeeName = $"{employee.FirstName} {employee.LastName}",
                     TotalDaysPresent = employeeRecords.Count(r => r.Status == AttendanceStatus.Present),
                     TotalDaysAbsent = employeeRecords.Count(r => r.Status == AttendanceStatus.Absent),
-                    TotalDaysOnLeave = employeeRecords.Count(r => r.Status == AttendanceStatus.Leave)
+                    TotalDaysOnLeave = employeeRecords.Count(r => r.Status == AttendanceStatus.Leave),
+                    TotalMissingClockout = employeeRecords.Count(r => r.MissingClockOut.HasValue),
+                    Incidents = employeeIncidents
                 };
 
                 // Calculate total hours worked
