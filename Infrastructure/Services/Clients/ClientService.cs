@@ -9,7 +9,6 @@ using Infrastructure.Exceptions;
 using Infrastructure.Services.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using System.Net.Http.Json;
 
 namespace Infrastructure.Services.Clients
 {
@@ -171,7 +170,6 @@ namespace Infrastructure.Services.Clients
                         }
                     }
                 }
-
 
                 // Final save to persist all tasks
                 await dbContext.SaveChangesAsync();
