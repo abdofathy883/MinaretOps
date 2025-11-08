@@ -1,4 +1,5 @@
 ﻿using Core.Enums;
+using Microsoft.AspNetCore.Http;
 
 namespace Core.DTOs.Tasks.TaskDTOs
 {
@@ -13,5 +14,6 @@ namespace Core.DTOs.Tasks.TaskDTOs
         public string? Refrence { get; set; }
         public string? EmployeeId { get; set; }
         public int TaskGroupId { get; set; }
+        //public IFormFile? ReferenceFile { get; set; }
     }
 }

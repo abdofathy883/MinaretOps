@@ -173,15 +173,15 @@ namespace Infrastructure.Services.Clients
 
                 // Final save to persist all tasks
                 await dbContext.SaveChangesAsync();
-                using var client = new HttpClient();
+                //using var client = new HttpClient();
 
-                var body = new
-                {
-                    name = newClient.Name,
-                    userId = newClient.Id
-                };
+                //var body = new
+                //{
+                //    name = newClient.Name,
+                //    userId = newClient.Id
+                //};
 
-                await client.PostAsJsonAsync("http://localhost:5678/webhook-test/client-created", body);
+                //await client.PostAsJsonAsync("http://localhost:5678/webhook-test/client-created", body);
                 await dbTransaction.CommitAsync();
 
                 return mapper.Map<ClientDTO>(newClient);
