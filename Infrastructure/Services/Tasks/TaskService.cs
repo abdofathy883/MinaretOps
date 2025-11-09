@@ -482,22 +482,6 @@ namespace Infrastructure.Services.Tasks
                 // Temp save changes till i configure atomic save changes
                 await context.SaveChangesAsync();
 
-                //if (createTask.ReferenceFile is not null)
-                //{
-                //    var client = new HttpClient();
-
-                //    var form = new MultipartFormDataContent();
-
-                //    form.Add(new StringContent(folderId), "folderId");
-
-
-                //    var streamContent = new StreamContent(createTask.ReferenceFile.OpenReadStream());
-
-                //    form.Add(streamContent, "file", createTask.ReferenceFile.FileName);
-
-                //    await client.PostAsync("http://localhost:5678/webhook-test/upload-task-reference", form);
-                //}
-
                 if (emp is not null && !string.IsNullOrEmpty(emp.Email))
                 {
                     var emailPayload = new

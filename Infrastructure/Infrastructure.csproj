@@ -34,13 +34,18 @@
 
   <ItemGroup>
     <Folder Include="Migrations\" />
-    <Folder Include="Services\Portfolio\" />
   </ItemGroup>
 
   <ItemGroup>
     <Content Include="EmailTemplates\**\*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="Services\Portfolio\**" />
+    <EmbeddedResource Remove="Services\Portfolio\**" />
+    <None Remove="Services\Portfolio\**" />
   </ItemGroup>
 
 </Project>
