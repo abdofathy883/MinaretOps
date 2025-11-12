@@ -19,7 +19,10 @@ namespace Infrastructure.Data.Model_Configurations
                 .UseIdentityColumn(1, 1);
 
             builder.Property(h => h.TaskItemId)
-                .IsRequired();
+                .IsRequired(false);  // Changed from IsRequired() to IsRequired(false)
+
+            builder.Property(h => h.ArchivedTaskId)
+                .IsRequired(false);  // ADD THIS
 
             builder.Property(h => h.PropertyName)
                 .IsRequired()
@@ -43,15 +46,21 @@ namespace Infrastructure.Data.Model_Configurations
             builder.Property(h => h.UpdatedAt)
                 .HasDefaultValueSql("GETDATE()");
 
-            // Relationship with TaskItem
+            // Relationship with TaskItem (optional, can be null when archived)
             builder.HasOne(h => h.TaskItem)
                 .WithMany(t => t.TaskHistory)
                 .HasForeignKey(h => h.TaskItemId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.SetNull);  // Changed from Cascade to SetNull
+
+            // Relationship with ArchivedTask (optional, used when task is archived)
+            builder.HasOne(h => h.ArchivedTask)
+                .WithMany(a => a.TaskHistory)
+                .HasForeignKey(h => h.ArchivedTaskId)
+                .OnDelete(DeleteBehavior.Cascade);  // ADD THIS
 
             // Relationship with ApplicationUser (UpdatedBy)
             builder.HasOne(h => h.UpdatedBy)
-                .WithMany() // ApplicationUser doesn't have a TaskHistory collection
+                .WithMany()
                 .HasForeignKey(h => h.UpdatedById)
                 .OnDelete(DeleteBehavior.SetNull);
         }

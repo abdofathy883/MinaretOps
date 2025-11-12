@@ -29,6 +29,15 @@ namespace Infrastructure.Services.Tasks
 
             try
             {
+                // Load related data
+                await context.Entry(task)
+                    .Collection(t => t.TaskHistory)
+                    .LoadAsync();
+                
+                await context.Entry(task)
+                    .Collection(t => t.CompletionResources)
+                    .LoadAsync();
+
                 // Create ArchivedTask from TaskItem
                 var archivedTask = new ArchivedTask
                 {
@@ -46,12 +55,26 @@ namespace Infrastructure.Services.Tasks
                     CompletionNotes = task.CompletionNotes,
                     CreatedAt = task.CreatedAt
                 };
-                // Copy related data
-                archivedTask.TaskHistory = task.TaskHistory;
-                archivedTask.CompletionResources = task.CompletionResources;
 
-                // Add to archived tasks
+                // Add to archived tasks first (so we get the ID)
                 context.ArchivedTasks.Add(archivedTask);
+                await context.SaveChangesAsync(); // Save to get the archived task ID
+
+                // Update TaskHistory: Set ArchivedTaskId and clear TaskItemId
+                foreach (var history in task.TaskHistory)
+                {
+                    history.ArchivedTaskId = archivedTask.Id;
+                    history.TaskItemId = null;
+                    context.TaskHistory.Update(history);
+                }
+
+                // Update TaskCompletionResources: Set ArchivedTaskId and clear TaskId
+                foreach (var resource in task.CompletionResources)
+                {
+                    resource.ArchivedTaskId = archivedTask.Id;
+                    resource.TaskId = null;
+                    context.TaskCompletionResources.Update(resource);
+                }
 
                 // Remove from active tasks
                 context.Tasks.Remove(task);
@@ -94,12 +117,25 @@ namespace Infrastructure.Services.Tasks
                     CreatedAt = archivedTask.CreatedAt,
                 };
 
-                // Copy related data
-                task.TaskHistory = archivedTask.TaskHistory;
-                task.CompletionResources = archivedTask.CompletionResources;
-
-                // Add to active tasks
+                // Add to active tasks first (so we get the ID)
                 context.Tasks.Add(task);
+                await context.SaveChangesAsync(); // Save to get the task ID
+
+                // Update TaskHistory: Set TaskItemId and clear ArchivedTaskId
+                foreach (var history in archivedTask.TaskHistory)
+                {
+                    history.TaskItemId = task.Id;
+                    history.ArchivedTaskId = null;
+                    context.TaskHistory.Update(history);
+                }
+
+                // Update TaskCompletionResources: Set TaskId and clear ArchivedTaskId
+                foreach (var resource in archivedTask.CompletionResources)
+                {
+                    resource.TaskId = task.Id;
+                    resource.ArchivedTaskId = null;
+                    context.TaskCompletionResources.Update(resource);
+                }
 
                 // Remove from archived tasks
                 context.ArchivedTasks.Remove(archivedTask);
