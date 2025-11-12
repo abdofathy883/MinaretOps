@@ -28,6 +28,7 @@ namespace Infrastructure.Services.Reporting
         {
             var egyptToday = TimeZoneHelper.GetEgyptToday();
             var egyptNow = TimeZoneHelper.GetEgyptNow();
+            var utcNow = DateTime.UtcNow;
             var todayDateTime = egyptToday.ToDateTime(TimeOnly.MinValue);
 
             // Determine date range - default to today if not provided
@@ -95,13 +96,13 @@ namespace Infrastructure.Services.Reporting
                 foreach (var record in activeAttendanceRecords)
                 {
                     var isOnBreak = record.BreakPeriods.Any(b => b.EndTime == null);
-                    var employeeInfo = new EmployeeWithTasksDTO
+                        var employeeInfo = new EmployeeWithTasksDTO
                     {
                         EmployeeId = record.EmployeeId,
                         EmployeeName = $"{record.Employee.FirstName} {record.Employee.LastName}",
                         IsOnBreak = isOnBreak,
-                        ClockInTime = record.ClockIn,
-                        WorkingDuration = isOnBreak ? null : egyptNow - record.ClockIn
+                            ClockInTime = TimeZoneHelper.ConvertToEgyptTime(record.ClockIn),
+                            WorkingDuration = isOnBreak ? null : utcNow - record.ClockIn
                     };
 
                     if (isOnBreak)
@@ -121,14 +122,14 @@ namespace Infrastructure.Services.Reporting
                     if (!workingEmployees.Any(e => e.EmployeeId == record.EmployeeId) &&
                         !onBreakEmployees.Any(e => e.EmployeeId == record.EmployeeId))
                     {
-                        var clockOutTime = record.ClockOut ?? egyptNow;
+                        var clockOutTime = record.ClockOut ?? utcNow;
                         var workingDuration = clockOutTime - record.ClockIn;
                         workingEmployees.Add(new EmployeeWithTasksDTO
                         {
                             EmployeeId = record.EmployeeId,
                             EmployeeName = $"{record.Employee.FirstName} {record.Employee.LastName}",
                             IsOnBreak = false,
-                            ClockInTime = record.ClockIn,
+                            ClockInTime = TimeZoneHelper.ConvertToEgyptTime(record.ClockIn),
                             WorkingDuration = workingDuration
                         });
                     }
@@ -141,14 +142,14 @@ namespace Infrastructure.Services.Reporting
                     if (!workingEmployees.Any(e => e.EmployeeId == record.EmployeeId) &&
                         !onBreakEmployees.Any(e => e.EmployeeId == record.EmployeeId))
                     {
-                        var clockOutTime = record.ClockOut ?? egyptNow;
+                        var clockOutTime = record.ClockOut ?? utcNow;
                         var workingDuration = clockOutTime - record.ClockIn;
                         workingEmployees.Add(new EmployeeWithTasksDTO
                         {
                             EmployeeId = record.EmployeeId,
                             EmployeeName = $"{record.Employee.FirstName} {record.Employee.LastName}",
                             IsOnBreak = false,
-                            ClockInTime = record.ClockIn,
+                            ClockInTime = TimeZoneHelper.ConvertToEgyptTime(record.ClockIn),
                             WorkingDuration = workingDuration
                         });
                     }
@@ -284,14 +285,14 @@ namespace Infrastructure.Services.Reporting
                 // Process all attendance records (all go to workingEmployees)
                 foreach (var record in attendanceRecords)
                 {
-                    var clockOutTime = record.ClockOut ?? egyptNow;
+                    var clockOutTime = record.ClockOut ?? utcNow;
                     var workingDuration = clockOutTime - record.ClockIn;
                     workingEmployees.Add(new EmployeeWithTasksDTO
                     {
                         EmployeeId = record.EmployeeId,
                         EmployeeName = $"{record.Employee.FirstName} {record.Employee.LastName}",
                         IsOnBreak = false,
-                        ClockInTime = record.ClockIn,
+                        ClockInTime = TimeZoneHelper.ConvertToEgyptTime(record.ClockIn),
                         WorkingDuration = workingDuration
                     });
                 }
@@ -420,6 +421,12 @@ namespace Infrastructure.Services.Reporting
                 throw new ArgumentException("FromDate cannot be greater than ToDate");
             }
 
+            var utcNow = DateTime.UtcNow;
+            var fromEgyptStart = fromDateOnly.ToDateTime(TimeOnly.MinValue);
+            var toEgyptEnd = toDateOnly.ToDateTime(TimeOnly.MaxValue);
+            var fromUtc = TimeZoneInfo.ConvertTimeToUtc(fromEgyptStart, TimeZoneHelper.EgyptTimeZone);
+            var toUtc = TimeZoneInfo.ConvertTimeToUtc(toEgyptEnd, TimeZoneHelper.EgyptTimeZone);
+
             // Get all attendance records for the date range
             var attendanceRecordsQuery = context.AttendanceRecords
                 .Include(r => r.Employee)
@@ -428,7 +435,7 @@ namespace Infrastructure.Services.Reporting
 
             var incidentsquery = await context.KPIIncedints
                 .Include(i => i.Employee)
-                .Where(i => i.Date >= fromDateOnly && i.Date <= toDateOnly)
+                .Where(i => i.TimeStamp >= fromUtc && i.TimeStamp <= toUtc)
                 .ToListAsync();
 
             // Apply status filter if provided
@@ -498,7 +505,7 @@ namespace Infrastructure.Services.Reporting
                     TotalDaysPresent = employeeRecords.Count(r => r.Status == AttendanceStatus.Present),
                     TotalDaysAbsent = employeeRecords.Count(r => r.Status == AttendanceStatus.Absent),
                     TotalDaysOnLeave = employeeRecords.Count(r => r.Status == AttendanceStatus.Leave),
-                    TotalMissingClockout = employeeRecords.Count(r => r.MissingClockOut.HasValue),
+                    TotalMissingClockout = employeeRecords.Count(r => r.MissingClockOut == true),
                     Incidents = employeeIncidents
                 };
 
@@ -506,7 +513,8 @@ namespace Infrastructure.Services.Reporting
                 double totalHours = 0;
                 foreach (var record in employeeRecords.Where(r => r.Status == AttendanceStatus.Present && r.ClockOut.HasValue))
                 {
-                    var workingTime = record.ClockOut.Value - record.ClockIn;
+                    var clockOutUtc = record.ClockOut.Value;
+                    var workingTime = clockOutUtc - record.ClockIn;
                     var breakTime = record.TotalBreakTime;
                     var actualWorkingTime = workingTime - breakTime;
                     totalHours += actualWorkingTime.TotalHours;
@@ -515,8 +523,7 @@ namespace Infrastructure.Services.Reporting
                 // Handle records that are still active (clocked in but not clocked out)
                 foreach (var record in employeeRecords.Where(r => r.Status == AttendanceStatus.Present && !r.ClockOut.HasValue))
                 {
-                    var egyptNow = TimeZoneHelper.GetEgyptNow();
-                    var workingTime = egyptNow - record.ClockIn;
+                    var workingTime = utcNow - record.ClockIn;
                     var breakTime = record.TotalBreakTime;
                     var actualWorkingTime = workingTime - breakTime;
                     totalHours += actualWorkingTime.TotalHours;
