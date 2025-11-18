@@ -76,15 +76,15 @@ namespace Infrastructure.Services.Clients
             try
             {
                 string? discordChannelId = null;
-                //try
-                //{
-                //    discordChannelId = await discordService.CreateChannelForClient(clientDTO.Name);
-                //}
-                //catch (Exception ex)
-                //{
-                //    logger.LogWarning($"Failed to create Discord channel for client {clientDTO.Name}: {ex.Message}");
-                //    // Continue without Discord channel if creation fails
-                //}
+                try
+                {
+                    discordChannelId = await discordService.CreateChannelForClient(clientDTO.Name);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogWarning($"Failed to create Discord channel for client {clientDTO.Name}: {ex.Message}");
+                    // Continue without Discord channel if creation fails
+                }
 
                 var newClient = new Client
                 {
@@ -205,7 +205,23 @@ namespace Infrastructure.Services.Clients
                 await dbContext.SaveChangesAsync();
                 await dbTransaction.CommitAsync();
 
-                return mapper.Map<ClientDTO>(newClient);
+                // Reload the client with all related entities for mapping
+                var clientForMapping = await dbContext.Clients
+                    .Include(c => c.ClientServices)
+                        .ThenInclude(cs => cs.Service)
+                    .Include(c => c.ClientServices)
+                        .ThenInclude(cs => cs.TaskGroups)
+                            .ThenInclude(tg => tg.Tasks)
+                                .ThenInclude(t => t.Employee)
+                    .Include(c => c.ClientServices)
+                        .ThenInclude(cs => cs.ClientServiceCheckpoints)
+                            .ThenInclude(csc => csc.ServiceCheckpoint)
+                    .Include(c => c.ClientServices)
+                        .ThenInclude(cs => cs.ClientServiceCheckpoints)
+                            .ThenInclude(csc => csc.CompletedByEmployee)
+                    .FirstOrDefaultAsync(c => c.Id == newClient.Id);
+
+                return mapper.Map<ClientDTO>(clientForMapping ?? newClient);
             }
             catch (Exception ex)
             {

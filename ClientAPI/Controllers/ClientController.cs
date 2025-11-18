@@ -37,10 +37,15 @@ namespace ClientAPI.Controllers
         {
             if (createClientDTO is null)
                 return BadRequest();
-
-            var result = await clientService.AddClientAsync(createClientDTO, userId);
-
-            return Ok(result);
+            try
+            {
+                var result = await clientService.AddClientAsync(createClientDTO, userId);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         [HttpPut("{clientId}")]
