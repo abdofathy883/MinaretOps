@@ -198,7 +198,64 @@ namespace Infrastructure.Services.Checkpoints
                 }
             }
 
+            //await dbContext.SaveChangesAsync();
+        }
+
+        public async Task<List<ClientServiceCheckpointDTO>> CreateClientServiceCheckpointsAsync(int clientServiceId, List<int> serviceCheckpointIds)
+        {
+            var serviceCheckpoints = await dbContext.ServiceCheckpoints
+                .Where(sc => serviceCheckpointIds.Contains(sc.Id))
+                .ToListAsync();
+
+            var existingCheckpoints = await dbContext.ClientServiceCheckpoints
+                .Where(csc => csc.ClientServiceId == clientServiceId)
+                .Select(csc => csc.ServiceCheckpointId)
+                .ToListAsync();
+
+            var createdCheckpoints = new List<ClientServiceCheckpoint>();
+
+            foreach (var serviceCheckpoint in serviceCheckpoints)
+            {
+                if (!existingCheckpoints.Contains(serviceCheckpoint.Id))
+                {
+                    var clientServiceCheckpoint = new ClientServiceCheckpoint
+                    {
+                        ClientServiceId = clientServiceId,
+                        ServiceCheckpointId = serviceCheckpoint.Id,
+                        IsCompleted = false,
+                        CreatedAt = DateTime.UtcNow
+                    };
+
+                    dbContext.ClientServiceCheckpoints.Add(clientServiceCheckpoint);
+                    createdCheckpoints.Add(clientServiceCheckpoint);
+                }
+            }
+
             await dbContext.SaveChangesAsync();
+
+            // Return DTOs
+            var checkpointIds = createdCheckpoints.Select(c => c.Id).ToList();
+            return await dbContext.ClientServiceCheckpoints
+                .Include(csc => csc.ServiceCheckpoint)
+                .Include(csc => csc.CompletedByEmployee)
+                .Where(csc => checkpointIds.Contains(csc.Id))
+                .Select(csc => new ClientServiceCheckpointDTO
+                {
+                    Id = csc.Id,
+                    ClientServiceId = csc.ClientServiceId,
+                    ServiceCheckpointId = csc.ServiceCheckpointId,
+                    ServiceCheckpointName = csc.ServiceCheckpoint.Name,
+                    ServiceCheckpointDescription = csc.ServiceCheckpoint.Description,
+                    ServiceCheckpointOrder = csc.ServiceCheckpoint.Order,
+                    IsCompleted = csc.IsCompleted,
+                    CompletedAt = csc.CompletedAt,
+                    CompletedByEmployeeId = csc.CompletedByEmployeeId,
+                    CompletedByEmployeeName = csc.CompletedByEmployee != null
+                        ? $"{csc.CompletedByEmployee.FirstName} {csc.CompletedByEmployee.LastName}"
+                        : null,
+                    CreatedAt = csc.CreatedAt
+                })
+                .ToListAsync();
         }
     }
 }

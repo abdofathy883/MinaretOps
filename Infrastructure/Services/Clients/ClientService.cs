@@ -76,15 +76,15 @@ namespace Infrastructure.Services.Clients
             try
             {
                 string? discordChannelId = null;
-                try
-                {
-                    discordChannelId = await discordService.CreateChannelForClient(clientDTO.Name);
-                }
-                catch (Exception ex)
-                {
-                    logger.LogWarning($"Failed to create Discord channel for client {clientDTO.Name}: {ex.Message}");
-                    // Continue without Discord channel if creation fails
-                }
+                //try
+                //{
+                //    discordChannelId = await discordService.CreateChannelForClient(clientDTO.Name);
+                //}
+                //catch (Exception ex)
+                //{
+                //    logger.LogWarning($"Failed to create Discord channel for client {clientDTO.Name}: {ex.Message}");
+                //    // Continue without Discord channel if creation fails
+                //}
 
                 var newClient = new Client
                 {
@@ -109,7 +109,17 @@ namespace Infrastructure.Services.Clients
                     };
 
                     await dbContext.ClientServices.AddAsync(clientService);
-                    await checkpointService.InitializeClientServiceCheckpointsAsync(clientService.Id, csDto.ServiceId);
+                    await dbContext.SaveChangesAsync();
+
+                    if (csDto.SelectedCheckpointIds != null && csDto.SelectedCheckpointIds.Any())
+                    {
+                        await checkpointService.CreateClientServiceCheckpointsAsync(
+                            clientService.Id,
+                            csDto.SelectedCheckpointIds
+                        );
+                    }
+
+                    //await checkpointService.InitializeClientServiceCheckpointsAsync(clientService.Id, csDto.ServiceId);
 
                     foreach (var tgDto in csDto.TaskGroups)
                     {

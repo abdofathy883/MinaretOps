@@ -12,5 +12,6 @@ namespace Core.Interfaces
         Task<ClientServiceCheckpointDTO> MarkCheckpointCompleteAsync(int clientServiceCheckpointId, string employeeId);
         Task<ClientServiceCheckpointDTO> MarkCheckpointIncompleteAsync(int clientServiceCheckpointId);
         Task InitializeClientServiceCheckpointsAsync(int clientServiceId, int serviceId);
+        Task<List<ClientServiceCheckpointDTO>> CreateClientServiceCheckpointsAsync(int clientServiceId, List<int> serviceCheckpointIds);
     }
 }
