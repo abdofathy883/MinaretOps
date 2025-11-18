@@ -7,6 +7,7 @@ using Infrastructure.Services.Announcements;
 using Infrastructure.Services.Attendance;
 using Infrastructure.Services.Auth;
 using Infrastructure.Services.Blog;
+using Infrastructure.Services.Checkpoints;
 using Infrastructure.Services.Complaints;
 using Infrastructure.Services.ContactForm;
 using Infrastructure.Services.Discord;
@@ -16,17 +17,17 @@ using Infrastructure.Services.JobDescription;
 using Infrastructure.Services.KPI;
 using Infrastructure.Services.LeaveRequestService;
 using Infrastructure.Services.MediaUploads;
-using Infrastructure.Services.Tasks;
 using Infrastructure.Services.Notifications;
 using Infrastructure.Services.OutboxProcessor;
+using Infrastructure.Services.Reporting;
 using Infrastructure.Services.Services;
+using Infrastructure.Services.Tasks;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Quartz;
 using Serilog;
 using ClientService = Infrastructure.Services.Clients.ClientService;
-using Infrastructure.Services.Reporting;
 
 namespace ClientAPI
 {
@@ -78,6 +79,7 @@ namespace ClientAPI
             builder.Services.AddScoped<IJobDescribtionService, JobDescriptionService>();
             builder.Services.AddScoped<IOutboxHandler, OutboxHandler>();
             builder.Services.AddScoped<IReportingService, ReportingService>();
+            builder.Services.AddScoped<ICheckpointService, CheckpointService>();
             builder.Services.AddSingleton<DiscordService>();
             builder.Services.AddHostedService<DiscordHostedService>();
             builder.Services.AddHostedService<OutboxProcessor>();
@@ -134,6 +136,7 @@ namespace ClientAPI
                 cfg.AddProfile<TaskResourcesProfile>();
                 cfg.AddProfile<JDProfile>();
                 cfg.AddProfile<BreakProfile>();
+                cfg.AddProfile<CheckpointProfile>();
             });
 
             builder.Services.AddControllers();

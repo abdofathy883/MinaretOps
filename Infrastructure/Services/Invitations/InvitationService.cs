@@ -179,10 +179,7 @@ namespace Infrastructure.Services.Invitations
                 Street = invitation.Street!,
                 NID = invitation.NID!,
                 PaymentNumber = invitation.PaymentNumber!,
-                DateOfHiring = invitation.DateOfHiring!.Value,
-                ProfilePicture = invitation.ProfilePicture ?? string.Empty,
-                JobTitle = invitation.JobTitle ?? string.Empty,
-                Bio = invitation.Bio ?? string.Empty,
+                DateOfHiring = invitation.DateOfHiring!.Value
             };
 
             // Get password from invitation (you may need to store it temporarily)

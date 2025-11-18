@@ -39,6 +39,8 @@ namespace Infrastructure.Data
         public DbSet<Post> BlogPosts { get; set; }
         public DbSet<ProjectCategory> ProjectCategories { get; set; }
         public DbSet<Project> Projects { get; set; }
+        public DbSet<ServiceCheckpoint> ServiceCheckpoints { get; set; }
+        public DbSet<ClientServiceCheckpoint> ClientServiceCheckpoints { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -65,6 +67,8 @@ namespace Infrastructure.Data
             builder.ApplyConfiguration(new ComplaintConfig());
             builder.ApplyConfiguration(new IncedientConfig());
             builder.ApplyConfiguration(new OutboxConfig());
+            builder.ApplyConfiguration(new ServiceCheckpointConfig());
+            builder.ApplyConfiguration(new ClientServiceCheckpointConfig());
         }
     }
 }

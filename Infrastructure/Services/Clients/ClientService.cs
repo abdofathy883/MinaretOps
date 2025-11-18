@@ -6,6 +6,8 @@ using Core.Interfaces;
 using Core.Models;
 using Infrastructure.Data;
 using Infrastructure.Exceptions;
+using Infrastructure.Services.Checkpoints;
+using Infrastructure.Services.Discord;
 using Infrastructure.Services.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -18,17 +20,23 @@ namespace Infrastructure.Services.Clients
         private readonly TaskHelperService taskHelperService;
         private readonly IMapper mapper;
         private readonly ILogger<ClientService> logger;
+        private readonly ICheckpointService checkpointService;
+        private readonly DiscordService discordService;
         public ClientService(
             MinaretOpsDbContext minaret,
             TaskHelperService _taskHelperService,
             IMapper _mapper,
-            ILogger<ClientService> _logger
+            ILogger<ClientService> _logger,
+            ICheckpointService _checkpointService,
+            DiscordService _discordService
             )
         {
             dbContext = minaret;
             mapper = _mapper;
             logger = _logger;
             taskHelperService = _taskHelperService;
+            checkpointService = _checkpointService;
+            discordService = _discordService;
         }
         public async Task<List<LightWieghtClientDTO>> GetAllClientsAsync()
         {
@@ -67,6 +75,17 @@ namespace Infrastructure.Services.Clients
             using var dbTransaction = await dbContext.Database.BeginTransactionAsync();
             try
             {
+                string? discordChannelId = null;
+                try
+                {
+                    discordChannelId = await discordService.CreateChannelForClient(clientDTO.Name);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogWarning($"Failed to create Discord channel for client {clientDTO.Name}: {ex.Message}");
+                    // Continue without Discord channel if creation fails
+                }
+
                 var newClient = new Client
                 {
                     Name = clientDTO.Name,
@@ -75,7 +94,7 @@ namespace Infrastructure.Services.Clients
                     CompanyNumber = clientDTO.CompanyNumber,
                     BusinessDescription = clientDTO.BusinessDescription,
                     DriveLink = clientDTO.DriveLink,
-                    DiscordChannelId = clientDTO.DiscordChannelId,
+                    DiscordChannelId = discordChannelId ?? string.Empty,
                     ClientServices = new List<Core.Models.ClientService>()
                 };
                 await dbContext.Clients.AddAsync(newClient);
@@ -90,6 +109,7 @@ namespace Infrastructure.Services.Clients
                     };
 
                     await dbContext.ClientServices.AddAsync(clientService);
+                    await checkpointService.InitializeClientServiceCheckpointsAsync(clientService.Id, csDto.ServiceId);
 
                     foreach (var tgDto in csDto.TaskGroups)
                     {
@@ -155,12 +175,12 @@ namespace Infrastructure.Services.Clients
                                         {"TaskTitle", $"{task.Title}" },
                                         {"TaskType", $"task.TaskType" },
                                         {"TaskId", $"{task.Id}" },
-                                        {"ClientName", $"{task.ClientService.Client.Name}" },
+                                        {"ClientName", $"{newClient.Name}" },
                                         {"TimeStamp", $"{DateTime.UtcNow}" }
                                     }
                                 };
                                 await taskHelperService.AddOutboxAsync(OutboxTypes.Email, "Send New Task Email", emailPayload);
-                                string? channelId = clientDTO?.DiscordChannelId;
+                                string? channelId = newClient?.DiscordChannelId;
                                 if (channelId != null)
                                 {
                                     var discordPayload = new DiscordPayload(channelId, task, DiscordOperationType.NewTask);

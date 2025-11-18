@@ -1,4 +1,5 @@
-﻿using Core.DTOs.Tasks.TaskDTOs;
+﻿using Core.DTOs.Checkpoints;
+using Core.DTOs.Tasks.TaskDTOs;
 using Core.DTOs.Tasks.TaskGroupDTOs;
 
 namespace Core.DTOs.ClientServiceDTOs
@@ -14,6 +15,7 @@ namespace Core.DTOs.ClientServiceDTOs
         public DateTime? EndDate { get; set; }
         public List<TaskDTO> TaskItems { get; set; } = new();
         public List<TaskGroupDTO> TaskGroups { get; set; } = new();
+        public List<ClientServiceCheckpointDTO> ClientServiceCheckpoints { get; set; } = new();
 
         // Helper property to get all tasks across all groups
         public List<TaskDTO> GetAllTasks() => TaskGroups.SelectMany(tg => tg.Tasks).ToList();

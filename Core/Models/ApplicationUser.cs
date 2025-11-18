@@ -20,9 +20,6 @@ namespace Core.Models
         public required string PaymentNumber { get; set; }
         [Required]
         public DateOnly DateOfHiring { get; set; }
-        public required string ProfilePicture { get; set; }
-        public required string JobTitle { get; set; }
-        public required string Bio { get; set; }
         public List<RefreshToken> RefreshTokens { get; set; }
         public List<TaskItem> TaskItems { get; set; } = new();
         public virtual List<InternalTaskAssignment> InternalTaskAssignments { get; set; } = new();

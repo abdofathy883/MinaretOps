@@ -43,6 +43,48 @@ namespace Infrastructure.Services.Discord
             await client.LoginAsync(TokenType.Bot, options.Value.BotToken);
             await client.StartAsync();
         }
+
+        public async Task<string> CreateChannelForClient(string clientName)
+        {
+            if (options.Value.GuildId == null)
+                throw new InvalidOperationException("Discord GuildId is not configured");
+
+            var guild = client.GetGuild(options.Value.GuildId.Value);
+            if (guild == null)
+                throw new InvalidObjectException("لم يتم العثور على سيرفر ديسكورد");
+
+            // Sanitize client name for Discord channel name (Discord channel names have restrictions)
+            var channelName = SanitizeChannelName(clientName);
+
+            // Create a new text channel
+            var channel = await guild.CreateTextChannelAsync(channelName, properties =>
+            {
+                properties.Topic = $"قناة إشعارات لعميل: {clientName}";
+            });
+
+            return channel.Id.ToString();
+        }
+
+        private string SanitizeChannelName(string name)
+        {
+            // Discord channel names must be lowercase, 1-100 characters, and can only contain alphanumeric characters, dashes, and underscores
+            var sanitized = name.ToLowerInvariant()
+                .Replace(" ", "-")
+                .Replace("_", "-");
+
+            // Remove any invalid characters
+            sanitized = System.Text.RegularExpressions.Regex.Replace(sanitized, @"[^a-z0-9\-]", "");
+
+            // Ensure it's not empty and within length limits
+            if (string.IsNullOrWhiteSpace(sanitized))
+                sanitized = "client-channel";
+
+            if (sanitized.Length > 100)
+                sanitized = sanitized.Substring(0, 100);
+
+            return sanitized;
+        }
+
         public async Task NewTask(string channelId, TaskItem task)
         {
             var parsedChannel = ulong.Parse(channelId);

@@ -48,10 +48,7 @@ namespace Infrastructure.Services.Auth
                 LastName = u.LastName,
                 Email = u.Email ?? string.Empty,
                 PhoneNumber = u.PhoneNumber ?? string.Empty,
-                Roles = userManager.GetRolesAsync(u).Result.ToList(),
-                ProfilePicture = u.ProfilePicture,
-                JobTitle = u.JobTitle,
-                Bio = u.Bio
+                Roles = userManager.GetRolesAsync(u).Result.ToList()
             }).ToList();
         }
         public async Task<UserDTO> GetUserByIdAsync(string userId)
@@ -70,10 +67,7 @@ namespace Infrastructure.Services.Auth
                 NID = user.NID,
                 PaymentNumber = user.PaymentNumber,
                 DateOfHiring = user.DateOfHiring,
-                Roles = userManager.GetRolesAsync(user).Result.ToList(),
-                ProfilePicture = user.ProfilePicture,
-                JobTitle = user.JobTitle,
-                Bio = user.Bio
+                Roles = userManager.GetRolesAsync(user).Result.ToList()
             };
         }
         public async Task<AuthResponseDTO> LoginAsync(LoginDTO login)
@@ -150,10 +144,7 @@ namespace Infrastructure.Services.Auth
                 Street = newUser.Street,
                 NID = newUser.NID,
                 PaymentNumber = newUser.PaymentNumber,
-                DateOfHiring = newUser.DateOfHiring,
-                ProfilePicture = string.Empty,
-                JobTitle = string.Empty,
-                Bio = string.Empty,
+                DateOfHiring = newUser.DateOfHiring
             };
 
             using var dbTransaction = await dbContext.Database.BeginTransactionAsync();
@@ -285,19 +276,13 @@ namespace Infrastructure.Services.Auth
                 user.Street = updatedUser.Street.Trim();
             if (user.PaymentNumber != updatedUser.PaymentNumber && !string.IsNullOrWhiteSpace(updatedUser.PaymentNumber))
                 user.PaymentNumber = updatedUser.PaymentNumber.Trim();
-            if (user.JobTitle != updatedUser.JobTitle && !string.IsNullOrWhiteSpace(updatedUser.JobTitle))
-                user.JobTitle = updatedUser.JobTitle.Trim();
-            if (user.Bio != updatedUser.Bio && !string.IsNullOrWhiteSpace(updatedUser.Bio))
-                user.Bio = updatedUser.Bio.Trim();
-            if (updatedUser.ProfilePicture is not null)
-            {
-                var uploaded = await mediaUploadService.UploadImageWithPath(updatedUser.ProfilePicture, $"{user.FirstName}_{user.LastName}-{user.JobTitle}-TheMinaretAgency");
-                user.ProfilePicture = uploaded.Url;
-            }
+
             if (user.Email != updatedUser.Email && !string.IsNullOrWhiteSpace(updatedUser.Email))
             {
-                user.Email = updatedUser.Email.Trim();
-                user.NormalizedEmail = userManager.NormalizeEmail(updatedUser.Email);
+                await userManager.SetEmailAsync(user, updatedUser.Email.Trim());
+                await userManager.UpdateNormalizedEmailAsync(user);
+                await userManager.SetUserNameAsync(user, updatedUser.Email.Split("@")[0].Trim());
+
                 user.EmailConfirmed = true;
             }
             if (user.PhoneNumber != updatedUser.PhoneNumber && !string.IsNullOrWhiteSpace(updatedUser.PhoneNumber))
@@ -473,19 +458,7 @@ namespace Infrastructure.Services.Auth
             await userManager.DeleteAsync(user);
             return true;
         }
-        public async Task<List<TeamMemberDTO>> GetTeamMembersAsync()
-        {
-            var teamMembers = await userManager.Users.ToListAsync()
-                ?? throw new InvalidObjectException("لا يوجد مستخدمين");
 
-            return teamMembers.Select(u => new TeamMemberDTO
-            {
-                FullName = $"{u.FirstName} {u.LastName}",
-                ProfilePicture = u.ProfilePicture,
-                JobTitle = u.JobTitle,
-                Bio = u.Bio
-            }).ToList();
-        }
         public async Task<string> RequestResetPasswordByAdminAsync(string userId)
         {
             var user = await GetUserOrThrow(userId);
