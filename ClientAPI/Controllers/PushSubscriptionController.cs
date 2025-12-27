@@ -43,5 +43,19 @@ namespace ClientAPI.Controllers
                 return BadRequest(ex.Message);
             }
         }
+
+        [HttpPost]
+        public async Task<ActionResult<NotificationDTO>> CreateNotification([FromBody] CreateNotificationDTO dto)
+        {
+            try
+            {
+                var notification = await notificationService.CreateAsync(dto);
+                return Ok(notification);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
     }
 }
