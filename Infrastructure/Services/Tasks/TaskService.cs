@@ -363,6 +363,23 @@ namespace Infrastructure.Services.Tasks
                     task.Status = updateTask.Status;
                 }
 
+                // --- Sub Tasks ---
+                if (updateTask.NumberOfSubTasks != 0 
+                    && task.NumberOfSubTasks != updateTask.NumberOfSubTasks)
+                {
+                    histories.Add(new TaskItemHistory
+                    {
+                        TaskItemId = task.Id,
+                        PropertyName = "عدد التاسكات الداخلية",
+                        OldValue = task.NumberOfSubTasks.ToString(),
+                        NewValue = updateTask.NumberOfSubTasks.ToString(),
+                        UpdatedById = user.Id,
+                        UpdatedByName = $"{user.FirstName} {user.LastName}",
+                        UpdatedAt = DateTime.UtcNow
+                    });
+                    task.NumberOfSubTasks = updateTask.NumberOfSubTasks;
+                }
+
                 // --- Employee ---
                 if (!string.IsNullOrWhiteSpace(updateTask.EmployeeId) && updateTask.EmployeeId != task.EmployeeId)
                 {
@@ -461,7 +478,8 @@ namespace Infrastructure.Services.Tasks
                     Priority = createTask.Priority,
                     Refrence = createTask.Refrence,
                     EmployeeId = normalizedEmployeeId,
-                    TaskGroupId = createTask.TaskGroupId
+                    TaskGroupId = createTask.TaskGroupId,
+                    NumberOfSubTasks = createTask.NumberOfSubTasks
                 };
 
                 await context.Tasks.AddAsync(task);
@@ -593,7 +611,8 @@ namespace Infrastructure.Services.Tasks
                             Priority = taskDto.Priority,
                             Refrence = taskDto.Refrence,
                             EmployeeId = normalizedEmployeeId,
-                            TaskGroup = taskGroup
+                            TaskGroup = taskGroup,
+                            NumberOfSubTasks = taskDto.NumberOfSubTasks
                         };
 
                         await context.Tasks.AddAsync(task);

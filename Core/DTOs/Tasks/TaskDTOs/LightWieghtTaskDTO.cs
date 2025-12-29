@@ -27,5 +27,6 @@ namespace Core.DTOs.Tasks.TaskDTOs
         public string? ServiceName { get; set; }
         public string? ClientName { get; set; }
         public DateTime CreatedAt { get; set; }
+        public int? NumberOfSubTasks { get; set; }
     }
 }

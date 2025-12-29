@@ -40,6 +40,7 @@ namespace Infrastructure.MappingProfiles
                 .ForMember(dest => dest.TaskHistory, opt => opt.MapFrom(src => src.TaskHistory))
                 .ForMember(dest => dest.TaskResources, opt => opt.MapFrom(src => src.CompletionResources))
                 .ForMember(dest => dest.CompletionNotes, opt => opt.MapFrom(src => src.CompletionNotes))
+                .ForMember(dest => dest.NumberOfSubTasks, opt => opt.MapFrom(src => src.NumberOfSubTasks))
                 .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => TimeZoneInfo.ConvertTimeFromUtc(src.CreatedAt, tz)));
         }
     }

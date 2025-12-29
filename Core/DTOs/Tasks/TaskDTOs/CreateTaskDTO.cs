@@ -13,5 +13,6 @@ namespace Core.DTOs.Tasks.TaskDTOs
         public string? Refrence { get; set; }
         public string? EmployeeId { get; set; }
         public int TaskGroupId { get; set; }
+        public int? NumberOfSubTasks { get; set; }
     }
 }

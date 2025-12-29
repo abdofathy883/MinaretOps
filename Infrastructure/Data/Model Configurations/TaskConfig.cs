@@ -45,6 +45,9 @@ namespace Infrastructure.Data.Model_Configurations
             builder.Property(t => t.Priority)
                 .IsRequired();
 
+            builder.Property(t => t.NumberOfSubTasks)
+                .IsRequired(false);
+
             builder.Property(t => t.CreatedAt)
                 .IsRequired()
                 .HasDefaultValueSql("GETDATE()");

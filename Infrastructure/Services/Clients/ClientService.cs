@@ -157,6 +157,7 @@ namespace Infrastructure.Services.Clients
                                 Employee = emp,
                                 TaskGroup = taskGroup,
                                 ClientService = clientService,
+                                NumberOfSubTasks = taskDto.NumberOfSubTasks
                             };
                             await dbContext.Tasks.AddAsync(task);
 

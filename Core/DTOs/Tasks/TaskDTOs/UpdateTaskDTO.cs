@@ -11,5 +11,6 @@ namespace Core.DTOs.Tasks.TaskDTOs
         public required string Priority { get; set; }
         public string? Refrence { get; set; }
         public required string EmployeeId { get; set; }
+        public int? NumberOfSubTasks { get; set; }
     }
 }

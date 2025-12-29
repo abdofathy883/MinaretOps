@@ -17,6 +17,7 @@ namespace Core.Models
         public string? Refrence { get; set; }
         public string? EmployeeId { get; set; }
         public ApplicationUser? Employee { get; set; }
+        public int? NumberOfSubTasks { get; set; }
 
         public DateTime? CompletedAt { get; set; }
         public bool IsCompletedOnDeadline =>

@@ -40,6 +40,7 @@ namespace Infrastructure.MappingProfiles
                 .ForMember(dest => dest.TaskResources, opt => opt.MapFrom(src => src.CompletionResources))
                 .ForMember(dest => dest.TaskComments, opt => opt.MapFrom(src => src.TaskComments))
                 .ForMember(dest => dest.CompletionNotes, opt => opt.MapFrom(src => src.CompletionNotes))
+                .ForMember(dest => dest.NumberOfSubTasks, opt => opt.MapFrom(src => src.NumberOfSubTasks))
                 .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => TimeZoneInfo.ConvertTimeFromUtc(src.CreatedAt, tz)));
 
             CreateMap<TaskItem, LightWieghtTaskDTO>()
@@ -50,6 +51,7 @@ namespace Infrastructure.MappingProfiles
                 .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status))
                 .ForMember(dest => dest.Deadline, opt => opt.MapFrom(src => TimeZoneInfo.ConvertTimeFromUtc(src.Deadline, tz)))
                 .ForMember(dest => dest.Priority, opt => opt.MapFrom(src => src.Priority))
+                .ForMember(dest => dest.NumberOfSubTasks, opt => opt.MapFrom(src => src.NumberOfSubTasks))
                 .ForMember(dest => dest.CompletedAt,
                 opt => opt.MapFrom(src => src.CompletedAt.HasValue
                     ? TimeZoneInfo.ConvertTimeFromUtc(src.CompletedAt.Value, tz)

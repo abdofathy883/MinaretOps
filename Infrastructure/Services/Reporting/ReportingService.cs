@@ -233,8 +233,9 @@ namespace Infrastructure.Services.Reporting
                         .Include(t => t.ClientService)
                             .ThenInclude(cs => cs.Client)
                         .Include(t => t.Employee)
-                        .Where(t => allEmployeeIds.Contains(t.EmployeeId) &&
-                                   t.Status != CustomTaskStatus.Completed);
+                        .Where(t => allEmployeeIds.Contains(t.EmployeeId) 
+                        && t.Status != CustomTaskStatus.Completed
+                        && t.Status != CustomTaskStatus.Rejected);
 
                     // Load all tasks in a single query
                     var allTasks = await query.ToListAsync();
@@ -372,8 +373,9 @@ namespace Infrastructure.Services.Reporting
                         .Include(t => t.ClientService)
                             .ThenInclude(cs => cs.Client)
                         .Include(t => t.Employee)
-                        .Where(t => allEmployeeIds.Contains(t.EmployeeId) &&
-                                   t.Status != CustomTaskStatus.Completed);
+                        .Where(t => allEmployeeIds.Contains(t.EmployeeId) 
+                        && t.Status != CustomTaskStatus.Completed
+                        && t.Status != CustomTaskStatus.Rejected);
 
                     // Load all tasks in a single query
                     var allTasks = await query.ToListAsync();

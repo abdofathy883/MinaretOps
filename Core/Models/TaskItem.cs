@@ -14,6 +14,7 @@ namespace Core.Models
         public DateTime Deadline { get; set; }
         public string Priority { get; set; } = "عادي"; // Default priority
         public string? Refrence { get; set; }
+        public int? NumberOfSubTasks { get; set; }
         public string? EmployeeId { get; set; }
         public ApplicationUser? Employee { get; set; }
 

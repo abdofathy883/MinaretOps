@@ -18,7 +18,9 @@
         "EmailSetting__appPassword": "kctmiqpsqeyccqhg",
         "EmailSetting__port": "587",
         "EmailSetting__smtp": "smtp.gmail.com",
-        "Discord__BotToken": ""
+        "Discord__BotToken": "",
+        "VapidDetails__publicKey": "",
+        "VapidDetails__privateKey": ""
       },
       "dotnetRunMessages": true,
       "applicationUrl": "https://localhost:7084;http://localhost:5290"
