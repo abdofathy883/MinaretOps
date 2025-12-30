@@ -43,7 +43,7 @@ namespace Infrastructure.Services.Notifications
             await context.PushNotifications.AddAsync(notification);
             await context.SaveChangesAsync();
 
-            await SendNotificationAsync(dto.UserId, dto.Title, dto.Body, dto.Url);
+            //await SendNotificationAsync(dto.UserId, dto.Title, dto.Body, dto.Url);
             return mapper.Map<NotificationDTO>(notification);
         }
 
@@ -71,68 +71,68 @@ namespace Infrastructure.Services.Notifications
             await context.SaveChangesAsync();
         }
 
-        public async Task SendNotificationAsync(string userId, string title, string body, string url)
-        {
-            if (string.IsNullOrEmpty(userId)) return;
+        //public async Task SendNotificationAsync(string userId, string title, string body, string url)
+        //{
+        //    if (string.IsNullOrEmpty(userId)) return;
 
-            var subscriptions = await context.PushSubscriptions
-                .Where(s => s.UserId == userId)
-                .ToListAsync();
+        //    var subscriptions = await context.PushSubscriptions
+        //        .Where(s => s.UserId == userId)
+        //        .ToListAsync();
 
-            if (!subscriptions.Any()) return;
+        //    if (!subscriptions.Any()) return;
 
-            // Check if VAPID keys are configured
-            if (string.IsNullOrEmpty(vapidDetails.Value.PublicKey) 
-                || string.IsNullOrEmpty(vapidDetails.Value.PrivateKey))
-                return;
+        //    // Check if VAPID keys are configured
+        //    if (string.IsNullOrEmpty(vapidDetails.Value.PublicKey) 
+        //        || string.IsNullOrEmpty(vapidDetails.Value.PrivateKey))
+        //        return;
 
-            var pushClient = new PushServiceClient();
-            pushClient.DefaultAuthentication = new VapidAuthentication(vapidDetails.Value.PublicKey, vapidDetails.Value.PrivateKey);
+        //    var pushClient = new PushServiceClient();
+        //    pushClient.DefaultAuthentication = new VapidAuthentication(vapidDetails.Value.PublicKey, vapidDetails.Value.PrivateKey);
 
-            var payload = JsonSerializer.Serialize(new
-            {
-                title,
-                body,
-                url,
-                icon = "assets/icons/icon-192x192.png",
-                badge = "assets/icons/icon-72x72.jpg",
-                sound = "default",
-                vibrate = new int[] { 200, 100, 200 },
-                requireInteraction = true,
-                tag = "announcement",
-                timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
-            });
+        //    var payload = JsonSerializer.Serialize(new
+        //    {
+        //        title,
+        //        body,
+        //        url,
+        //        icon = "assets/icons/icon-192x192.png",
+        //        badge = "assets/icons/icon-72x72.jpg",
+        //        sound = "default",
+        //        vibrate = new int[] { 200, 100, 200 },
+        //        requireInteraction = true,
+        //        tag = "announcement",
+        //        timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+        //    });
 
-            var expiredSubscriptions = new List<CustomPushSubscription>();
+        //    var expiredSubscriptions = new List<CustomPushSubscription>();
 
-            foreach (var sub in subscriptions)
-            {
-                var pushSub = new PushSubscription
-                {
-                    Endpoint = sub.Endpoint,
-                    Keys = new Dictionary<string, string>
-                    {
-                        ["p256dh"] = sub.P256DH,
-                        ["auth"] = sub.Auth
-                    }
-                };
+        //    foreach (var sub in subscriptions)
+        //    {
+        //        var pushSub = new PushSubscription
+        //        {
+        //            Endpoint = sub.Endpoint,
+        //            Keys = new Dictionary<string, string>
+        //            {
+        //                ["p256dh"] = sub.P256DH,
+        //                ["auth"] = sub.Auth
+        //            }
+        //        };
 
-                try
-                {
-                    await pushClient.RequestPushMessageDeliveryAsync(pushSub, new PushMessage(payload));
-                }
-                catch (Exception)
-                {
-                    expiredSubscriptions.Add(sub);
-                }
-            }
-            // Remove expired subscriptions
-            if (expiredSubscriptions.Any())
-            {
-                context.PushSubscriptions.RemoveRange(expiredSubscriptions);
-                await context.SaveChangesAsync();
-            }
-        }
+        //        try
+        //        {
+        //            await pushClient.RequestPushMessageDeliveryAsync(pushSub, new PushMessage(payload));
+        //        }
+        //        catch (Exception)
+        //        {
+        //            expiredSubscriptions.Add(sub);
+        //        }
+        //    }
+        //    // Remove expired subscriptions
+        //    if (expiredSubscriptions.Any())
+        //    {
+        //        context.PushSubscriptions.RemoveRange(expiredSubscriptions);
+        //        await context.SaveChangesAsync();
+        //    }
+        //}
 
         public async Task SubscribeUserAsync(PushSubscriptionDTO subscription)
         {
