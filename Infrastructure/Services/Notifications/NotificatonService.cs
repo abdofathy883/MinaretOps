@@ -81,6 +81,11 @@ namespace Infrastructure.Services.Notifications
 
             if (!subscriptions.Any()) return;
 
+            // Check if VAPID keys are configured
+            if (string.IsNullOrEmpty(vapidDetails.Value.PublicKey) 
+                || string.IsNullOrEmpty(vapidDetails.Value.PrivateKey))
+                return;
+
             var pushClient = new PushServiceClient();
             pushClient.DefaultAuthentication = new VapidAuthentication(vapidDetails.Value.PublicKey, vapidDetails.Value.PrivateKey);
 
