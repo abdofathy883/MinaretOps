@@ -4,6 +4,7 @@ using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Infrastructure.Migrations
 {
     [DbContext(typeof(MinaretOpsDbContext))]
-    partial class MinaretOpsDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260106150203_MinorPayrollFix")]
+    partial class MinorPayrollFix
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -319,7 +322,11 @@ namespace Infrastructure.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("AccountManagerId")
+                        .IsRequired()
                         .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("ApplicationUserId")
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("BusinessActivity")
@@ -396,6 +403,8 @@ namespace Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("AccountManagerId");
+
+                    b.HasIndex("ApplicationUserId");
 
                     b.HasIndex("CompanyName");
 
@@ -1518,9 +1527,14 @@ namespace Infrastructure.Migrations
             modelBuilder.Entity("Core.Models.Client", b =>
                 {
                     b.HasOne("Core.Models.ApplicationUser", "AccountManager")
-                        .WithMany("Clients")
+                        .WithMany()
                         .HasForeignKey("AccountManagerId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Core.Models.ApplicationUser", null)
+                        .WithMany("Clients")
+                        .HasForeignKey("ApplicationUserId");
 
                     b.Navigation("AccountManager");
                 });

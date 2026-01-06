@@ -10,5 +10,7 @@ namespace Core.DTOs.Clients
         public ClientStatus Status { get; set; }
         public int ServiceId { get; set; }
         public string? ServiceTitle { get; set; }
+        public string AccountManagerId { get; set; }
+        public string AccountManagerName { get; set; }
     }
 }

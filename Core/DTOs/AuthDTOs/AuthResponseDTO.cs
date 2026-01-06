@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using Core.Enums;
+using System.Text.Json.Serialization;
 
 namespace Core.DTOs.AuthDTOs
 {
@@ -24,5 +25,7 @@ namespace Core.DTOs.AuthDTOs
         public string? RefreshToken { get; set; }
         public DateTime RefreshTokenExpiration { get; set; }
         public string? ConcurrencyStamp { get; set; }
+        public decimal BaseSalary { get; set; }
+        public EmployeeType EmployeeType { get; set; }
     }
 }

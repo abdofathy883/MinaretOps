@@ -17,6 +17,7 @@ using Infrastructure.Services.LeaveRequestService;
 using Infrastructure.Services.MediaUploads;
 using Infrastructure.Services.Notifications;
 using Infrastructure.Services.OutboxProcessor;
+using Infrastructure.Services.Payroll;
 using Infrastructure.Services.Reporting;
 using Infrastructure.Services.Services;
 using Infrastructure.Services.Tasks;
@@ -62,7 +63,7 @@ namespace ClientAPI
             builder.Services.AddScoped<TaskHelperService>();
             builder.Services.AddScoped<IInternalTaskService, InternalTaskService>();
             builder.Services.AddScoped<IEmailService, EmailService>();
-            //builder.Services.AddScoped<IPortfolioService, PortfolioService>();
+            builder.Services.AddScoped<IPayrollService, PayrollService>();
             builder.Services.AddScoped<MediaUploadService>();
             builder.Services.AddScoped<IAttendanceService, AttendanceService>();
             builder.Services.AddScoped<IAttendanceDashboard, AttendanceDashboard>();
@@ -130,6 +131,8 @@ namespace ClientAPI
                 cfg.AddProfile<JDProfile>();
                 cfg.AddProfile<BreakProfile>();
                 cfg.AddProfile<CheckpointProfile>();
+                cfg.AddProfile<SalaryPaymentProfile>();
+                cfg.AddProfile<SalaryPeriodProfile>();
             });
 
             builder.Services.AddControllers();

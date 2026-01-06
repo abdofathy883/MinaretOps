@@ -21,19 +21,16 @@ namespace Infrastructure.Services.Tasks
     {
         private readonly MinaretOpsDbContext context;
         private readonly TaskHelperService helperService;
-        private readonly INotificationService notificationService;
         private readonly IMapper mapper;
         private readonly UserManager<ApplicationUser> userManager;
         public TaskService(
             MinaretOpsDbContext minaret,
             TaskHelperService taskHelper,
-            INotificationService _notificationService,
             IMapper _mapper,
             UserManager<ApplicationUser> manager
             )
         {
             context = minaret;
-            notificationService = _notificationService;
             mapper = _mapper;
             userManager = manager;
             helperService = taskHelper;
@@ -94,14 +91,7 @@ namespace Infrastructure.Services.Tasks
                     var discordPayload = new DiscordPayload(channel, task, DiscordOperationType.ChangeTaskStatus, status);
                     await helperService.AddOutboxAsync(OutboxTypes.Discord, "Task Updates Discord", discordPayload);
                 }
-                //var notification = new CreateNotificationDTO
-                //{
-                //    Title = $"New Status Update - {task.Title}",
-                //    Body = $"Task Status Updated From {oldStatus} To {status}",
-                //    UserId = emp.Id,
-                //    Url = $"https://internal.theminaretagency.com/tasks/{task.Id}"
-                //};
-                //await notificationService.CreateAsync(notification);
+
                 await context.SaveChangesAsync();
                 await transaction.CommitAsync();
                 return true;

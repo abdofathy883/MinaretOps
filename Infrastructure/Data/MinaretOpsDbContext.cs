@@ -36,6 +36,8 @@ namespace Infrastructure.Data
         public DbSet<Outbox> OutboxMessages { get; set; }
         public DbSet<ServiceCheckpoint> ServiceCheckpoints { get; set; }
         public DbSet<ClientServiceCheckpoint> ClientServiceCheckpoints { get; set; }
+        public DbSet<SalaryPeriod> SalaryPeriods { get; set; }
+        public DbSet<SalaryPayment> SalaryPayments { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -63,6 +65,8 @@ namespace Infrastructure.Data
             builder.ApplyConfiguration(new OutboxConfig());
             builder.ApplyConfiguration(new ServiceCheckpointConfig());
             builder.ApplyConfiguration(new ClientServiceCheckpointConfig());
+            builder.ApplyConfiguration(new SalaryPaymentConfig());
+            builder.ApplyConfiguration(new SalaryPeriodConfig());
         }
     }
 }

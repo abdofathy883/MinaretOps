@@ -42,6 +42,8 @@ namespace Infrastructure.Services.Clients
         {
             var clients = await dbContext.Clients
                 .Include(c => c.ClientServices)
+                    .ThenInclude(cs => cs.Service)
+                .Include(c => c.AccountManager)
                 .Select(c => new LightWieghtClientDTO
                 {
                     Id = c.Id,
@@ -51,10 +53,35 @@ namespace Infrastructure.Services.Clients
                     ServiceId = c.ClientServices
                     .Select(cs => cs.ServiceId).FirstOrDefault(),
                     ServiceTitle = c.ClientServices
-                    .Select(cs => cs.Service.Title).FirstOrDefault() ?? string.Empty
+                    .Select(cs => cs.Service.Title).FirstOrDefault() ?? string.Empty,
+                    AccountManagerId = c.AccountManagerId,
+                    AccountManagerName = c.AccountManager != null
+                        ? $"{c.AccountManager.FirstName} {c.AccountManager.LastName}"
+                        : string.Empty
                 }).ToListAsync();
 
             return clients;
+
+            //var clients = await (from c in dbContext.Clients.AsNoTracking()
+            //                     join u in dbContext.ApplicationUsers on c.AccountManagerId equals u.Id into users
+            //                     from u in users.DefaultIfEmpty()
+            //                     select new LightWieghtClientDTO
+            //                     {
+            //                         Id = c.Id,
+            //                         Name = c.Name,
+            //                         CompanyName = c.CompanyName,
+            //                         Status = c.Status,
+            //                         ServiceId = c.ClientServices
+            //                             .Select(cs => cs.ServiceId).FirstOrDefault(),
+            //                         ServiceTitle = c.ClientServices
+            //                             .Select(cs => cs.Service.Title).FirstOrDefault() ?? string.Empty,
+            //                         AccountManagerId = (string?)c.AccountManagerId ?? string.Empty,
+            //                         AccountManagerName = u != null 
+            //                            ? u.FirstName + " " + u.LastName 
+            //                            : "Unknown User"
+            //                     }).ToListAsync();
+
+            //return clients;
         }
         public async Task<ClientDTO> GetClientByIdAsync(int clientId)
         {
@@ -92,9 +119,16 @@ namespace Infrastructure.Services.Clients
                     CompanyName = clientDTO.CompanyName,
                     PersonalPhoneNumber = clientDTO.PersonalPhoneNumber,
                     CompanyNumber = clientDTO.CompanyNumber,
+                    Email = clientDTO.Email,
                     BusinessDescription = clientDTO.BusinessDescription,
                     DriveLink = clientDTO.DriveLink,
                     DiscordChannelId = discordChannelId ?? string.Empty,
+                    BusinessType = clientDTO.BusinessType,
+                    BusinessActivity = clientDTO.BusinessActivity,
+                    CommercialRegisterNumber = clientDTO.CommercialRegisterNumber,
+                    TaxCardNumber = clientDTO.TaxCardNumber,
+                    Country = clientDTO.Country,
+                    AccountManagerId = clientDTO.AccountManagerId,
                     ClientServices = new List<Core.Models.ClientService>()
                 };
                 await dbContext.Clients.AddAsync(newClient);
@@ -208,6 +242,7 @@ namespace Infrastructure.Services.Clients
 
                 // Reload the client with all related entities for mapping
                 var clientForMapping = await dbContext.Clients
+                    .Include(c => c.AccountManager)
                     .Include(c => c.ClientServices)
                         .ThenInclude(cs => cs.Service)
                     .Include(c => c.ClientServices)
@@ -245,15 +280,66 @@ namespace Infrastructure.Services.Clients
             var client = await dbContext.Clients.FirstOrDefaultAsync(c => c.Id == clientId)
                 ?? throw new InvalidObjectException("لا يوجد عميل بهذه البيانات");
 
-            client.Name = updateClientDTO.Name ?? client.Name;
-            client.PersonalPhoneNumber = updateClientDTO.PersonalPhoneNumber ?? client.PersonalPhoneNumber;
-            client.CompanyName = updateClientDTO.CompanyName ?? client.CompanyName;
-            client.CompanyNumber = updateClientDTO.CompanyNumber ?? client.CompanyNumber;
-            client.BusinessDescription = updateClientDTO.BusinessDescription ?? client.BusinessDescription;
-            client.DriveLink = updateClientDTO.DriveLink ?? client.DriveLink;
-            client.DiscordChannelId = updateClientDTO.DiscordChannelId;
-            client.Status = updateClientDTO.Status;
-            client.StatusNotes = updateClientDTO.StatusNotes ?? client.StatusNotes;
+            if (client.Name != updateClientDTO.Name && !string.IsNullOrEmpty(updateClientDTO.Name))
+                client.Name = updateClientDTO.Name;
+
+            if (client.PersonalPhoneNumber != updateClientDTO.PersonalPhoneNumber 
+                && !string.IsNullOrEmpty(updateClientDTO.PersonalPhoneNumber))
+                client.PersonalPhoneNumber = updateClientDTO.PersonalPhoneNumber;
+
+            if (client.CompanyName != updateClientDTO.CompanyName 
+                && !string.IsNullOrEmpty(updateClientDTO.CompanyName))
+                client.CompanyName = updateClientDTO.CompanyName;
+
+            if (client.CompanyNumber != updateClientDTO.CompanyNumber 
+                && !string.IsNullOrEmpty(updateClientDTO.CompanyNumber))
+                client.CompanyNumber = updateClientDTO.CompanyNumber;
+
+            if (client.Email != updateClientDTO.Email 
+                && !string.IsNullOrEmpty(updateClientDTO.Email))
+                client.Email = updateClientDTO.Email;
+
+            if (client.BusinessDescription != updateClientDTO.BusinessDescription 
+                && !string.IsNullOrEmpty(updateClientDTO.BusinessDescription))
+                client.BusinessDescription = updateClientDTO.BusinessDescription;
+
+            if (client.DriveLink != updateClientDTO.DriveLink 
+                && !string.IsNullOrEmpty(updateClientDTO.DriveLink))
+                client.DriveLink = updateClientDTO.DriveLink;
+
+            if (client.DiscordChannelId != updateClientDTO.DiscordChannelId 
+                && !string.IsNullOrEmpty(updateClientDTO.DiscordChannelId))
+                client.DiscordChannelId = updateClientDTO.DiscordChannelId;
+
+            if (client.BusinessActivity != updateClientDTO.BusinessActivity 
+                && !string.IsNullOrEmpty(updateClientDTO.BusinessActivity))
+                client.BusinessActivity = updateClientDTO.BusinessActivity;
+
+            if (client.BusinessType != updateClientDTO.BusinessType)
+                client.BusinessType = updateClientDTO.BusinessType;
+
+            if (client.CommercialRegisterNumber != updateClientDTO.CommercialRegisterNumber 
+                && !string.IsNullOrEmpty(updateClientDTO.CommercialRegisterNumber))
+                client.CommercialRegisterNumber = updateClientDTO.CommercialRegisterNumber;
+
+            if (client.TaxCardNumber != updateClientDTO.TaxCardNumber 
+                && !string.IsNullOrEmpty(updateClientDTO.TaxCardNumber))
+                client.TaxCardNumber = updateClientDTO.TaxCardNumber;
+
+            if (client.Country != updateClientDTO.Country 
+                && !string.IsNullOrEmpty(updateClientDTO.Country))
+                client.Country = updateClientDTO.Country;
+
+            if (client.AccountManagerId != updateClientDTO.AccountManagerId 
+                && !string.IsNullOrEmpty(updateClientDTO.AccountManagerId))
+                client.AccountManagerId = updateClientDTO.AccountManagerId;
+
+            if (client.Status != updateClientDTO.Status)
+                client.Status = updateClientDTO.Status;
+
+            if (client.StatusNotes != updateClientDTO.StatusNotes 
+                && !string.IsNullOrEmpty(updateClientDTO.StatusNotes))
+                client.StatusNotes = updateClientDTO.StatusNotes;
 
             dbContext.Update(client);
             await dbContext.SaveChangesAsync();
@@ -262,14 +348,15 @@ namespace Infrastructure.Services.Clients
         private async Task<Client> GetClientOrThrow(int clientId)
         {
             var client = await dbContext.Clients
-            .Include(c => c.ClientServices)
-                .ThenInclude(cs => cs.Service)
-            .Include(c => c.ClientServices)
-                .ThenInclude(cs => cs.TaskGroups)
-                    .ThenInclude(tg => tg.Tasks)
-                        .ThenInclude(t => t.Employee)
-            .FirstOrDefaultAsync(c => c.Id == clientId)
-                ?? throw new InvalidObjectException("لا يوجد عميل بهذه البيانات");
+                .Include(c => c.AccountManager)
+                .Include(c => c.ClientServices)
+                    .ThenInclude(cs => cs.Service)
+                .Include(c => c.ClientServices)
+                    .ThenInclude(cs => cs.TaskGroups)
+                        .ThenInclude(tg => tg.Tasks)
+                            .ThenInclude(t => t.Employee)
+                .FirstOrDefaultAsync(c => c.Id == clientId)
+                    ?? throw new InvalidObjectException("لا يوجد عميل بهذه البيانات");
 
             return client;
         }

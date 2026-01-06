@@ -4,6 +4,7 @@ using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Infrastructure.Migrations
 {
     [DbContext(typeof(MinaretOpsDbContext))]
-    partial class MinaretOpsDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260106134122_ExtendedClientInfo")]
+    partial class ExtendedClientInfo
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -319,7 +322,11 @@ namespace Infrastructure.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("AccountManagerId")
+                        .IsRequired()
                         .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("ApplicationUserId")
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("BusinessActivity")
@@ -396,6 +403,8 @@ namespace Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("AccountManagerId");
+
+                    b.HasIndex("ApplicationUserId");
 
                     b.HasIndex("CompanyName");
 
@@ -925,18 +934,14 @@ namespace Infrastructure.Migrations
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("EmployeeId")
                         .IsRequired()
-                        .HasMaxLength(450)
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("Notes")
-                        .HasMaxLength(3000)
-                        .HasColumnType("nvarchar(3000)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int?>("SalaryPeriodId")
                         .HasColumnType("int");
@@ -959,23 +964,16 @@ namespace Infrastructure.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<decimal>("Bonus")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("decimal(18,2)")
-                        .HasDefaultValue(0m);
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
+                        .HasColumnType("datetime2");
 
                     b.Property<decimal>("Deductions")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("decimal(18,2)")
-                        .HasDefaultValue(0m);
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("EmployeeId")
                         .IsRequired()
-                        .HasMaxLength(450)
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<int>("Month")
@@ -983,12 +981,10 @@ namespace Infrastructure.Migrations
 
                     b.Property<string>("MonthLabel")
                         .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Notes")
-                        .HasMaxLength(3000)
-                        .HasColumnType("nvarchar(3000)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<decimal>("Salary")
                         .HasColumnType("decimal(18,2)");
@@ -1002,11 +998,6 @@ namespace Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("EmployeeId");
-
-                    b.HasIndex("MonthLabel");
-
-                    b.HasIndex("EmployeeId", "Year", "Month")
-                        .IsUnique();
 
                     b.ToTable("SalaryPeriods");
                 });
@@ -1518,9 +1509,14 @@ namespace Infrastructure.Migrations
             modelBuilder.Entity("Core.Models.Client", b =>
                 {
                     b.HasOne("Core.Models.ApplicationUser", "AccountManager")
-                        .WithMany("Clients")
+                        .WithMany()
                         .HasForeignKey("AccountManagerId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Core.Models.ApplicationUser", null)
+                        .WithMany("Clients")
+                        .HasForeignKey("ApplicationUserId");
 
                     b.Navigation("AccountManager");
                 });
@@ -1677,13 +1673,12 @@ namespace Infrastructure.Migrations
                     b.HasOne("Core.Models.ApplicationUser", "Employee")
                         .WithMany("SalaryPayments")
                         .HasForeignKey("EmployeeId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("Core.Models.SalaryPeriod", "SalaryPeriod")
                         .WithMany("SalaryPayments")
-                        .HasForeignKey("SalaryPeriodId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .HasForeignKey("SalaryPeriodId");
 
                     b.Navigation("Employee");
 
@@ -1695,7 +1690,7 @@ namespace Infrastructure.Migrations
                     b.HasOne("Core.Models.ApplicationUser", "Employee")
                         .WithMany("SalaryPeriods")
                         .HasForeignKey("EmployeeId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Employee");

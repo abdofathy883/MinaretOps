@@ -28,6 +28,9 @@ namespace Infrastructure.Data.Model_Configurations
             builder.Property(c => c.CompanyNumber)
                 .HasMaxLength(20);
 
+            builder.Property(c => c.Email)
+                .HasMaxLength(100);
+
             builder.Property(c => c.BusinessDescription)
                 .IsRequired()
                 .HasMaxLength(3000);
@@ -35,6 +38,22 @@ namespace Infrastructure.Data.Model_Configurations
             builder.Property(c => c.DriveLink)
                 .IsRequired()
                 .HasMaxLength(150);
+
+            builder.Property(c => c.BusinessActivity)
+                .HasMaxLength(1000);
+
+            builder.Property(c => c.CommercialRegisterNumber)
+                .HasMaxLength(50);
+
+            builder.Property(c => c.TaxCardNumber)
+                .HasMaxLength(50);
+
+            builder.Property(c => c.Country)
+                .HasMaxLength(100);
+
+            builder.Property(c => c.AccountManagerId)
+                .IsRequired(false)
+                .HasMaxLength(450);
 
             builder.Property(c => c.DiscordChannelId)
                 .IsRequired()
@@ -49,6 +68,11 @@ namespace Infrastructure.Data.Model_Configurations
                 .WithOne(cs => cs.Client)
                 .HasForeignKey(cs => cs.ClientId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            builder.HasOne(c => c.AccountManager)
+                .WithMany(u => u.Clients)
+                .HasForeignKey(c => c.AccountManagerId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             // Add indexes
             builder.HasIndex(c => c.Name);

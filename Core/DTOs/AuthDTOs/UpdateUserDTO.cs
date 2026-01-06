@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Core.Enums;
+using Microsoft.AspNetCore.Http;
 
 namespace Core.DTOs.AuthDTOs
 {
@@ -13,5 +14,7 @@ namespace Core.DTOs.AuthDTOs
         public string? Street { get; set; }
         public string? PaymentNumber { get; set; }
         public string? Role { get; set; }
+        public decimal? BaseSalary { get; set; }
+        public EmployeeType EmployeeType { get; set; }
     }
 }

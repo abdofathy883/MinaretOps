@@ -19,14 +19,12 @@ namespace Infrastructure.Services.Auth
         private readonly UserManager<ApplicationUser> userManager;
         private readonly RoleManager<IdentityRole> roleManager;
         private readonly IJWTServices jwtServices;
-        private readonly MediaUploadService mediaUploadService;
         public AuthService(
             MinaretOpsDbContext _context,
             TaskHelperService _helperService,
             UserManager<ApplicationUser> _userManager,
             RoleManager<IdentityRole> _roleManager,
-            IJWTServices _jwtServices,
-            MediaUploadService service
+            IJWTServices _jwtServices
             )
         {
             dbContext = _context;
@@ -34,7 +32,6 @@ namespace Infrastructure.Services.Auth
             userManager = _userManager;
             roleManager = _roleManager;
             jwtServices = _jwtServices;
-            mediaUploadService = service;
         }
         public async Task<List<AuthResponseDTO>> GetAllUsersAsync()
         {
@@ -48,7 +45,9 @@ namespace Infrastructure.Services.Auth
                 LastName = u.LastName,
                 Email = u.Email ?? string.Empty,
                 PhoneNumber = u.PhoneNumber ?? string.Empty,
-                Roles = userManager.GetRolesAsync(u).Result.ToList()
+                Roles = userManager.GetRolesAsync(u).Result.ToList(),
+                BaseSalary = u.BaseSalary ?? 0,
+                EmployeeType = u.EmployeeType
             }).ToList();
         }
         public async Task<UserDTO> GetUserByIdAsync(string userId)
@@ -67,7 +66,9 @@ namespace Infrastructure.Services.Auth
                 NID = user.NID,
                 PaymentNumber = user.PaymentNumber,
                 DateOfHiring = user.DateOfHiring,
-                Roles = userManager.GetRolesAsync(user).Result.ToList()
+                Roles = userManager.GetRolesAsync(user).Result.ToList(),
+                BaseSalary = user.BaseSalary ?? 0,
+                EmployeeType = EmployeeType
             };
         }
         public async Task<AuthResponseDTO> LoginAsync(LoginDTO login)
@@ -104,6 +105,8 @@ namespace Infrastructure.Services.Auth
             authDTO.NID = user.NID;
             authDTO.PaymentNumber = user.PaymentNumber;
             authDTO.DateOfHiring = user.DateOfHiring;
+            authDTO.EmployeeType = user.EmployeeType;
+            authDTO.BaseSalary = user.BaseSalary ?? 0;
 
             if (user.RefreshTokens.Any(u => u.IsActive))
             {
@@ -144,7 +147,9 @@ namespace Infrastructure.Services.Auth
                 Street = newUser.Street,
                 NID = newUser.NID,
                 PaymentNumber = newUser.PaymentNumber,
-                DateOfHiring = newUser.DateOfHiring
+                DateOfHiring = newUser.DateOfHiring,
+                BaseSalary = newUser.BaseSalary,
+                EmployeeType = newUser.EmployeeType
             };
 
             using var dbTransaction = await dbContext.Database.BeginTransactionAsync();
@@ -257,8 +262,9 @@ namespace Infrastructure.Services.Auth
         }
         private async Task<ApplicationUser> GetUserOrThrow(string userId)
         {
-            var user = await userManager.FindByIdAsync(userId);
-            return user ?? throw new InvalidObjectException("لم يتم العثور على المستخدم");
+            var user = await userManager.FindByIdAsync(userId)
+                ?? throw new InvalidObjectException("لم يتم العثور على المستخدم");
+            return user;
         }
         public async Task<AuthResponseDTO> UpdateUserAsync(UpdateUserDTO updatedUser)
         {
@@ -277,6 +283,9 @@ namespace Infrastructure.Services.Auth
             if (user.PaymentNumber != updatedUser.PaymentNumber && !string.IsNullOrWhiteSpace(updatedUser.PaymentNumber))
                 user.PaymentNumber = updatedUser.PaymentNumber.Trim();
 
+            if (user.BaseSalary != updatedUser.BaseSalary && updatedUser.BaseSalary !=0)
+                user.BaseSalary = updatedUser.BaseSalary;
+
             if (user.Email != updatedUser.Email && !string.IsNullOrWhiteSpace(updatedUser.Email))
             {
                 await userManager.SetEmailAsync(user, updatedUser.Email.Trim());
@@ -290,6 +299,9 @@ namespace Infrastructure.Services.Auth
                 user.PhoneNumber = updatedUser.PhoneNumber.Trim();
                 user.PhoneNumberConfirmed = true;
             }
+            if (user.EmployeeType != updatedUser.EmployeeType)
+                user.EmployeeType = updatedUser.EmployeeType;
+
             var userRoles = await userManager.GetRolesAsync(user);
             //if (!string.IsNullOrWhiteSpace(updatedUser.Role)
             //    && !userRoles.Contains(updatedUser.Role))

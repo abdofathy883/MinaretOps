@@ -1,4 +1,5 @@
-﻿using Core.Interfaces;
+﻿using Core.Enums;
+using Core.Interfaces;
 using Microsoft.AspNetCore.Identity;
 using System.ComponentModel.DataAnnotations;
 
@@ -20,7 +21,7 @@ namespace Core.Models
         public required string PaymentNumber { get; set; }
         [Required]
         public DateOnly DateOfHiring { get; set; }
-        public List<RefreshToken> RefreshTokens { get; set; }
+        public List<RefreshToken> RefreshTokens { get; set; } = new();
         public List<TaskItem> TaskItems { get; set; } = new();
         public virtual List<InternalTaskAssignment> InternalTaskAssignments { get; set; } = new();
         public List<LeaveRequest> LeaveRequests { get; set; } = new();
@@ -28,6 +29,13 @@ namespace Core.Models
         public List<EmployeeAnnouncement> EmployeeAnnouncements { get; set; } = new();
         public List<KPIIncedint> KPIIncedints { get; set; } = new();
         public List<Complaint> Complaints { get; set; } = new();
+        public EmployeeType EmployeeType { get; set; }
+        public decimal? BaseSalary { get; set; }
+
+        public List<SalaryPayment> SalaryPayments { get; set; } = new();
+        public List<SalaryPeriod> SalaryPeriods { get; set; } = new();
+        public List<Client> Clients { get; set; } = new();
+
         public DateOnly CreatedAt { get; set; } = DateOnly.FromDateTime(DateTime.Today);
         public DateOnly? UpdatedAt { get; set; }
         public bool IsDeleted { get; set; } = false;
