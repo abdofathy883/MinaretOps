@@ -68,7 +68,7 @@ namespace Infrastructure.Services.Auth
                 DateOfHiring = user.DateOfHiring,
                 Roles = userManager.GetRolesAsync(user).Result.ToList(),
                 BaseSalary = user.BaseSalary ?? 0,
-                EmployeeType = EmployeeType
+                EmployeeType = user.EmployeeType
             };
         }
         public async Task<AuthResponseDTO> LoginAsync(LoginDTO login)
