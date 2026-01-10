@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Core.DTOs.Contract;
 using Core.DTOs.Salary;
 using Core.Interfaces;
 using Core.Models;
@@ -6,6 +7,7 @@ using Infrastructure.Data;
 using Infrastructure.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using System.Diagnostics.Contracts;
 
 namespace Infrastructure.Services.Payroll
 {
@@ -209,6 +211,29 @@ namespace Infrastructure.Services.Payroll
                 .ToListAsync();
 
             return mapper.Map<List<SalaryPaymentDTO>>(payments);
+        }
+
+        public async Task<SalaryPeriodDTO> UpdateSalaryPeriod(UpdateSalaryPeriodDTO updateSalary)
+        {
+            var period = await dbContext.SalaryPeriods
+                .FirstOrDefaultAsync(sp => sp.Id == updateSalary.Id)
+                ?? throw new KeyNotFoundException();
+
+            if (period.Deductions != updateSalary.Deductions
+                && period.Deductions != 0)
+                period.Deductions = period.Deductions;
+
+            if (period.Bonus != updateSalary.Bonus
+                && period.Bonus != 0)
+                period.Bonus = period.Bonus;
+
+            if (period.Notes != updateSalary.Notes
+                && !string.IsNullOrWhiteSpace(updateSalary.Notes))
+                period.Notes = period.Notes;
+
+            dbContext.SalaryPeriods.Update(period);
+            await dbContext.SaveChangesAsync();
+            return mapper.Map<SalaryPeriodDTO>(period);
         }
     }
 }

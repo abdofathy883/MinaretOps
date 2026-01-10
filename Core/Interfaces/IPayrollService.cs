@@ -16,5 +16,6 @@ namespace Core.Interfaces
         Task<List<SalaryPeriodDTO>> GetAllSalaryPeriodsAsync();
         Task<SalaryPeriodDTO?> GetSalaryPeriodByIdAsync(int periodId);
         Task<List<SalaryPaymentDTO>> GetSalaryPaymentsAsync(string employeeId);
+        Task<SalaryPeriodDTO> UpdateSalaryPeriod(UpdateSalaryPeriodDTO updateSalary);
     }
 }

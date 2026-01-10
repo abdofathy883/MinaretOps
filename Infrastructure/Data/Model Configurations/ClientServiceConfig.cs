@@ -13,6 +13,10 @@ namespace Infrastructure.Data.Model_Configurations
             builder.Property(cs => cs.Id)
                 .UseIdentityColumn(1, 1);
 
+            builder.Property(cs => cs.ServiceCost)
+                .IsRequired(false)
+                .HasPrecision(18, 2);
+
             // Relationship with Client
             builder.HasOne(cs => cs.Client)
                 .WithMany(c => c.ClientServices)

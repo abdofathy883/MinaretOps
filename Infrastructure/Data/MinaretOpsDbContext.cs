@@ -38,6 +38,9 @@ namespace Infrastructure.Data
         public DbSet<ClientServiceCheckpoint> ClientServiceCheckpoints { get; set; }
         public DbSet<SalaryPeriod> SalaryPeriods { get; set; }
         public DbSet<SalaryPayment> SalaryPayments { get; set; }
+        public DbSet<Currency> Currencies { get; set; }
+        public DbSet<ExchangeRate> ExchangeRates { get; set; }
+        public DbSet<CustomContract> Contracts { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -67,6 +70,9 @@ namespace Infrastructure.Data
             builder.ApplyConfiguration(new ClientServiceCheckpointConfig());
             builder.ApplyConfiguration(new SalaryPaymentConfig());
             builder.ApplyConfiguration(new SalaryPeriodConfig());
+            builder.ApplyConfiguration(new ContractConfig());
+            builder.ApplyConfiguration(new CurrencyConfig());
+            builder.ApplyConfiguration(new ExchangeRateConfig());
         }
     }
 }

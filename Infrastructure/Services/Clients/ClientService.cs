@@ -139,6 +139,7 @@ namespace Infrastructure.Services.Clients
                     {
                         Client = newClient,
                         ServiceId = csDto.ServiceId,
+                        ServiceCost = csDto.ServiceCost,
                         TaskGroups = new List<TaskGroup>()
                     };
 
@@ -277,7 +278,10 @@ namespace Infrastructure.Services.Clients
             if (clientId == 0 || updateClientDTO is null)
                 throw new InvalidObjectException("لا يوجد عميل بهذه البيانات");
 
-            var client = await dbContext.Clients.FirstOrDefaultAsync(c => c.Id == clientId)
+            var client = await dbContext.Clients
+                .Include(c => c.AccountManager)
+                .Include(c => c.ClientServices)
+                .FirstOrDefaultAsync(c => c.Id == clientId)
                 ?? throw new InvalidObjectException("لا يوجد عميل بهذه البيانات");
 
             if (client.Name != updateClientDTO.Name && !string.IsNullOrEmpty(updateClientDTO.Name))

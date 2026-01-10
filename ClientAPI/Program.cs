@@ -8,6 +8,8 @@ using Infrastructure.Services.Attendance;
 using Infrastructure.Services.Auth;
 using Infrastructure.Services.Checkpoints;
 using Infrastructure.Services.Complaints;
+using Infrastructure.Services.Contract;
+using Infrastructure.Services.Currency;
 using Infrastructure.Services.Discord;
 using Infrastructure.Services.Email;
 using Infrastructure.Services.InternalTasks;
@@ -77,6 +79,8 @@ namespace ClientAPI
             builder.Services.AddScoped<IOutboxHandler, OutboxHandler>();
             builder.Services.AddScoped<IReportingService, ReportingService>();
             builder.Services.AddScoped<ICheckpointService, CheckpointService>();
+            builder.Services.AddScoped<ICurrencyService, CurrencyService>();
+            builder.Services.AddScoped<IContractService, ContractService>();
             builder.Services.AddSingleton<DiscordService>();
             builder.Services.AddHostedService<DiscordHostedService>();
             builder.Services.AddHostedService<OutboxProcessor>();
@@ -133,6 +137,8 @@ namespace ClientAPI
                 cfg.AddProfile<CheckpointProfile>();
                 cfg.AddProfile<SalaryPaymentProfile>();
                 cfg.AddProfile<SalaryPeriodProfile>();
+                cfg.AddProfile<CurrencyProfile>();
+                cfg.AddProfile<ContractProfile>();
             });
 
             builder.Services.AddControllers();

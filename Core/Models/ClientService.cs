@@ -8,6 +8,7 @@
 
         public int ServiceId { get; set; }
         public Service Service { get; set; } = default!;
+        public decimal? ServiceCost { get; set; }
         public List<TaskGroup> TaskGroups { get; set; } = new();
         public List<ClientServiceCheckpoint> ClientServiceCheckpoints { get; set; } = new();
 
