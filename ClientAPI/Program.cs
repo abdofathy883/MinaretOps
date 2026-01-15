@@ -23,6 +23,8 @@ using Infrastructure.Services.Payroll;
 using Infrastructure.Services.Reporting;
 using Infrastructure.Services.Services;
 using Infrastructure.Services.Tasks;
+using Infrastructure.Services.Branch;
+using Infrastructure.Services.Vault;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -81,6 +83,8 @@ namespace ClientAPI
             builder.Services.AddScoped<ICheckpointService, CheckpointService>();
             builder.Services.AddScoped<ICurrencyService, CurrencyService>();
             builder.Services.AddScoped<IContractService, ContractService>();
+            builder.Services.AddScoped<IBranchService, BranchService>();
+            builder.Services.AddScoped<IVaultService, VaultService>();
             builder.Services.AddSingleton<DiscordService>();
             builder.Services.AddHostedService<DiscordHostedService>();
             builder.Services.AddHostedService<OutboxProcessor>();
@@ -139,6 +143,7 @@ namespace ClientAPI
                 cfg.AddProfile<SalaryPeriodProfile>();
                 cfg.AddProfile<CurrencyProfile>();
                 cfg.AddProfile<ContractProfile>();
+                cfg.AddProfile<BranchProfile>();
             });
 
             builder.Services.AddControllers();

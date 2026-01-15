@@ -1,5 +1,7 @@
-﻿using Core.Models;
+﻿using Core.Enums;
+using Core.Models;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Infrastructure.Data
@@ -10,6 +12,7 @@ namespace Infrastructure.Data
         {
             var userManager = serviceProvider.GetRequiredService<UserManager<ApplicationUser>>();
             var roleManager = serviceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+            var context = serviceProvider.GetRequiredService<MinaretOpsDbContext>();
 
             // Seed Roles
             var roles = new[] { "Admin", "AccountManager", "GraphicDesigner", "GraphicDesignerTeamLeader",
@@ -52,6 +55,33 @@ namespace Infrastructure.Data
                     throw new Exception($"Failed to create Admin: {string.Join(", ", result.Errors.Select(e => e.Description))}");
                 }
             }
+
+            if (!await context.Currencies.AnyAsync())
+            {
+                var defaultCurrency = new Currency
+                {
+                    Code = "EGP",
+                    Name = "Egyptian Pound",
+                    DecimalPlaces = 2
+                };
+                await context.Currencies.AddAsync(defaultCurrency);
+                await context.SaveChangesAsync();
+                var existingUnifiedVault = await context.Vaults
+                    .FirstOrDefaultAsync(v => v.VaultType == VaultType.Unified && v.CurrencyId == defaultCurrency.Id);
+
+                if (existingUnifiedVault == null)
+                {
+                    var unifiedVault = new Vault
+                    {
+                        VaultType = VaultType.Unified,
+                        BranchId = null, // Unified vaults don't belong to a branch
+                        CurrencyId = defaultCurrency.Id
+                    };
+                    await context.Vaults.AddAsync(unifiedVault);
+                }
+            }
+
+            await context.SaveChangesAsync();
         }
     }
 }

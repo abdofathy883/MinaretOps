@@ -1,4 +1,4 @@
-﻿using Core.Models;
+using Core.Models;
 using Infrastructure.Data.Model_Configurations;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -41,6 +41,9 @@ namespace Infrastructure.Data
         public DbSet<Currency> Currencies { get; set; }
         public DbSet<ExchangeRate> ExchangeRates { get; set; }
         public DbSet<CustomContract> Contracts { get; set; }
+        public DbSet<Branch> Branches { get; set; }
+        public DbSet<Vault> Vaults { get; set; }
+        public DbSet<VaultTransaction> VaultTransactions { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -73,6 +76,9 @@ namespace Infrastructure.Data
             builder.ApplyConfiguration(new ContractConfig());
             builder.ApplyConfiguration(new CurrencyConfig());
             builder.ApplyConfiguration(new ExchangeRateConfig());
+            builder.ApplyConfiguration(new BranchConfig());
+            builder.ApplyConfiguration(new VaultConfig());
+            builder.ApplyConfiguration(new VaultTransactionConfig());
         }
     }
 }

@@ -132,8 +132,6 @@ namespace Infrastructure.Services.Auth
             if (validateErrors is not null && validateErrors.Count > 0)
                 return FailResult(string.Join(", ", validateErrors));
 
-            //var imageUploadResult = await mediaUploadService.UploadImageWithPath(newUser.ProfilePicture, $"{newUser.FirstName} {newUser.LastName}");
-
             var user = new ApplicationUser
             {
                 FirstName = newUser.FirstName,

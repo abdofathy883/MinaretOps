@@ -1,9 +1,4 @@
-﻿using Core.Enums;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Core.Enums;
 
 namespace Core.Models
 {
@@ -13,5 +8,9 @@ namespace Core.Models
         public VaultType VaultType { get; set; }
         public int? BranchId { get; set; }
         public Branch? Branch { get; set; }
+        public int CurrencyId { get; set; }
+        public Currency Currency { get; set; } = default!;
+        public List<VaultTransaction> Transactions { get; set; } = new();
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }
