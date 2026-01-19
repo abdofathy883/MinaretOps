@@ -137,6 +137,14 @@ namespace Infrastructure.Services.Payroll
                 };
 
                 dbContext.SalaryPayments.Add(payment);
+
+                //var transactionRecord = new VaultTransaction
+                //{
+                //    TransactionType = Core.Enums.TransactionType.Outgoing,
+                //    Amount = createSalaryPaymentDTO.Amount,
+                //    CurrencyId = 1, // Assuming default currency
+                //    TransactionDate = DateTime.UtcNow,
+                //};
                 await dbContext.SaveChangesAsync();
                 await dbTransaction.CommitAsync();
 

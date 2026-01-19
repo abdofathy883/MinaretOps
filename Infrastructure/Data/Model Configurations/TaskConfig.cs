@@ -23,7 +23,7 @@ namespace Infrastructure.Data.Model_Configurations
 
             builder.Property(t => t.Description)
                 .IsRequired(false)
-                .HasMaxLength(2000);
+                .HasMaxLength(5000);
 
             builder.Property(t => t.Status)
                 .IsRequired()

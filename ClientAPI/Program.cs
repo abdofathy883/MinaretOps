@@ -190,6 +190,7 @@ namespace ClientAPI
                 options.AddPolicy("FrontendOnly", policy =>
                 {
                     policy.WithOrigins("https://internal.theminaretagency.com", "http://localhost:4200")
+                    //policy.AllowAnyOrigin()
                     .AllowAnyMethod()
                     .AllowAnyHeader()
                     .AllowCredentials();
@@ -219,7 +220,7 @@ namespace ClientAPI
             //app.UseHttpsRedirection();
             app.Urls.Add("http://0.0.0.0:8080");
 
-
+            app.UseRouting();
             app.UseCors("FrontendOnly");
             app.UseAuthentication();
             app.UseAuthorization();
