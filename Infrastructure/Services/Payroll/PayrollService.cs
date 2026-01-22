@@ -1,6 +1,8 @@
 ﻿using AutoMapper;
 using Core.DTOs.Contract;
 using Core.DTOs.Salary;
+using Core.DTOs.VaultTransaction;
+using Core.Enums;
 using Core.Interfaces;
 using Core.Models;
 using Infrastructure.Data;
@@ -14,14 +16,17 @@ namespace Infrastructure.Services.Payroll
     public class PayrollService : IPayrollService
     {
         private readonly MinaretOpsDbContext dbContext;
+        private readonly IVaultService vaultService;
         private readonly IMapper mapper;
         private readonly ILogger<PayrollService> logger;
         public PayrollService(
             MinaretOpsDbContext _dbContext,
+            IVaultService _vaultService,
             IMapper _mapper,
             ILogger<PayrollService> _logger)
         {
             dbContext = _dbContext;
+            vaultService = _vaultService;
             mapper = _mapper;
             logger = _logger;
         }
@@ -83,6 +88,26 @@ namespace Infrastructure.Services.Payroll
                             CreatedAt = DateTime.UtcNow
                         };
                         dbContext.SalaryPayments.Add(payment);
+                        
+                        var vault = await dbContext.Vaults
+                            .FirstOrDefaultAsync(v => v.Id == paymentDto.VaultId)
+                            ?? throw new InvalidObjectException("الخزنة غير موجودة");
+
+                        var currency = await dbContext.Currencies
+                            .FirstOrDefaultAsync(c => c.Id == paymentDto.CurrencyId)
+                            ?? throw new InvalidObjectException("العملة غير موجودة");
+
+                        var vaultTransaction = new VaultTransaction
+                        {
+                            Amount = paymentDto.Amount,
+                            TransactionType = Core.Enums.TransactionType.Outgoing,
+                            ReferenceType = TransactionReferenceType.SalaryPayment,
+                            VaultId = vault.Id,
+                            CurrencyId = currency.Id,
+                            CreatedById = paymentDto.CreatedBy,
+                            CreatedAt = DateTime.UtcNow,
+                        };
+                        await dbContext.VaultTransactions.AddAsync(vaultTransaction);
                     }
                     await dbContext.SaveChangesAsync();
                 }
@@ -138,13 +163,31 @@ namespace Infrastructure.Services.Payroll
 
                 dbContext.SalaryPayments.Add(payment);
 
-                //var transactionRecord = new VaultTransaction
+                //var transaction = new CreateVaultTransactionDTO
                 //{
-                //    TransactionType = Core.Enums.TransactionType.Outgoing,
+                //    TransactionType = TransactionType.Outgoing,
                 //    Amount = createSalaryPaymentDTO.Amount,
-                //    CurrencyId = 1, // Assuming default currency
+                //    VaultId = createSalaryPaymentDTO.VaultId,
+                //    CurrencyId = createSalaryPaymentDTO.CurrencyId,
+                //    UserId = createSalaryPaymentDTO.CreatedBy,
+                //    ReferenceType = TransactionReferenceType.SalaryPayment,
                 //    TransactionDate = DateTime.UtcNow,
+                //    Notes = createSalaryPaymentDTO.Notes,
                 //};
+                //await vaultService.CreateTransactionAsync(transaction);
+                var tran = new VaultTransaction
+                {
+                    TransactionType = TransactionType.Outgoing,
+                    Amount = createSalaryPaymentDTO.Amount,
+                    VaultId = createSalaryPaymentDTO.VaultId,
+                    CurrencyId = createSalaryPaymentDTO.CurrencyId,
+                    CreatedById = createSalaryPaymentDTO.CreatedBy,
+                    ReferenceType = TransactionReferenceType.SalaryPayment,
+                    TransactionDate = DateTime.UtcNow,
+                    Notes = createSalaryPaymentDTO.Notes,
+                };
+                await dbContext.VaultTransactions.AddAsync(tran);
+
                 await dbContext.SaveChangesAsync();
                 await dbTransaction.CommitAsync();
 

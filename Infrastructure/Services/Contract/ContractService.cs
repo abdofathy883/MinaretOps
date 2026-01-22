@@ -42,6 +42,19 @@ namespace Infrastructure.Services.Contract
             };
 
             await context.Contracts.AddAsync(contract);
+
+            var tran = new VaultTransaction
+            {
+                VaultId = contractDTO.VaultId,
+                CurrencyId = contractDTO.CurrencyId,
+                TransactionType = Core.Enums.TransactionType.Incoming,
+                TransactionDate = DateTime.UtcNow,
+                ReferenceType = Core.Enums.TransactionReferenceType.ContractPayment,
+                CreatedById = contractDTO.CreatedBy,
+                CreatedAt = DateTime.UtcNow,
+                Amount = contractDTO.PaidAmount
+            };
+            await context.VaultTransactions.AddAsync(tran);
             await context.SaveChangesAsync();
             
             // Reload contract with all navigation properties for mapping

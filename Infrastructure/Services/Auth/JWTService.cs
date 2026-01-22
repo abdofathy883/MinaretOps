@@ -30,14 +30,16 @@ namespace Infrastructure.Services.Auth
             var roleClaims = userRoles.Select(role => new Claim(ClaimTypes.Role, role)).ToList();
 
             var claims = new List<Claim>
-        {
-            new (JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            new (JwtRegisteredClaimNames.Sub, appUser.Id),
-            new (JwtRegisteredClaimNames.Email, appUser.Email ?? ""),
-            //new Claim(ClaimTypes.NameIdentifier, appUser.Id),
-            //new ("uid", appUser.Id)
-        }.Union(userClaims)
-             .Union(roleClaims);
+            {
+                new (JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                new (JwtRegisteredClaimNames.Sub, appUser.Id),
+                new (ClaimTypes.NameIdentifier, appUser.Id),
+                new (ClaimTypes.Name, appUser.UserName ?? appUser.Email ?? ""),
+                new (JwtRegisteredClaimNames.Email, appUser.Email ?? ""),
+                //new Claim(ClaimTypes.NameIdentifier, appUser.Id),
+                //new ("uid", appUser.Id)
+            }.Union(userClaims)
+                 .Union(roleClaims);
 
             var symetricSecurityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jWTSettings.Key));
 
@@ -46,7 +48,7 @@ namespace Infrastructure.Services.Auth
                 issuer: jWTSettings.Issuer,
                 audience: jWTSettings.Audience,
                 claims: claims,
-                expires: DateTime.UtcNow.AddMinutes(jWTSettings.ExpirationMinutes + 60),
+                expires: DateTime.UtcNow.AddHours(jWTSettings.ExpirationMinutes + 2),
                 signingCredentials: signingCredentials
             );
 

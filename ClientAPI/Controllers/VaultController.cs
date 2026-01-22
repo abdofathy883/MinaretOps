@@ -7,6 +7,7 @@ namespace ClientAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    //[Authorize]
     public class VaultController : ControllerBase
     {
         private readonly IVaultService vaultService;
@@ -22,6 +23,20 @@ namespace ClientAPI.Controllers
             try
             {
                 var result = await vaultService.GetAllAsync();
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpGet("local")]
+        public async Task<IActionResult> GetAllLocalAsync()
+        {
+            try
+            {
+                var result = await vaultService.GetAllLocalAsync();
                 return Ok(result);
             }
             catch (Exception ex)

@@ -29,22 +29,18 @@ namespace Infrastructure.Services.Vault
                 .Include(v => v.Transactions)
                 .ToListAsync();
 
-            var vaultDTOs = vaults.Select(v => new VaultDTO
-            {
-                Id = v.Id,
-                VaultType = v.VaultType,
-                BranchId = v.BranchId,
-                BranchName = v.Branch?.Name,
-                CurrencyId = v.CurrencyId,
-                CurrencyName = v.Currency.Name,
-                CurrencyCode = v.Currency.Code,
-                CreatedAt = v.CreatedAt,
-                Balance = CalculateBalance(v.Transactions, v.CurrencyId)
-            }).ToList();
-
-            return vaultDTOs;
+            return mapper.Map<List<VaultDTO>>(vaults);
         }
+        public async Task<List<VaultDTO>> GetAllLocalAsync()
+        {
+            var vaults = await context.Vaults
+                .Where(v => v.VaultType != VaultType.Unified)
+                .Include(v => v.Branch)
+                .Include(v => v.Currency)
+                .ToListAsync();
 
+            return mapper.Map<List<VaultDTO>>(vaults);
+        }
         public async Task<VaultDTO> GetByIdAsync(int id)
         {
             var vault = await context.Vaults
@@ -54,20 +50,8 @@ namespace Infrastructure.Services.Vault
                 .FirstOrDefaultAsync(v => v.Id == id)
                 ?? throw new KeyNotFoundException("Vault not found");
 
-            return new VaultDTO
-            {
-                Id = vault.Id,
-                VaultType = vault.VaultType,
-                BranchId = vault.BranchId,
-                BranchName = vault.Branch?.Name,
-                CurrencyId = vault.CurrencyId,
-                CurrencyName = vault.Currency.Name,
-                CurrencyCode = vault.Currency.Code,
-                CreatedAt = vault.CreatedAt,
-                Balance = CalculateBalance(vault.Transactions, vault.CurrencyId)
-            };
+            return mapper.Map<VaultDTO>(vault);
         }
-
         public async Task<VaultDTO> GetUnifiedVaultAsync(int currencyId)
         {
             // Unified vault is a calculated view - get currency for display
@@ -237,7 +221,7 @@ namespace Infrastructure.Services.Vault
                 ?? throw new KeyNotFoundException("Vault not found");
 
             var currency = await context.Currencies
-                .FirstOrDefaultAsync(c => c.Id == vault.CurrencyId)
+                .FirstOrDefaultAsync(c => c.Id == createTransactionDTO.CurrencyId)
                 ?? throw new KeyNotFoundException("Currency not found");
 
             var user = await context.Users

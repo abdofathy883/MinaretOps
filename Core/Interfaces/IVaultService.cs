@@ -6,6 +6,7 @@ namespace Core.Interfaces
     public interface IVaultService
     {
         Task<List<VaultDTO>> GetAllAsync();
+        Task<List<VaultDTO>> GetAllLocalAsync();
         Task<VaultDTO> GetByIdAsync(int id);
         Task<VaultDTO> GetUnifiedVaultAsync(int currencyId);
         Task<decimal> GetVaultBalanceAsync(int vaultId, int? currencyId = null);

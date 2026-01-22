@@ -19,5 +19,7 @@ namespace Core.DTOs.Contract
         public decimal PaidAmount { get; set; }
         public decimal DueAmount =>
             ContractTotal - PaidAmount;
+        public DateTime CreatedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
     }
 }

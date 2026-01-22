@@ -4,6 +4,8 @@
     {
         public int ClientId { get; set; }
         public int CurrencyId { get; set; }
+        public int VaultId { get; set; }
+        public string CreatedBy { get; set; }
         public int ContractDuration { get; set; }
         public decimal ContractTotal { get; set; }
         public decimal PaidAmount { get; set; }

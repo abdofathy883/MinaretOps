@@ -18,20 +18,22 @@ namespace Infrastructure.MappingProfiles
                     src.Client.ClientServices != null && src.Client.ClientServices.Any()
                         ? src.Client.ClientServices.Select(cs => cs.ServiceCost).FirstOrDefault() ?? 0m
                         : 0m))
-                .ForMember(dest => dest.ServiceName, opt => opt.MapFrom(src => 
-                    src.Client.ClientServices != null 
+                .ForMember(dest => dest.ServiceName, opt => opt.MapFrom(src =>
+                    src.Client.ClientServices != null
                         ? src.Client.ClientServices.Select(cs => cs.Service.Title).FirstOrDefault() ?? string.Empty
                         : string.Empty))
                 .ForMember(dest => dest.Country, opt => opt.MapFrom(src => src.Client.Country ?? string.Empty))
-                .ForMember(dest => dest.AccountManagerName, opt => opt.MapFrom(src => 
-                    src.Client.AccountManager != null 
+                .ForMember(dest => dest.AccountManagerName, opt => opt.MapFrom(src =>
+                    src.Client.AccountManager != null
                         ? $"{src.Client.AccountManager.FirstName} {src.Client.AccountManager.LastName}"
                         : string.Empty))
                 .ForMember(dest => dest.BusinessType, opt => opt.MapFrom(src => src.Client.BusinessType))
                 .ForMember(dest => dest.ContractDuration, opt => opt.MapFrom(src => src.ContractDuration))
                 .ForMember(dest => dest.ContractTotal, opt => opt.MapFrom(src => src.ContractTotal))
                 .ForMember(dest => dest.DueAmount, opt => opt.MapFrom(src => src.DueAmount))
-                .ForMember(dest => dest.PaidAmount, opt => opt.MapFrom(src => src.PaidAmount));
+                .ForMember(dest => dest.PaidAmount, opt => opt.MapFrom(src => src.PaidAmount))
+                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => src.CreatedAt))
+                .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => src.UpdatedAt));
         }
     }
 }

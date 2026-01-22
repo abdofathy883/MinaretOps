@@ -6,6 +6,7 @@ using Infrastructure.MappingProfiles;
 using Infrastructure.Services.Announcements;
 using Infrastructure.Services.Attendance;
 using Infrastructure.Services.Auth;
+using Infrastructure.Services.Branch;
 using Infrastructure.Services.Checkpoints;
 using Infrastructure.Services.Complaints;
 using Infrastructure.Services.Contract;
@@ -23,13 +24,18 @@ using Infrastructure.Services.Payroll;
 using Infrastructure.Services.Reporting;
 using Infrastructure.Services.Services;
 using Infrastructure.Services.Tasks;
-using Infrastructure.Services.Branch;
 using Infrastructure.Services.Vault;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.IdentityModel.Tokens;
 using Quartz;
 using Serilog;
+using System.Security.Claims;
+using System.Text;
 using ClientService = Infrastructure.Services.Clients.ClientService;
 
 namespace ClientAPI
@@ -48,6 +54,21 @@ namespace ClientAPI
                 .AddEntityFrameworkStores<MinaretOpsDbContext>()
                 .AddDefaultTokenProviders();
 
+            builder.Services.ConfigureApplicationCookie(options =>
+            {
+                options.Events.OnRedirectToLogin = context =>
+                {
+                    context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                    return Task.CompletedTask;
+                };
+                options.Events.OnRedirectToAccessDenied = context =>
+                {
+                    context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                    return Task.CompletedTask;
+                };
+            });
+
+
             JWTSettings jwtOptions = builder.Configuration.GetSection("JWT").Get<JWTSettings>()
                 ?? throw new Exception("Error in JWT Settings");
 
@@ -55,9 +76,34 @@ namespace ClientAPI
             builder.Services.Configure<DiscordSettings>(builder.Configuration.GetSection("Discord"));
 
 
+
             builder.Services.AddSingleton<JWTSettings>(jwtOptions);
 
+            builder.Services.AddAuthentication(options =>
+            {
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            })
+                .AddJwtBearer(options =>
+                {
+                    options.SaveToken = true;
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuer = true,
+                        ValidIssuer = jwtOptions.Issuer,
+                        ValidateAudience = true,
+                        ValidAudience = jwtOptions.Audience,
+                        ValidateIssuerSigningKey = true,
+                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.Key)),
+                        ClockSkew = TimeSpan.Zero,
+                        RoleClaimType = ClaimTypes.Role,
+                        NameClaimType = ClaimTypes.NameIdentifier,
+                        ValidateLifetime = true,
 
+                    };
+                });
+
+            builder.Services.AddAuthorization();
             builder.Services.AddScoped<IAuthService, AuthService>();
             builder.Services.AddScoped<IJWTServices, JWTService>();
             builder.Services.AddScoped<IClientServices, ClientService>();
@@ -117,6 +163,7 @@ namespace ClientAPI
             // Quartz hosted service
             builder.Services.AddQuartzHostedService(q => q.WaitForJobsToComplete = true);
 
+            //builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
             builder.Services.AddAutoMapper(cfg =>
             {
                 cfg.AddProfile<ClientProfile>();
@@ -144,6 +191,7 @@ namespace ClientAPI
                 cfg.AddProfile<CurrencyProfile>();
                 cfg.AddProfile<ContractProfile>();
                 cfg.AddProfile<BranchProfile>();
+                cfg.AddProfile<VaultProfile>();
             });
 
             builder.Services.AddControllers();
@@ -196,6 +244,15 @@ namespace ClientAPI
                     .AllowCredentials();
                 });
             });
+
+            builder.Services.AddAuthorization(options =>
+            {
+                options.DefaultPolicy = new AuthorizationPolicyBuilder(
+                    JwtBearerDefaults.AuthenticationScheme)
+                    .RequireAuthenticatedUser()
+                    .Build();
+            });
+
 
             var app = builder.Build();
 

@@ -15,8 +15,11 @@ namespace Infrastructure.Data
             var context = serviceProvider.GetRequiredService<MinaretOpsDbContext>();
 
             // Seed Roles
-            var roles = new[] { "Admin", "AccountManager", "GraphicDesigner", "GraphicDesignerTeamLeader",
-            "ContentCreator", "ContentCreatorTeamLeader", "AdsSpecialest", "SEOSpecialest", "WebDeveloper", "VideoEditor"};
+            var roles = new[] { 
+                "Admin", "AccountManager", "GraphicDesigner", "GraphicDesignerTeamLeader",
+                "ContentCreator", "ContentCreatorTeamLeader", "AdsSpecialest", "SEOSpecialest",
+                "WebDeveloper", "VideoEditor", "Finance" 
+            };
             foreach (var role in roles)
             {
                 if (!await roleManager.RoleExistsAsync(role))
