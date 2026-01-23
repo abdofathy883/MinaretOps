@@ -11,6 +11,7 @@
         AdsSpecialest = 7,
         SEOSpecialest = 8,
         WebDeveloper = 9,
-        VideoEditor = 10
+        VideoEditor = 10,
+        Finance = 11
     }
 }

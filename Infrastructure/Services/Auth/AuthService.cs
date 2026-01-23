@@ -324,10 +324,14 @@ namespace Infrastructure.Services.Auth
                 var hasRole = userRoles.Any(r => r.Equals(newRole, StringComparison.OrdinalIgnoreCase));
                 if (!hasRole)
                 {
-                    // Remove existing roles (if any) and verify result
-                    if (userRoles.Any())
+                    // Preserve Finance role during updates
+                    var hasFinanceRole = userRoles.Any(r => r.Equals("Finance", StringComparison.OrdinalIgnoreCase));
+
+                    // Remove all roles except Finance
+                    var rolesToRemove = userRoles.Where(r => !r.Equals("Finance", StringComparison.OrdinalIgnoreCase)).ToList();
+                    if (rolesToRemove.Any())
                     {
-                        var removeResult = await userManager.RemoveFromRolesAsync(user, userRoles);
+                        var removeResult = await userManager.RemoveFromRolesAsync(user, rolesToRemove);
                         if (!removeResult.Succeeded)
                         {
                             var errors = string.Join(", ", removeResult.Errors.Select(e => e.Description));
@@ -335,12 +339,18 @@ namespace Infrastructure.Services.Auth
                         }
                     }
 
-                    // Add new role and verify
+                    // Add new primary role
                     var addResult = await userManager.AddToRoleAsync(user, newRole);
                     if (!addResult.Succeeded)
                     {
                         var errors = string.Join(", ", addResult.Errors.Select(e => e.Description));
                         throw new InvalidOperationException($"Failed to add role '{newRole}': {errors}");
+                    }
+
+                    // Re-add Finance role if it was present and the new role is not Finance
+                    if (hasFinanceRole && !newRole.Equals("Finance", StringComparison.OrdinalIgnoreCase))
+                    {
+                        await userManager.AddToRoleAsync(user, "Finance");
                     }
                 }
             }
