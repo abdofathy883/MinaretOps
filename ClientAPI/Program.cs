@@ -18,7 +18,6 @@ using Infrastructure.Services.JobDescription;
 using Infrastructure.Services.KPI;
 using Infrastructure.Services.LeaveRequestService;
 using Infrastructure.Services.MediaUploads;
-using Infrastructure.Services.Notifications;
 using Infrastructure.Services.OutboxProcessor;
 using Infrastructure.Services.Payroll;
 using Infrastructure.Services.Reporting;
@@ -119,7 +118,6 @@ namespace ClientAPI
             builder.Services.AddScoped<IAttendanceDashboard, AttendanceDashboard>();
             builder.Services.AddScoped<ILeaveRequestService, LeaveRequestService>();
             builder.Services.AddScoped<IBreakService, BreakService>();
-            builder.Services.AddScoped<INotificationService, NotificatonService>();
             builder.Services.AddScoped<IAnnouncementService, AnnouncementService>();
             builder.Services.AddScoped<IComplaintService, ComplaintService>();
             builder.Services.AddScoped<IKPIService, KPIService>();
@@ -131,6 +129,7 @@ namespace ClientAPI
             builder.Services.AddScoped<IContractService, ContractService>();
             builder.Services.AddScoped<IBranchService, BranchService>();
             builder.Services.AddScoped<IVaultService, VaultService>();
+            builder.Services.AddScoped<ILeadService, Infrastructure.Services.Leads.LeadService>();
             builder.Services.AddSingleton<DiscordService>();
             builder.Services.AddHostedService<DiscordHostedService>();
             builder.Services.AddHostedService<OutboxProcessor>();
@@ -178,7 +177,6 @@ namespace ClientAPI
                 cfg.AddProfile<AttendanceRecordProfile>();
                 cfg.AddProfile<LeaveRequestProfile>();
                 cfg.AddProfile<AnnouncementProfile>();
-                cfg.AddProfile<NotificationProfile>();
                 cfg.AddProfile<ComplaintProfile>();
                 cfg.AddProfile<KPIIncedintProfile>();
                 cfg.AddProfile<TaskHistoryProfile>();

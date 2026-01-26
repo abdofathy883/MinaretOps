@@ -26,7 +26,6 @@ namespace Core.Models
         public virtual List<InternalTaskAssignment> InternalTaskAssignments { get; set; } = new();
         public List<LeaveRequest> LeaveRequests { get; set; } = new();
         public List<AttendanceRecord> AttendanceRecords { get; set; } = new();
-        public List<EmployeeAnnouncement> EmployeeAnnouncements { get; set; } = new();
         public List<KPIIncedint> KPIIncedints { get; set; } = new();
         public List<Complaint> Complaints { get; set; } = new();
         public EmployeeType EmployeeType { get; set; }

@@ -1,11 +1,6 @@
-﻿using Core.Models;
+using Core.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Infrastructure.Data.Model_Configurations
 {
@@ -17,6 +12,7 @@ namespace Infrastructure.Data.Model_Configurations
 
             builder.Property(a => a.Id)
                 .UseIdentityColumn(1, 1);
+
 
             builder.Property(a => a.Title)
                 .IsRequired()
@@ -30,12 +26,12 @@ namespace Infrastructure.Data.Model_Configurations
                 .IsRequired()
                 .HasDefaultValueSql("GETUTCDATE()");
 
-            // Configure the one-to-many relationship with EmployeeAnnouncement
-            builder.HasMany(a => a.EmployeeAnnouncements)
-                .WithOne(ea => ea.Announcement)
-                .HasForeignKey(ea => ea.AnnouncementId)
+            builder.HasMany(a => a.AnnouncementLinks)
+                .WithOne(l => l.Announcement)
+                .HasForeignKey(l => l.AnnouncementId)
+                .IsRequired()
                 .OnDelete(DeleteBehavior.Cascade);
-
+            
             // Add index for better query performance
             builder.HasIndex(a => a.CreatedAt);
         }

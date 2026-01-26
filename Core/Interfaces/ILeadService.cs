@@ -4,10 +4,11 @@ namespace Core.Interfaces
 {
     public interface ILeadService
     {
-        Task<List<LightWieghtLeadDTO>> GetAllLeadsAsync();
+        Task<List<LeadDTO>> GetAllLeadsAsync();
         Task<LeadDTO> GetLeadByIdAsync(int id);
         Task<LeadDTO> CreateLeadAsync(CreateLeadDTO createLeadDTO);
         Task<LeadDTO> UpdateLeadAsync(UpdateLeadDTO updateLeadDTO);
+        Task<LeadDTO> UpdateLeadFieldAsync(int id, string fieldName, object value);
         Task<bool> DeleteLeadAsync(Guid leadId);
     }
 }

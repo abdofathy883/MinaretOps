@@ -8,5 +8,10 @@ namespace Core.Enums
 {
     public enum LeadSource
     {
+        Facebook = 0,
+        Instigram = 1,
+        LinkedIn = 2,
+        Referral = 3,
+        GoogleMaps = 4
     }
 }

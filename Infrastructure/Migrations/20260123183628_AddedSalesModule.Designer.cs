@@ -4,6 +4,7 @@ using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Infrastructure.Migrations
 {
     [DbContext(typeof(MinaretOpsDbContext))]
-    partial class MinaretOpsDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260123183628_AddedSalesModule")]
+    partial class AddedSalesModule
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -50,29 +53,6 @@ namespace Infrastructure.Migrations
                     b.HasIndex("CreatedAt");
 
                     b.ToTable("Announcements");
-                });
-
-            modelBuilder.Entity("Core.Models.AnnouncementLink", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("AnnouncementId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Link")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AnnouncementId");
-
-                    b.ToTable("AnnouncementLinks");
                 });
 
             modelBuilder.Entity("Core.Models.ApplicationUser", b =>
@@ -635,6 +615,59 @@ namespace Infrastructure.Migrations
                     b.ToTable("Contracts");
                 });
 
+            modelBuilder.Entity("Core.Models.CustomPushSubscription", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Auth")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Endpoint")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("P256DH")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("PushSubscriptions");
+                });
+
+            modelBuilder.Entity("Core.Models.EmployeeAnnouncement", b =>
+                {
+                    b.Property<string>("EmployeeId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("AnnouncementId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsRead")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.HasKey("EmployeeId", "AnnouncementId");
+
+                    b.HasIndex("AnnouncementId");
+
+                    b.HasIndex("EmployeeId");
+
+                    b.HasIndex("EmployeeId", "IsRead");
+
+                    b.ToTable("EmployeeAnnouncements");
+                });
+
             modelBuilder.Entity("Core.Models.EmployeeOnBoardingInvitation", b =>
                 {
                     b.Property<int>("Id")
@@ -1027,6 +1060,41 @@ namespace Infrastructure.Migrations
                     b.HasIndex("ProcessedAt");
 
                     b.ToTable("OutboxMessages");
+                });
+
+            modelBuilder.Entity("Core.Models.PushNotification", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("PushNotifications");
                 });
 
             modelBuilder.Entity("Core.Models.SalaryPayment", b =>
@@ -1740,17 +1808,6 @@ namespace Infrastructure.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("Core.Models.AnnouncementLink", b =>
-                {
-                    b.HasOne("Core.Models.Announcement", "Announcement")
-                        .WithMany("AnnouncementLinks")
-                        .HasForeignKey("AnnouncementId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Announcement");
-                });
-
             modelBuilder.Entity("Core.Models.ApplicationUser", b =>
                 {
                     b.OwnsMany("Core.Models.RefreshToken", "RefreshTokens", b1 =>
@@ -1919,6 +1976,25 @@ namespace Infrastructure.Migrations
                     b.Navigation("Client");
 
                     b.Navigation("Currency");
+                });
+
+            modelBuilder.Entity("Core.Models.EmployeeAnnouncement", b =>
+                {
+                    b.HasOne("Core.Models.Announcement", "Announcement")
+                        .WithMany("EmployeeAnnouncements")
+                        .HasForeignKey("AnnouncementId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Core.Models.ApplicationUser", "Employee")
+                        .WithMany("EmployeeAnnouncements")
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Announcement");
+
+                    b.Navigation("Employee");
                 });
 
             modelBuilder.Entity("Core.Models.EmployeeOnBoardingInvitation", b =>
@@ -2283,7 +2359,7 @@ namespace Infrastructure.Migrations
 
             modelBuilder.Entity("Core.Models.Announcement", b =>
                 {
-                    b.Navigation("AnnouncementLinks");
+                    b.Navigation("EmployeeAnnouncements");
                 });
 
             modelBuilder.Entity("Core.Models.ApplicationUser", b =>
@@ -2293,6 +2369,8 @@ namespace Infrastructure.Migrations
                     b.Navigation("Clients");
 
                     b.Navigation("Complaints");
+
+                    b.Navigation("EmployeeAnnouncements");
 
                     b.Navigation("InternalTaskAssignments");
 

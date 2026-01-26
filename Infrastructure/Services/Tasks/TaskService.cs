@@ -1,5 +1,4 @@
 ﻿using AutoMapper;
-using Core.DTOs.Notifications;
 using Core.DTOs.Payloads;
 using Core.DTOs.Tasks;
 using Core.DTOs.Tasks.CommentDTOs;
@@ -238,7 +237,9 @@ namespace Infrastructure.Services.Tasks
                 query = query.Where(t => t.EmployeeId == empId);
             }
 
-            var tasks = await query.ToListAsync();
+            var tasks = await query
+                .OrderBy(t => t.Deadline)
+                .ToListAsync();
             return mapper.Map<List<LightWieghtTaskDTO>>(tasks);
         }
         public async Task<TaskDTO> UpdateTaskAsync(int taskId, UpdateTaskDTO updateTask, string userId)
@@ -832,6 +833,8 @@ namespace Infrastructure.Services.Tasks
             var roles = await userManager.GetRolesAsync(emp);
 
             IQueryable<TaskItem> query = context.Tasks
+                //.Where(t => t.Status != CustomTaskStatus.Completed 
+                //&& t.Status != CustomTaskStatus.Rejected)
                 .Include(t => t.ClientService)
                     .ThenInclude(cs => cs.Service)
                 .Include(t => t.ClientService)
@@ -839,7 +842,8 @@ namespace Infrastructure.Services.Tasks
                 .Include(t => t.Employee);
 
             // Role-based filtering
-            if (roles.Contains(UserRoles.Admin.ToString()) || roles.Contains(UserRoles.AccountManager.ToString()))
+            if (roles.Contains(UserRoles.Admin.ToString()) 
+                || roles.Contains(UserRoles.AccountManager.ToString()))
             {
                 // Return all tasks (no empId filter)
             }
@@ -943,7 +947,8 @@ namespace Infrastructure.Services.Tasks
 
             // Apply ordering and pagination
             var tasks = await query
-                .OrderByDescending(t => t.CreatedAt)
+                //.OrderByDescending(t => t.CreatedAt)
+                .OrderBy(t => t.Deadline)
                 .Skip((filter.PageNumber - 1) * filter.PageSize)
                 .Take(filter.PageSize)
                 .ToListAsync();

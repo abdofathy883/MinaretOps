@@ -19,7 +19,6 @@ namespace Infrastructure.Services.Invitations
         private readonly UserManager<ApplicationUser> userManager;
         private readonly RoleManager<IdentityRole> roleManager;
         private readonly TaskHelperService helperService;
-        private readonly INotificationService notificationService;
         private readonly IMapper mapper;
 
         public InvitationService(
@@ -27,14 +26,12 @@ namespace Infrastructure.Services.Invitations
             UserManager<ApplicationUser> _userManager,
             RoleManager<IdentityRole> _roleManager,
             TaskHelperService _helperService,
-            INotificationService _notificationService,
             IMapper _mapper)
         {
             context = _context;
             userManager = _userManager;
             roleManager = _roleManager;
             helperService = _helperService;
-            notificationService = _notificationService;
             mapper = _mapper;
         }
 

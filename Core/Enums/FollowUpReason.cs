@@ -1,12 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Core.Enums
+﻿namespace Core.Enums
 {
     public enum FollowUpReason
     {
+        Later = 0,
+        NoReply = 1,
+        ReturnedAfterMonths = 2
     }
 }

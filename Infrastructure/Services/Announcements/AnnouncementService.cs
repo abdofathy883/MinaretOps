@@ -1,6 +1,5 @@
 ﻿using AutoMapper;
 using Core.DTOs.Announcements;
-using Core.DTOs.Notifications;
 using Core.Enums;
 using Core.Interfaces;
 using Core.Models;
@@ -11,25 +10,38 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Services.Announcements
 {
-    public class AnnouncementService: IAnnouncementService
+    public class AnnouncementService : IAnnouncementService
     {
         private readonly MinaretOpsDbContext context;
         private readonly TaskHelperService helperService;
-        private readonly INotificationService notificationService;
         private readonly IMapper mapper;
         public AnnouncementService(
             MinaretOpsDbContext minaret,
             TaskHelperService _helperService,
-            INotificationService notification,
             IMapper _mapper
             )
         {
             context = minaret;
             helperService = _helperService;
-            notificationService = notification;
             mapper = _mapper;
         }
+        public async Task<List<AnnouncementDTO>> GetAllAnnouncementsAsync()
+        {
+            var announcements = await context.Announcements
+                .Include(a => a.AnnouncementLinks)
+                .OrderByDescending(a => a.CreatedAt)
+                .ToListAsync();
 
+            return mapper.Map<List<AnnouncementDTO>>(announcements);
+        }
+        public async Task<AnnouncementDTO> GetById(int id)
+        {
+            var announcement = await context.Announcements
+                .Include(a => a.AnnouncementLinks)
+                .FirstOrDefaultAsync(a => a.Id == id)
+                ?? throw new KeyNotFoundException("لا يوجد اعلان لهذا المعرف");
+            return mapper.Map<AnnouncementDTO>(announcement);
+        }
         public async Task<AnnouncementDTO> CreateAnnouncementAsync(CreateAnnouncementDTO dto)
         {
             var existingAnnouncement = await context.Announcements
@@ -48,17 +60,20 @@ namespace Infrastructure.Services.Announcements
                     CreatedAt = DateTime.UtcNow,
                 };
                 await context.Announcements.AddAsync(announcement);
+                if (dto.AnnouncementLinks.Any())
+                {
+                    foreach (var link in dto.AnnouncementLinks)
+                    {
+                        var announcementLink = new AnnouncementLink
+                        {
+                            Link = link.Link,
+                            Announcement = announcement,
+                        };
+                        await context.AnnouncementLinks.AddAsync(announcementLink);
+                    }
+                }
                 var employees = await context.Users.ToListAsync();
-                //foreach (var emp in employees)
-                //{
-                //    var ea = new EmployeeAnnouncement
-                //    {
-                //        Announcement = announcement,
-                //        Employee = emp,
-                //        IsRead = false
-                //    };
-                //    await context.EmployeeAnnouncements.AddAsync(ea);
-                //}
+
                 foreach (var emp in employees)
                 {
                     if (!string.IsNullOrEmpty(emp.Email))
@@ -78,14 +93,6 @@ namespace Infrastructure.Services.Announcements
                         };
                         await helperService.AddOutboxAsync(OutboxTypes.Email, "New Announcement Email", emailPayload);                        
                     }
-                    var notification = new CreateNotificationDTO
-                    {
-                        Title = $"New Announcement - {dto.Title}",
-                        Body = dto.Message,
-                        UserId = emp.Id,
-                        Url = "https://internal.theminaretagency.com/announcements"
-                    };
-                    await notificationService.CreateAsync(notification);
                 }
                 await context.SaveChangesAsync();
                 await transaction.CommitAsync();
@@ -97,15 +104,15 @@ namespace Infrastructure.Services.Announcements
                 throw;
             }
         }
-        public async Task<List<AnnouncementDTO>> GetAllAnnouncementsAsync()
-        {
-            var announcements = await context.Announcements
-                .Include(a => a.EmployeeAnnouncements)
-                .ThenInclude(ea => ea.Employee)
-                .OrderByDescending(a => a.CreatedAt)
-                .ToListAsync();
 
-            return mapper.Map<List<AnnouncementDTO>>(announcements);
+        public async Task<bool> DeleteAsync(int id)
+        {
+            var announcement = await context.Announcements
+                .FirstOrDefaultAsync(a => a.Id == id)
+                ?? throw new KeyNotFoundException("لا يوجد اعلان لهذا المعرف");
+            context.Announcements.Remove(announcement);
+            await context.SaveChangesAsync();
+            return true;
         }
     }
 }

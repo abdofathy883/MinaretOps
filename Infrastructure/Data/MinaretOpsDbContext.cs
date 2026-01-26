@@ -27,10 +27,8 @@ namespace Infrastructure.Data
         public DbSet<AttendanceRecord> AttendanceRecords { get; set; }
         public DbSet<LeaveRequest> LeaveRequests { get; set; }
         public DbSet<BreakPeriod> BreakPeriods { get; set; }
-        public DbSet<PushNotification> PushNotifications { get; set; }
-        public DbSet<CustomPushSubscription> PushSubscriptions { get; set; }
         public DbSet<Announcement> Announcements { get; set; }
-        public DbSet<EmployeeAnnouncement> EmployeeAnnouncements { get; set; }
+        public DbSet<AnnouncementLink> AnnouncementLinks { get; set; }
         public DbSet<Complaint> Complaints { get; set; }
         public DbSet<KPIIncedint> KPIIncedints { get; set; }
         public DbSet<Outbox> OutboxMessages { get; set; }
@@ -44,6 +42,8 @@ namespace Infrastructure.Data
         public DbSet<Branch> Branches { get; set; }
         public DbSet<Vault> Vaults { get; set; }
         public DbSet<VaultTransaction> VaultTransactions { get; set; }
+        public DbSet<SalesLead> SalesLeads { get; set; }
+        public DbSet<LeadServices> LeadServices { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -65,7 +65,7 @@ namespace Infrastructure.Data
             builder.ApplyConfiguration(new AttendanceRecordConfig());
             builder.ApplyConfiguration(new LeaveRequestConfig());
             builder.ApplyConfiguration(new AnnouncementConfig());
-            builder.ApplyConfiguration(new EmployeeAnnouncementConfig());
+            builder.ApplyConfiguration(new AnnouncementLinkConfig());
             builder.ApplyConfiguration(new ComplaintConfig());
             builder.ApplyConfiguration(new IncedientConfig());
             builder.ApplyConfiguration(new OutboxConfig());
@@ -79,6 +79,8 @@ namespace Infrastructure.Data
             builder.ApplyConfiguration(new BranchConfig());
             builder.ApplyConfiguration(new VaultConfig());
             builder.ApplyConfiguration(new VaultTransactionConfig());
+            builder.ApplyConfiguration(new LeadConfig());
+            builder.ApplyConfiguration(new LeadServiceConfig());
         }
     }
 }
