@@ -190,6 +190,7 @@ namespace ClientAPI
                 cfg.AddProfile<ContractProfile>();
                 cfg.AddProfile<BranchProfile>();
                 cfg.AddProfile<VaultProfile>();
+                cfg.AddProfile<LeadProfile>();
             });
 
             builder.Services.AddControllers();

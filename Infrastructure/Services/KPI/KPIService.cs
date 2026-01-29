@@ -33,8 +33,8 @@ namespace Infrastructure.Services.KPI
         {
             { KPIAspectType.Commitment, 30 },
             { KPIAspectType.Productivity, 20 },
-            { KPIAspectType.Cooperation, 20 },
-            { KPIAspectType.QualityOfWork, 20 },
+            { KPIAspectType.CooperationAndQualityWork, 20 },
+            { KPIAspectType.WorkDuplication, 20 },
             { KPIAspectType.CustomerSatisfaction, 10 }
         };
         public async Task<EmployeeMonthlyKPIDTO> GetEmployeeMonthlyAsync(string employeeId, int? month = null, int? year = null)
@@ -59,8 +59,8 @@ namespace Infrastructure.Services.KPI
                 Month = currentMonth,
                 Commitment = AspectCaps[KPIAspectType.Commitment],
                 Productivity = AspectCaps[KPIAspectType.Productivity],
-                QualityOfWork = AspectCaps[KPIAspectType.QualityOfWork],
-                Cooperation = AspectCaps[KPIAspectType.Cooperation],
+                QualityOfWork = AspectCaps[KPIAspectType.WorkDuplication],
+                Cooperation = AspectCaps[KPIAspectType.CooperationAndQualityWork],
                 CustomerSatisfaction = AspectCaps[KPIAspectType.CustomerSatisfaction]
             };
 
@@ -77,10 +77,10 @@ namespace Infrastructure.Services.KPI
                     case KPIAspectType.Productivity:
                         dto.Productivity = Math.Max(0, dto.Productivity - deduction);
                         break;
-                    case KPIAspectType.QualityOfWork:
+                    case KPIAspectType.WorkDuplication:
                         dto.QualityOfWork = Math.Max(0, dto.QualityOfWork - deduction);
                         break;
-                    case KPIAspectType.Cooperation:
+                    case KPIAspectType.CooperationAndQualityWork:
                         dto.Cooperation = Math.Max(0, dto.Cooperation - deduction);
                         break;
                     case KPIAspectType.CustomerSatisfaction:
