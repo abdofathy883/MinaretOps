@@ -13,7 +13,7 @@ namespace Core.Interfaces
         Task<decimal> GetUnifiedVaultBalanceAsync(int currencyId);
         Task<List<VaultTransactionDTO>> GetVaultTransactionsAsync(int vaultId, VaultTransactionFilterDTO? filter = null);
         Task<List<VaultTransactionDTO>> GetUnifiedVaultTransactionsAsync(int currencyId, VaultTransactionFilterDTO? filter = null);
-        Task<VaultTransactionDTO> CreateTransactionAsync(CreateVaultTransactionDTO createTransactionDTO);
+        Task<VaultTransactionDTO> CreateTransactionAsync(CreateVaultTransactionDTO createTransactionDTO, string currentUserId);
         Task<VaultTransactionDTO> UpdateTransactionAsync(int id, UpdateVaultTransactionDTO updateTransactionDTO);
         Task<bool> DeleteTransactionAsync(int id);
     }

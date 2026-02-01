@@ -2,19 +2,22 @@ using Core.DTOs.VaultTransaction;
 using Core.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace ClientAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    //[Authorize]
+    [Authorize(Roles = "Finance")]
     public class VaultController : ControllerBase
     {
         private readonly IVaultService vaultService;
+        private readonly IHttpContextAccessor httpContextAccessor;
 
-        public VaultController(IVaultService vaultService)
+        public VaultController(IVaultService vaultService, IHttpContextAccessor httpContextAccessor)
         {
             this.vaultService = vaultService;
+            this.httpContextAccessor = httpContextAccessor;
         }
 
         [HttpGet]
@@ -151,9 +154,11 @@ namespace ClientAPI.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
+            var userId = httpContextAccessor?.HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier);
+
             try
             {
-                var result = await vaultService.CreateTransactionAsync(createTransactionDTO);
+                var result = await vaultService.CreateTransactionAsync(createTransactionDTO, userId);
                 return Ok(result);
             }
             catch (Exception ex)

@@ -6,7 +6,6 @@ namespace Core.DTOs.VaultTransaction
     {
         public int VaultId { get; set; }
         public int CurrencyId { get; set; }
-        public required string UserId { get; set; }
         public TransactionType TransactionType { get; set; }
         public decimal Amount { get; set; }
         public DateTime TransactionDate { get; set; }

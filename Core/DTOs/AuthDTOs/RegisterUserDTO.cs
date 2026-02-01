@@ -17,6 +17,6 @@ namespace Core.DTOs.AuthDTOs
         public required string PaymentNumber { get; set; }
         public required DateOnly DateOfHiring { get; set; }
         public EmployeeType EmployeeType { get; set; }
-        public decimal BaseSalary { get; set; }
+        public decimal? BaseSalary { get; set; }
     }
 }

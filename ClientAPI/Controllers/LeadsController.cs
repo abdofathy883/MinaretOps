@@ -2,6 +2,7 @@
 using Core.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using System.Text.Json;
 
 namespace ClientAPI.Controllers
@@ -11,10 +12,12 @@ namespace ClientAPI.Controllers
     public class LeadsController : ControllerBase
     {
         private readonly ILeadService leadService;
+        private readonly IHttpContextAccessor httpContextAccessor;
 
-        public LeadsController(ILeadService leadService)
+        public LeadsController(ILeadService leadService, IHttpContextAccessor httpContextAccessor)
         {
             this.leadService = leadService;
+            this.httpContextAccessor = httpContextAccessor;
         }
 
         [HttpGet]
@@ -22,7 +25,8 @@ namespace ClientAPI.Controllers
         {
             try
             {
-                var leads = await leadService.GetAllLeadsAsync();
+                var userId = httpContextAccessor?.HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier);
+                var leads = await leadService.GetAllLeadsAsync(userId);
                 return Ok(leads);
             }
             catch (Exception ex)
@@ -30,7 +34,6 @@ namespace ClientAPI.Controllers
                 return BadRequest(ex.Message);
             }
         }
-
         [HttpPost]
         public async Task<IActionResult> CreateLead(CreateLeadDTO createLeadDTO)
         {
@@ -38,11 +41,9 @@ namespace ClientAPI.Controllers
 
             try
             {
-                // Assign CreatedById from Claims if not present (although DTO has it required, usually frontend sends it or backend overrides it)
-                // For now, relying on DTO or Service to handle logic better if needed.
-                // But DTO says 'required string CreatedById'.
+                var userId = httpContextAccessor?.HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier);
                 
-                var lead = await leadService.CreateLeadAsync(createLeadDTO);
+                var lead = await leadService.CreateLeadAsync(createLeadDTO, userId);
                 return CreatedAtAction(nameof(GetLeadById), new { id = lead.Id }, lead);
             }
             catch (Exception ex)
@@ -50,7 +51,6 @@ namespace ClientAPI.Controllers
                 return BadRequest(ex.Message);
             }
         }
-
         [HttpGet("{id}")]
         public async Task<IActionResult> GetLeadById(int id)
         {
@@ -68,7 +68,6 @@ namespace ClientAPI.Controllers
                 return BadRequest(ex.Message);
             }
         }
-
         [HttpPatch("{id}")]
         public async Task<IActionResult> UpdateLeadField(int id, [FromBody] JsonElement payload)
         {
@@ -95,6 +94,30 @@ namespace ClientAPI.Controllers
              {
                  return BadRequest(ex.Message);
              }
+        }
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteAsync(int id)
+        {
+            var result = await leadService.DeleteLeadAsync(id);
+            return Ok(result);
+        }
+        [HttpPut]
+        public async Task<IActionResult> UpdateLead(UpdateLeadDTO updateLeadDTO)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            try
+            {
+                var updatedLead = await leadService.UpdateLeadAsync(updateLeadDTO);
+                return Ok(updatedLead);
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
     }
 }

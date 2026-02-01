@@ -48,7 +48,7 @@ namespace Infrastructure.Services.Auth
                 issuer: jWTSettings.Issuer,
                 audience: jWTSettings.Audience,
                 claims: claims,
-                expires: DateTime.UtcNow.AddHours(jWTSettings.ExpirationMinutes + 2),
+                expires: DateTime.UtcNow.AddMinutes(jWTSettings.ExpirationMinutes + 60),
                 signingCredentials: signingCredentials
             );
 

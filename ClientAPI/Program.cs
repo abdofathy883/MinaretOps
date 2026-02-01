@@ -49,23 +49,18 @@ namespace ClientAPI
             builder.Services.AddDbContext<MinaretOpsDbContext>(options =>
             options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-            builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
+            builder.Services
+                .AddIdentityCore<ApplicationUser>(options =>
+                    {
+                        options.User.RequireUniqueEmail = false;
+                    })
+                .AddRoles<IdentityRole>()
                 .AddEntityFrameworkStores<MinaretOpsDbContext>()
                 .AddDefaultTokenProviders();
 
-            builder.Services.ConfigureApplicationCookie(options =>
-            {
-                options.Events.OnRedirectToLogin = context =>
-                {
-                    context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                    return Task.CompletedTask;
-                };
-                options.Events.OnRedirectToAccessDenied = context =>
-                {
-                    context.Response.StatusCode = StatusCodes.Status403Forbidden;
-                    return Task.CompletedTask;
-                };
-            });
+            //builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
+            //    .AddEntityFrameworkStores<MinaretOpsDbContext>()
+            //    .AddDefaultTokenProviders();
 
 
             JWTSettings jwtOptions = builder.Configuration.GetSection("JWT").Get<JWTSettings>()
@@ -85,6 +80,7 @@ namespace ClientAPI
             })
                 .AddJwtBearer(options =>
                 {
+                    options.RequireHttpsMetadata = false;
                     options.SaveToken = true;
                     options.TokenValidationParameters = new TokenValidationParameters
                     {
@@ -134,6 +130,8 @@ namespace ClientAPI
             builder.Services.AddHostedService<DiscordHostedService>();
             builder.Services.AddHostedService<OutboxProcessor>();
             builder.Services.AddHostedService<OutboxCleaner>();
+            builder.Services.AddHttpContextAccessor();
+
 
             builder.Services.AddQuartz(q =>
             {

@@ -5,6 +5,7 @@ using Core.Interfaces;
 using Core.Models;
 using Infrastructure.Data;
 using Infrastructure.Services.Tasks;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using System.Reflection;
 using System.Text.Json;
@@ -14,22 +15,24 @@ namespace Infrastructure.Services.Leads
     public class LeadService : ILeadService
     {
         private readonly MinaretOpsDbContext context;
+        private readonly UserManager<ApplicationUser> userManager;
         private readonly TaskHelperService helperService;
         private readonly IMapper mapper;
 
-        public LeadService(MinaretOpsDbContext context, TaskHelperService _helperService, IMapper mapper)
+        public LeadService(MinaretOpsDbContext context, TaskHelperService _helperService, IMapper mapper, UserManager<ApplicationUser> userManager)
         {
             this.context = context;
             helperService = _helperService;
             this.mapper = mapper;
+            this.userManager = userManager;
         }
 
-        public async Task<LeadDTO> CreateLeadAsync(CreateLeadDTO createLeadDTO)
+        public async Task<LeadDTO> CreateLeadAsync(CreateLeadDTO createLeadDTO, string currentUserId)
         {
             var salesRep = await context.Users.FindAsync(createLeadDTO.SalesRepId)
                 ?? throw new KeyNotFoundException($"Sales Representative with ID {createLeadDTO.SalesRepId} not found.");
 
-            var createdBy = await context.Users.FindAsync(createLeadDTO.CreatedById)
+            var createdBy = await context.Users.FindAsync(currentUserId)
                 ?? throw new KeyNotFoundException($"Creator User with ID {createLeadDTO.CreatedById} not found.");
 
             
@@ -97,7 +100,6 @@ namespace Infrastructure.Services.Leads
 
             return mapper.Map<LeadDTO>(mappedLead);
         }
-
         public async Task<bool> DeleteLeadAsync(int leadId)
         {
             var lead = await context.SalesLeads
@@ -106,19 +108,33 @@ namespace Infrastructure.Services.Leads
             context.SalesLeads.Remove(lead);
             return await context.SaveChangesAsync() > 0;
         }
-
-        public async Task<List<LeadDTO>> GetAllLeadsAsync()
+        public async Task<List<LeadDTO>> GetAllLeadsAsync(string currentUserId)
         {
-            var leads = await context.SalesLeads
-                .Include(x => x.SalesRep)
-                .Include(x => x.CreatedBy)
-                .Include(x => x.ServicesInterestedIn)
-                    .ThenInclude(ls => ls.Service)
-                .OrderByDescending(x => x.CreatedAt)
-                .ToListAsync();
+            var user = await context.Users.FindAsync(currentUserId);
+            var roles = await userManager.GetRolesAsync(user);
+            var leads = new List<SalesLead>();
+            if (roles.Contains(UserRoles.Admin.ToString()))
+            {
+                leads = await context.SalesLeads
+                    .Include(x => x.SalesRep)
+                    .Include(x => x.CreatedBy)
+                    .Include(x => x.ServicesInterestedIn)
+                        .ThenInclude(ls => ls.Service)
+                    .OrderByDescending(x => x.CreatedAt)
+                    .ToListAsync();
+            } else
+            {
+                leads =  await context.SalesLeads
+                    .Where(x => x.SalesRepId == currentUserId)
+                    .Include(x => x.SalesRep)
+                    .Include(x => x.CreatedBy)
+                    .Include(x => x.ServicesInterestedIn)
+                        .ThenInclude(ls => ls.Service)
+                    .OrderByDescending(x => x.CreatedAt)
+                    .ToListAsync();
+            }
             return mapper.Map<List<LeadDTO>>(leads);
         }
-
         public async Task<LeadDTO> GetLeadByIdAsync(int id)
         {
              var lead = await context.SalesLeads
@@ -132,9 +148,87 @@ namespace Infrastructure.Services.Leads
             return mapper.Map<LeadDTO>(lead);
         }
 
-        public Task<LeadDTO> UpdateLeadAsync(UpdateLeadDTO updateLeadDTO)
+        public async Task<LeadDTO> UpdateLeadAsync(UpdateLeadDTO updateLeadDTO)
         {
-             throw new NotImplementedException();
+             var lead = await context.SalesLeads
+                .Include(x => x.ServicesInterestedIn)
+                .Include(x => x.SalesRep) // Include SalesRep for email if needed
+                .FirstOrDefaultAsync(x => x.Id == updateLeadDTO.Id)
+                ?? throw new KeyNotFoundException($"Lead with ID {updateLeadDTO.Id} not found.");
+
+            // Update simple properties
+            if (!string.IsNullOrEmpty(updateLeadDTO.BusinessName)) lead.BusinessName = updateLeadDTO.BusinessName;
+            if (!string.IsNullOrEmpty(updateLeadDTO.WhatsAppNumber)) lead.WhatsAppNumber = updateLeadDTO.WhatsAppNumber;
+            
+            lead.ContactAttempts = updateLeadDTO.ContactAttempts;
+            lead.ContactStatus = updateLeadDTO.ContactStatus;
+            lead.LeadSource = updateLeadDTO.LeadSource;
+            lead.DecisionMakerReached = updateLeadDTO.DecisionMakerReached;
+            lead.Interested = updateLeadDTO.Interested;
+            lead.InterestLevel = updateLeadDTO.InterestLevel;
+            lead.MeetingAgreed = updateLeadDTO.MeetingAgreed;
+            lead.MeetingDate = updateLeadDTO.MeetingDate;
+            lead.MeetingAttend = updateLeadDTO.MeetingAttend;
+            lead.QuotationSent = updateLeadDTO.QuotationSent;
+            lead.FollowUpTime = updateLeadDTO.FollowUpTime;
+            lead.FollowUpReason = updateLeadDTO.FollowUpReason;
+            if (updateLeadDTO.Notes != null) lead.Notes = updateLeadDTO.Notes;
+
+            // Handle SalesRep change
+            if (!string.IsNullOrEmpty(updateLeadDTO.SalesRepId) && updateLeadDTO.SalesRepId != lead.SalesRepId)
+            {
+                var newRep = await context.Users.FindAsync(updateLeadDTO.SalesRepId) 
+                             ?? throw new KeyNotFoundException($"Sales Rep with ID {updateLeadDTO.SalesRepId} not found.");
+                lead.SalesRepId = updateLeadDTO.SalesRepId;
+            }
+
+            // Sync Services
+            if (updateLeadDTO.ServicesInterestedIn != null)
+            {
+                var newServiceIds = updateLeadDTO.ServicesInterestedIn; // Already List<int>
+                var existingServiceIds = lead.ServicesInterestedIn.Select(x => x.ServiceId).ToList();
+
+                var toRemove = lead.ServicesInterestedIn.Where(x => !newServiceIds.Contains(x.ServiceId)).ToList();
+                foreach (var item in toRemove)
+                {
+                    context.LeadServices.Remove(item); 
+                }
+
+                var toAddIds = newServiceIds.Except(existingServiceIds).ToList();
+                foreach (var serviceId in toAddIds)
+                {
+                    lead.ServicesInterestedIn.Add(new LeadServices { LeadId = lead.Id, ServiceId = serviceId });
+                }
+            }
+
+            lead.UpdatedAt = DateTime.UtcNow;
+            context.SalesLeads.Update(lead);
+
+            // Send Email to the assigned employee (SalesRep)
+            // Re-fetching or using the loaded/updated SalesRepId
+            var assignedRep = await context.Users.FindAsync(lead.SalesRepId);
+
+            if (assignedRep != null && !string.IsNullOrEmpty(assignedRep.Email))
+            {
+                var emailPayload = new
+                {
+                    To = assignedRep.Email,
+                    Subject = "Lead Updated",
+                    Template = "", // Assuming dynamic content or generic template
+                    Replacements = new Dictionary<string, string>
+                    {
+                        { "BusinessName", lead.BusinessName },
+                        { "Status", lead.ContactStatus.ToString() }
+                    }
+                };
+                
+                // Using TaskHelperService as seen in CreateLeadAsync
+                await helperService.AddOutboxAsync(OutboxTypes.Email, "Lead Update Notification", emailPayload);
+            }
+            await context.SaveChangesAsync();
+            // Return updated DTO
+            // We use GetLeadByIdAsync to ensure clean mapping with all includes
+            return await GetLeadByIdAsync(lead.Id);
         }
 
         public async Task<LeadDTO> UpdateLeadFieldAsync(int id, string fieldName, object value)

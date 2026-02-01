@@ -18,7 +18,7 @@ namespace Infrastructure.Services.Contract
             this.mapper = mapper;
         }
 
-        public async Task<ContractDTO> Create(CreateContractDTO contractDTO)
+        public async Task<ContractDTO> Create(CreateContractDTO contractDTO, string currentUserId)
         {
             var client = await context.Clients
                 .Include(c => c.ClientServices)
@@ -31,30 +31,35 @@ namespace Infrastructure.Services.Contract
                 .FirstOrDefaultAsync(c => c.Id == contractDTO.CurrencyId)
                 ?? throw new KeyNotFoundException("Couldn't find the currency");
 
+            var user = await context.Users.FindAsync(currentUserId);
+
             var contract = new CustomContract
             {
                 Client = client,
                 Currency = currency,
                 ContractDuration = contractDTO.ContractDuration,
                 ContractTotal = contractDTO.ContractTotal,
-                PaidAmount = contractDTO.PaidAmount,
-                CreatedAt = DateTime.UtcNow
+                PaidAmount = contractDTO.PaidAmount ?? 0,
+                CreatedAt = contractDTO.CreatedAt ?? DateTime.UtcNow
             };
 
             await context.Contracts.AddAsync(contract);
 
-            var tran = new VaultTransaction
+            if (contractDTO.PaidAmount > 0)
             {
-                VaultId = contractDTO.VaultId,
-                CurrencyId = contractDTO.CurrencyId,
-                TransactionType = Core.Enums.TransactionType.Incoming,
-                TransactionDate = DateTime.UtcNow,
-                ReferenceType = Core.Enums.TransactionReferenceType.ContractPayment,
-                CreatedById = contractDTO.CreatedBy,
-                CreatedAt = DateTime.UtcNow,
-                Amount = contractDTO.PaidAmount
-            };
-            await context.VaultTransactions.AddAsync(tran);
+                var tran = new VaultTransaction
+                {
+                    VaultId = contractDTO.VaultId,
+                    CurrencyId = contractDTO.CurrencyId,
+                    TransactionType = Core.Enums.TransactionType.Incoming,
+                    TransactionDate = DateTime.UtcNow,
+                    ReferenceType = Core.Enums.TransactionReferenceType.ContractPayment,
+                    CreatedById = user.Id,
+                    CreatedAt = DateTime.UtcNow,
+                    Amount = contractDTO.PaidAmount ?? 0
+                };
+                await context.VaultTransactions.AddAsync(tran);
+            }
             await context.SaveChangesAsync();
             
             // Reload contract with all navigation properties for mapping

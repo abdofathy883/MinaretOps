@@ -18,7 +18,7 @@ namespace Infrastructure.Data
             var roles = new[] { 
                 "Admin", "AccountManager", "GraphicDesigner", "GraphicDesignerTeamLeader",
                 "ContentCreator", "ContentCreatorTeamLeader", "AdsSpecialest", "SEOSpecialest",
-                "WebDeveloper", "VideoEditor", "Finance" 
+                "WebDeveloper", "VideoEditor", "Finance", "SalesRep"
             };
             foreach (var role in roles)
             {

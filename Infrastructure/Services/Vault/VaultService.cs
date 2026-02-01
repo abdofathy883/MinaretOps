@@ -213,7 +213,7 @@ namespace Infrastructure.Services.Vault
             }).ToList();
         }
 
-        public async Task<VaultTransactionDTO> CreateTransactionAsync(CreateVaultTransactionDTO createTransactionDTO)
+        public async Task<VaultTransactionDTO> CreateTransactionAsync(CreateVaultTransactionDTO createTransactionDTO, string currentUserId)
         {
             var vault = await context.Vaults
                 .Include(v => v.Currency)
@@ -225,7 +225,7 @@ namespace Infrastructure.Services.Vault
                 ?? throw new KeyNotFoundException("Currency not found");
 
             var user = await context.Users
-                .FirstOrDefaultAsync(u => u.Id == createTransactionDTO.UserId)
+                .FirstOrDefaultAsync(u => u.Id == currentUserId)
                 ?? throw new KeyNotFoundException("User not found");
 
             if (createTransactionDTO.Amount <= 0)

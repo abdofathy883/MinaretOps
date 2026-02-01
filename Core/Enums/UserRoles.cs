@@ -12,6 +12,7 @@
         SEOSpecialest = 8,
         WebDeveloper = 9,
         VideoEditor = 10,
-        Finance = 11
+        Finance = 11,
+        SalesRep= 12
     }
 }
