@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using ClosedXML.Excel;
 using Core.DTOs.Leads;
 using Core.Enums;
 using Core.Interfaces;
@@ -312,6 +313,155 @@ namespace Infrastructure.Services.Leads
             {
                 lead.ServicesInterestedIn.Add(new LeadServices { LeadId = lead.Id, ServiceId = serviceId });
             }
+        }
+        public async Task ImportLeadsFromExcelAsync(Stream fileStream, string currentUserId)
+        {
+            using var workbook = new XLWorkbook(fileStream);
+            var worksheet = workbook.Worksheet(1);
+            var rows = worksheet.RangeUsed().RowsUsed().Skip(1); // Skip header
+
+            foreach (var row in rows)
+            {
+                var whatsapp = row.Cell(2).GetValue<string>(); // Assume Col 2 is WhatsApp
+                if (string.IsNullOrWhiteSpace(whatsapp)) continue;
+
+                var existingLead = await context.SalesLeads
+                    .Include(l => l.ServicesInterestedIn)
+                    .FirstOrDefaultAsync(l => l.WhatsAppNumber == whatsapp);
+
+                if (existingLead != null)
+                {
+                    // Update
+                    existingLead.BusinessName = row.Cell(1).GetValue<string>();
+                    existingLead.ContactStatus = ParseEnum<ContactStatus>(row.Cell(3).GetValue<string>());
+                    existingLead.ContactAttempts = row.Cell(4).GetValue<int>();
+                    existingLead.LeadSource = ParseEnum<LeadSource>(row.Cell(5).GetValue<string>());
+                    existingLead.DecisionMakerReached = row.Cell(6).GetValue<bool>();
+                    existingLead.Interested = row.Cell(7).GetValue<bool>();
+                    existingLead.InterestLevel = ParseEnum<InterestLevel>(row.Cell(8).GetValue<string>());
+                    existingLead.MeetingAgreed = row.Cell(9).GetValue<bool>();
+                    existingLead.FollowUpReason = ParseEnum<FollowUpReason>(row.Cell(14).GetValue<string>());
+                    existingLead.Notes = row.Cell(15).GetValue<string>();
+
+                    existingLead.UpdatedAt = DateTime.UtcNow;
+                    // Note: Skipping Services, Meeting Date, etc for brevity/complexity in first pass unless requested
+
+                    context.SalesLeads.Update(existingLead);
+                }
+                else
+                {
+                    // Create
+                    var newLead = new SalesLead
+                    {
+                        BusinessName = row.Cell(1).GetValue<string>(),
+                        WhatsAppNumber = whatsapp,
+                        ContactStatus = ParseEnum<ContactStatus>(row.Cell(3).GetValue<string>()),
+                        ContactAttempts = row.Cell(4).GetValue<int>(),
+                        LeadSource = ParseEnum<LeadSource>(row.Cell(5).GetValue<string>()),
+                        DecisionMakerReached = row.Cell(6).GetValue<bool>(),
+                        Interested = row.Cell(7).GetValue<bool>(),
+                        InterestLevel = ParseEnum<InterestLevel>(row.Cell(8).GetValue<string>()),
+                        MeetingAgreed = row.Cell(9).GetValue<bool>(),
+                        FollowUpReason = ParseEnum<FollowUpReason>(row.Cell(14).GetValue<string>()),
+                        Notes = row.Cell(15).GetValue<string>(),
+                        CreatedById = currentUserId,
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    // Handle default/optional fields
+                    context.SalesLeads.Add(newLead);
+                }
+            }
+            await context.SaveChangesAsync();
+        }
+
+        private T ParseEnum<T>(string value) where T : struct
+        {
+            if (string.IsNullOrWhiteSpace(value)) return default;
+            return Enum.TryParse<T>(value, true, out var result) ? result : default;
+        }
+
+        public async Task<byte[]> ExportLeadsToExcelAsync(string userId)
+        {
+            var leads = await GetAllLeadsAsync(userId);
+            // Although GetAllLeadsAsync returns DTOs, we might want entities or just map DTOs.
+            // DTOs are fine.
+
+            using var workbook = new XLWorkbook();
+            var worksheet = workbook.Worksheets.Add("Leads");
+
+            // Headers
+            worksheet.Cell(1, 1).Value = "Business Name";
+            worksheet.Cell(1, 2).Value = "WhatsApp Number";
+            worksheet.Cell(1, 3).Value = "Contact Status";
+            worksheet.Cell(1, 4).Value = "Contact Attempts";
+            worksheet.Cell(1, 5).Value = "Lead Source";
+            worksheet.Cell(1, 6).Value = "Decision Maker Reached";
+            worksheet.Cell(1, 7).Value = "Interested";
+            worksheet.Cell(1, 8).Value = "Interest Level";
+            worksheet.Cell(1, 9).Value = "Meeting Agreed";
+            worksheet.Cell(1, 10).Value = "Meeting Date";
+            worksheet.Cell(1, 11).Value = "Meeting Attend";
+            worksheet.Cell(1, 12).Value = "Quotation Sent";
+            worksheet.Cell(1, 13).Value = "Follow Up Time";
+            worksheet.Cell(1, 14).Value = "Follow Up Reason";
+            worksheet.Cell(1, 15).Value = "Notes";
+
+            int row = 2;
+            foreach (var lead in leads)
+            {
+                worksheet.Cell(row, 1).Value = lead.BusinessName;
+                worksheet.Cell(row, 2).Value = lead.WhatsAppNumber;
+                worksheet.Cell(row, 3).Value = lead.ContactStatus.ToString();
+                worksheet.Cell(row, 4).Value = lead.ContactAttempts;
+                worksheet.Cell(row, 5).Value = lead.LeadSource.ToString();
+                worksheet.Cell(row, 6).Value = lead.DecisionMakerReached;
+                worksheet.Cell(row, 7).Value = lead.Interested;
+                worksheet.Cell(row, 8).Value = lead.InterestLevel.ToString();
+                worksheet.Cell(row, 9).Value = lead.MeetingAgreed;
+                worksheet.Cell(row, 10).Value = lead.MeetingDate?.ToString();
+                worksheet.Cell(row, 11).Value = lead.MeetingAttend.ToString();
+                worksheet.Cell(row, 12).Value = lead.QuotationSent;
+                worksheet.Cell(row, 13).Value = lead.FollowUpTime?.ToString();
+                worksheet.Cell(row, 14).Value = lead.FollowUpReason.ToString();
+                worksheet.Cell(row, 15).Value = lead.Notes;
+                row++;
+            }
+
+            using var stream = new MemoryStream();
+            workbook.SaveAs(stream);
+            return stream.ToArray();
+        }
+        public async Task<byte[]> GetLeadTemplateAsync()
+        {
+            using var workbook = new XLWorkbook();
+            var worksheet = workbook.Worksheets.Add("Leads Template");
+
+            // Headers
+            worksheet.Cell(1, 1).Value = "Business Name";
+            worksheet.Cell(1, 2).Value = "WhatsApp Number";
+            worksheet.Cell(1, 3).Value = "Contact Status";
+            worksheet.Cell(1, 4).Value = "Contact Attempts";
+            worksheet.Cell(1, 5).Value = "Lead Source";
+            worksheet.Cell(1, 6).Value = "Decision Maker Reached";
+            worksheet.Cell(1, 7).Value = "Interested";
+            worksheet.Cell(1, 8).Value = "Interest Level";
+            worksheet.Cell(1, 9).Value = "Meeting Agreed";
+            worksheet.Cell(1, 10).Value = "Meeting Date";
+            worksheet.Cell(1, 11).Value = "Meeting Attend";
+            worksheet.Cell(1, 12).Value = "Quotation Sent";
+            worksheet.Cell(1, 13).Value = "Follow Up Time";
+            worksheet.Cell(1, 14).Value = "Follow Up Reason";
+            worksheet.Cell(1, 15).Value = "Notes";
+
+            // Add a sample row?
+            worksheet.Cell(2, 1).Value = "Sample Business";
+            worksheet.Cell(2, 2).Value = "123456789";
+
+            // Add validation or comments if possible for Enums, but skipping for simplicity.
+
+            using var stream = new MemoryStream();
+            workbook.SaveAs(stream);
+            return stream.ToArray();
         }
     }
 }
