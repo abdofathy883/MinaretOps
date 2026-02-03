@@ -10,9 +10,8 @@ namespace Core.DTOs.EmployeeOnBoarding
     public class InvitationDTO
     {
         public int Id { get; set; }
-        public string Email { get; set; } = string.Empty;
+        public string? Email { get; set; }
         public UserRoles Role { get; set; }
-        public string RoleName { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
         public DateTime? ExpiresAt { get; set; }
         public DateTime? CompletedAt { get; set; }

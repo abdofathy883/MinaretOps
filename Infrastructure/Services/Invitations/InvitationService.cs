@@ -48,43 +48,53 @@ namespace Infrastructure.Services.Invitations
             if (existingInvitation != null)
                 throw new InvalidObjectException("تم إرسال دعوة بالفعل لهذا البريد الإلكتروني");
 
-            // Generate secure token
-            var token = GenerateSecureToken();
-
-            var invitation = new EmployeeOnBoardingInvitation
+            using var transacrion = await context.Database.BeginTransactionAsync();
+            try
             {
-                Email = dto.Email,
-                Role = dto.Role,
-                InvitationToken = token,
-                InvitedByUserId = adminUserId,
-                CreatedAt = DateTime.UtcNow,
-                ExpiresAt = DateTime.UtcNow.AddDays(7), // 7 days validity
-                Status = InvitationStatus.Pending
-            };
+                // Generate secure token
+                var token = GenerateSecureToken();
 
-            await context.EmployeeOnBoardingInvitations.AddAsync(invitation);
-
-            // Send invitation email
-            var invitationLink = $"https://internal.theminaretagency.com/complete-invitation?token={token}";
-            var emailPayload = new
-            {
-                To = dto.Email,
-                Subject = "دعوة للانضمام إلى The Minaret Agency",
-                Template = "EmployeeInvitation",
-                Replacements = new Dictionary<string, string>
+                var invitation = new EmployeeOnBoardingInvitation
                 {
-                    { "{{InvitationLink}}", invitationLink },
-                    { "{{RoleName}}", dto.Role.ToString() },
-                    { "{{ExpiryDate}}", invitation.ExpiresAt.Value.ToString("yyyy-MM-dd") }
-                }
-            };
-            await helperService.AddOutboxAsync(OutboxTypes.Email, "Employee Invitation Email", emailPayload);
-            await context.SaveChangesAsync();
+                    Email = dto.Email,
+                    Role = dto.Role,
+                    InvitationToken = token,
+                    InvitedByUserId = adminUserId,
+                    CreatedAt = DateTime.UtcNow,
+                    ExpiresAt = DateTime.UtcNow.AddDays(7), // 7 days validity
+                    Status = InvitationStatus.Pending
+                };
 
-            // Notify all admins
-            await NotifyAdminsAsync(invitation);
+                await context.EmployeeOnBoardingInvitations.AddAsync(invitation);
 
-            return mapper.Map<InvitationDTO>(invitation);
+                // Send invitation email
+                var invitationLink = $"https://internal.theminaretagency.com/complete-invitation?token={token}";
+                var emailPayload = new
+                {
+                    To = dto.Email,
+                    Subject = "دعوة للانضمام إلى The Minaret Agency",
+                    Template = "EmployeeInvitation",
+                    Replacements = new Dictionary<string, string>
+                    {
+                        { "{{InvitationLink}}", invitationLink },
+                        { "{{RoleName}}", dto.Role.ToString() },
+                        { "{{ExpiryDate}}", invitation.ExpiresAt.Value.ToString("yyyy-MM-dd") }
+                    }
+                };
+                await helperService.AddOutboxAsync(OutboxTypes.Email, "Employee Invitation Email", emailPayload);
+                await context.SaveChangesAsync();
+                await transacrion.CommitAsync();
+
+                // Notify all admins
+                await NotifyAdminsAsync(invitation);
+
+                return mapper.Map<InvitationDTO>(invitation);
+            }
+            catch (Exception)
+            {
+                await transacrion.RollbackAsync();
+                throw;
+            }
         }
         public async Task<InvitationDTO> GetInvitationByTokenAsync(string token)
         {
@@ -120,7 +130,8 @@ namespace Infrastructure.Services.Invitations
         public async Task<InvitationDTO> CompleteInvitationAsync(CompleteInvitationDTO dto)
         {
             var invitation = await context.EmployeeOnBoardingInvitations
-                .FirstOrDefaultAsync(i => i.InvitationToken == dto.Token && i.Status == InvitationStatus.Pending);
+                .FirstOrDefaultAsync(i => i.InvitationToken == dto.Token 
+                && i.Status == InvitationStatus.Pending);
 
             if (invitation == null)
                 throw new KeyNotFoundException("الدعوة غير موجودة");
@@ -141,9 +152,6 @@ namespace Infrastructure.Services.Invitations
             invitation.NID = dto.NID;
             invitation.PaymentNumber = dto.PaymentNumber;
             invitation.DateOfHiring = dto.DateOfHiring;
-            invitation.ProfilePicture = dto.ProfilePicture ?? string.Empty;
-            invitation.JobTitle = dto.JobTitle ?? string.Empty;
-            invitation.Bio = dto.Bio ?? string.Empty;
             invitation.Status = InvitationStatus.Completed;
             invitation.CompletedAt = DateTime.UtcNow;
 
@@ -179,11 +187,7 @@ namespace Infrastructure.Services.Invitations
                 DateOfHiring = invitation.DateOfHiring!.Value
             };
 
-            // Get password from invitation (you may need to store it temporarily)
-            // For now, we'll generate a temporary password and send it via email
-            var tempPassword = $"{user.FirstName}@Minaret2021";
-            var result = await userManager.CreateAsync(user, tempPassword);
-
+            var result = await userManager.CreateAsync(user, invitation.Password);
             if (!result.Succeeded)
                 throw new InvalidObjectException("فشل في إنشاء حساب المستخدم");
 
@@ -200,7 +204,6 @@ namespace Infrastructure.Services.Invitations
                     { "EmpName", $"{user.FirstName} {user.LastName}" },
                     { "EmpEmail", user.Email ?? "" },
                     { "EmpRole", invitation.Role.ToString() },
-                    { "TempPassword", tempPassword }
                 }
             };
             await helperService.AddOutboxAsync(OutboxTypes.Email, "Employee Onboarding Email", emailPayload);

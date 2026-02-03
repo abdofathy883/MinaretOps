@@ -14,6 +14,7 @@ using Infrastructure.Services.Currency;
 using Infrastructure.Services.Discord;
 using Infrastructure.Services.Email;
 using Infrastructure.Services.InternalTasks;
+using Infrastructure.Services.Invitations;
 using Infrastructure.Services.JobDescription;
 using Infrastructure.Services.KPI;
 using Infrastructure.Services.LeaveRequestService;
@@ -126,6 +127,7 @@ namespace ClientAPI
             builder.Services.AddScoped<IBranchService, BranchService>();
             builder.Services.AddScoped<IVaultService, VaultService>();
             builder.Services.AddScoped<ILeadService, Infrastructure.Services.Leads.LeadService>();
+            builder.Services.AddScoped<IInvitationService, InvitationService>();
             builder.Services.AddSingleton<DiscordService>();
             builder.Services.AddHostedService<DiscordHostedService>();
             builder.Services.AddHostedService<OutboxProcessor>();
@@ -189,6 +191,7 @@ namespace ClientAPI
                 cfg.AddProfile<BranchProfile>();
                 cfg.AddProfile<VaultProfile>();
                 cfg.AddProfile<LeadProfile>();
+                cfg.AddProfile<EmpInvitationProfile>();
             });
 
             builder.Services.AddControllers();
