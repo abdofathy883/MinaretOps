@@ -21,6 +21,9 @@ namespace Infrastructure.Data.Model_Configurations
                 .IsRequired()
                 .HasMaxLength(20);
 
+            builder.Property(x => x.FollowUpReason)
+                .IsRequired(false);
+
             builder.Property(x => x.Notes)
                 .HasMaxLength(2000);
 

@@ -19,7 +19,7 @@ namespace Core.Models
         public MeetingAttend MeetingAttend { get; set; }
         public bool QuotationSent { get; set; }
         public DateTime? FollowUpTime { get; set; }
-        public FollowUpReason FollowUpReason { get; set; }
+        public FollowUpReason? FollowUpReason { get; set; }
         public string? Notes { get; set; }
         public string? SalesRepId { get; set; }
         public ApplicationUser? SalesRep { get; set; }

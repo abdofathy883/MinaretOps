@@ -18,7 +18,7 @@ namespace Core.DTOs.Leads
         public DateTime? MeetingDate { get; set; }
         public MeetingAttend MeetingAttend { get; set; }
         public bool QuotationSent { get; set; }
-        public FollowUpReason FollowUpReason { get; set; }
+        public FollowUpReason? FollowUpReason { get; set; }
         public DateTime? FollowUpTime { get; set; }
         public string? Notes { get; set; }
         public string? SalesRepId { get; set; }
