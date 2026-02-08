@@ -199,6 +199,7 @@ namespace Infrastructure.Services.Tasks
             var roles = await userManager.GetRolesAsync(emp);
 
             IQueryable<TaskItem> query = context.Tasks
+                .Where(t => t.Status != CustomTaskStatus.Completed && t.Status != CustomTaskStatus.Rejected)
                 .Include(t => t.ClientService)
                     .ThenInclude(cs => cs.Service)
                 .Include(t => t.ClientService)

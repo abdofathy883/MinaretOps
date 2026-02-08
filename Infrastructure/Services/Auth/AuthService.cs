@@ -38,21 +38,29 @@ namespace Infrastructure.Services.Auth
             var users = await userManager.Users.ToListAsync()
                 ?? throw new InvalidObjectException("لا يوجد مستخدمين");
 
-            return users.Select(u => new AuthResponseDTO
+            var result = new List<AuthResponseDTO>();
+
+            foreach (var u in users)
             {
-                Id = u.Id,
-                FirstName = u.FirstName,
-                LastName = u.LastName,
-                Email = u.Email ?? string.Empty,
-                PhoneNumber = u.PhoneNumber ?? string.Empty,
-                Roles = userManager.GetRolesAsync(u).Result.ToList(),
-                BaseSalary = u.BaseSalary ?? 0,
-                EmployeeType = u.EmployeeType
-            }).ToList();
+                var roles = await userManager.GetRolesAsync(u);
+                result.Add(new AuthResponseDTO
+                {
+                    Id = u.Id,
+                    FirstName = u.FirstName,
+                    LastName = u.LastName,
+                    Email = u.Email ?? string.Empty,
+                    PhoneNumber = u.PhoneNumber ?? string.Empty,
+                    Roles = roles.ToList(),
+                    BaseSalary = u.BaseSalary ?? 0,
+                    EmployeeType = u.EmployeeType
+                });
+            }
+            return result;
         }
         public async Task<UserDTO> GetUserByIdAsync(string userId)
         {
             var user = await GetUserOrThrow(userId);
+            var roles = await userManager.GetRolesAsync(user);
 
             return new UserDTO
             {
@@ -66,7 +74,7 @@ namespace Infrastructure.Services.Auth
                 NID = user.NID,
                 PaymentNumber = user.PaymentNumber,
                 DateOfHiring = user.DateOfHiring,
-                Roles = userManager.GetRolesAsync(user).Result.ToList(),
+                Roles = roles.ToList(),
                 BaseSalary = user.BaseSalary ?? 0,
                 EmployeeType = user.EmployeeType
             };

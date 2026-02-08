@@ -5,7 +5,9 @@ using Core.DTOs.Tasks.TaskGroupDTOs;
 using Core.DTOs.Tasks.TaskResourcesDTOs;
 using Core.Enums;
 using Core.Interfaces;
+using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace ClientAPI.Controllers
 {
@@ -35,30 +37,15 @@ namespace ClientAPI.Controllers
             }
         }
 
-        [HttpGet("task/{taskId}")]
-        public async Task<IActionResult> GetTaskById(int taskId)
-        {
-            if (taskId == 0)
-                return BadRequest("Task Id Can't Be Zero");
-            try
-            {
-                var task = await taskService.GetTaskByIdAsync(taskId);
-                return Ok(task);
-            }
-            catch(Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
-        }
-
         [HttpGet("emp-tasks/{empId}")]
-        public async Task<IActionResult> GetTasksByEmployeeId(string empId)
+        public async Task<IActionResult> GetTasksByEmployeeId()
         {
-            if (string.IsNullOrWhiteSpace(empId))
+            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrWhiteSpace(currentUserId))
                 return BadRequest("Employee Id is Null");
             try
             {
-                var task = await taskService.GetTasksByEmployeeIdAsync(empId);
+                var task = await taskService.GetTasksByEmployeeIdAsync(currentUserId);
                 return Ok(task);
             }
             catch(Exception ex)
@@ -121,22 +108,6 @@ namespace ClientAPI.Controllers
             try
             {
                 var task = await archivedTaskService.RestoreTaskAsync(taskId);
-                return Ok(task);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
-        }
-
-        [HttpGet("archived-task/{taskId}")]
-        public async Task<IActionResult> GetArchivedTaskById(int taskId)
-        {
-            if (taskId == 0)
-                return BadRequest("Task Id Can't Be Zero");
-            try
-            {
-                var task = await archivedTaskService.GetArchivedTaskByIdAsync(taskId);
                 return Ok(task);
             }
             catch (Exception ex)
