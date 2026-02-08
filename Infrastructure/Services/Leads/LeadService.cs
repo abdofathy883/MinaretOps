@@ -117,6 +117,7 @@ namespace Infrastructure.Services.Leads
             if (roles.Contains(UserRoles.Admin.ToString()))
             {
                 leads = await context.SalesLeads
+                    .AsNoTracking()
                     .Include(x => x.SalesRep)
                     .Include(x => x.CreatedBy)
                     .Include(x => x.ServicesInterestedIn)

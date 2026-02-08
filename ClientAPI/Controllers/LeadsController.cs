@@ -26,11 +26,17 @@ namespace ClientAPI.Controllers
             try
             {
                 var userId = httpContextAccessor?.HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier);
+                Console.WriteLine($"[GetLeads] Request received from user: {userId} at {DateTime.UtcNow}");
+                
                 var leads = await leadService.GetAllLeadsAsync(userId);
+                
+                Console.WriteLine($"[GetLeads] Successfully retrieved {leads.Count} leads for user: {userId}");
                 return Ok(leads);
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"[GetLeads] Error: {ex.Message}");
+                Console.WriteLine($"[GetLeads] Stack Trace: {ex.StackTrace}");
                 return BadRequest(ex.Message);
             }
         }
@@ -143,11 +149,17 @@ namespace ClientAPI.Controllers
             try
             {
                 var userId = httpContextAccessor?.HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier);
+                Console.WriteLine($"[ExportLeads] Request received from user: {userId} at {DateTime.UtcNow}");
+                
                 var fileContent = await leadService.ExportLeadsToExcelAsync(userId);
+                
+                Console.WriteLine($"[ExportLeads] Successfully generated Excel file ({fileContent.Length} bytes) for user: {userId}");
                 return File(fileContent, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "Leads.xlsx");
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"[ExportLeads] Error: {ex.Message}");
+                Console.WriteLine($"[ExportLeads] Stack Trace: {ex.StackTrace}");
                 return BadRequest($"Export failed: {ex.Message}");
             }
         }

@@ -76,12 +76,12 @@ namespace Infrastructure.Services.Auth
             var authDTO = new AuthResponseDTO();
             var user = await userManager.Users.FirstOrDefaultAsync(u => u.PhoneNumber == login.PhoneNumber.Trim());
             var passCheck = await userManager.CheckPasswordAsync(user, login.Password.Trim());
-            //if (user is null || !passCheck)
-            //{
-            //    authDTO.IsAuthenticated = false;
-            //    authDTO.Message = "لا يوجد حساب بهذه البيانات";
-            //    return authDTO;
-            //}
+            if (user is null || !passCheck)
+            {
+                authDTO.IsAuthenticated = false;
+                authDTO.Message = "لا يوجد حساب بهذه البيانات";
+                return authDTO;
+            }
 
             if (user.IsDeleted)
             {

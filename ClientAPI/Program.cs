@@ -59,11 +59,6 @@ namespace ClientAPI
                 .AddEntityFrameworkStores<MinaretOpsDbContext>()
                 .AddDefaultTokenProviders();
 
-            //builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
-            //    .AddEntityFrameworkStores<MinaretOpsDbContext>()
-            //    .AddDefaultTokenProviders();
-
-
             JWTSettings jwtOptions = builder.Configuration.GetSection("JWT").Get<JWTSettings>()
                 ?? throw new Exception("Error in JWT Settings");
 
@@ -195,6 +190,14 @@ namespace ClientAPI
             });
 
             builder.Services.AddControllers();
+
+            // Configure request timeout to prevent indefinite hangs
+            builder.WebHost.ConfigureKestrel(serverOptions =>
+            {
+                serverOptions.Limits.KeepAliveTimeout = TimeSpan.FromMinutes(2);
+                serverOptions.Limits.RequestHeadersTimeout = TimeSpan.FromSeconds(30);
+            });
+
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
             builder.Services.AddOpenApi();
 
@@ -237,7 +240,11 @@ namespace ClientAPI
             {
                 options.AddPolicy("FrontendOnly", policy =>
                 {
-                    policy.WithOrigins("https://internal.theminaretagency.com", "http://localhost:4200")
+                    policy.WithOrigins(
+                        "https://internal.theminaretagency.com",      // Frontend domain
+                        "https://internal-api.theminaretagency.com",  // API domain
+                        "http://localhost:4200"                       // Local development
+                    )
                     //policy.AllowAnyOrigin()
                     .AllowAnyMethod()
                     .AllowAnyHeader()

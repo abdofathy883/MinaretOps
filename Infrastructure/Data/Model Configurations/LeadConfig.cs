@@ -45,6 +45,11 @@ namespace Infrastructure.Data.Model_Configurations
                 .WithOne(x => x.Lead)
                 .HasForeignKey(x => x.LeadId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            builder.HasIndex(x => x.CreatedAt);
+            builder.HasIndex(x => x.SalesRepId);
+            builder.HasIndex(x => x.CreatedById);
+            builder.HasIndex(x => x.CreatedAt);
         }
     }
 }
