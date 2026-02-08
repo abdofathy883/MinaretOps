@@ -1,5 +1,6 @@
 ﻿using Core.DTOs.Leads;
 using Core.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using System.Text.Json;
@@ -8,6 +9,7 @@ namespace ClientAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class LeadsController : ControllerBase
     {
         private readonly ILeadService leadService;
