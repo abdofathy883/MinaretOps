@@ -8,6 +8,7 @@ using Infrastructure.Data;
 using Infrastructure.Services.Tasks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using System.Reflection;
 using System.Text.Json;
 
@@ -19,13 +20,15 @@ namespace Infrastructure.Services.Leads
         private readonly UserManager<ApplicationUser> userManager;
         private readonly TaskHelperService helperService;
         private readonly IMapper mapper;
+        private readonly ILogger<LeadService> logger;
 
-        public LeadService(MinaretOpsDbContext context, TaskHelperService _helperService, IMapper mapper, UserManager<ApplicationUser> userManager)
+        public LeadService(MinaretOpsDbContext context, TaskHelperService _helperService, IMapper mapper, UserManager<ApplicationUser> userManager, ILogger<LeadService> _logger)
         {
             this.context = context;
             helperService = _helperService;
             this.mapper = mapper;
             this.userManager = userManager;
+            logger = _logger;
         }
 
         public async Task<LeadDTO> CreateLeadAsync(CreateLeadDTO createLeadDTO, string currentUserId)
@@ -112,30 +115,44 @@ namespace Infrastructure.Services.Leads
         public async Task<List<LeadDTO>> GetAllLeadsAsync(string currentUserId)
         {
             var user = await context.Users.FindAsync(currentUserId);
+            if (user is null)
+            {
+                logger.LogError($"Couldn't find current logged in user with Id: {currentUserId}");
+                throw new KeyNotFoundException($"Couldn't find current logged in user with Id: {currentUserId}");
+            }
             var roles = await userManager.GetRolesAsync(user);
             var leads = new List<SalesLead>();
-            if (roles.Contains(UserRoles.Admin.ToString()))
+            try
             {
-                leads = await context.SalesLeads
-                    .AsNoTracking()
-                    .Include(x => x.SalesRep)
-                    .Include(x => x.CreatedBy)
-                    .Include(x => x.ServicesInterestedIn)
-                        .ThenInclude(ls => ls.Service)
-                    .OrderByDescending(x => x.CreatedAt)
-                    .ToListAsync();
-            } else
-            {
-                leads =  await context.SalesLeads
-                    .Where(x => x.SalesRepId == currentUserId)
-                    .Include(x => x.SalesRep)
-                    .Include(x => x.CreatedBy)
-                    .Include(x => x.ServicesInterestedIn)
-                        .ThenInclude(ls => ls.Service)
-                    .OrderByDescending(x => x.CreatedAt)
-                    .ToListAsync();
+                if (roles.Contains(UserRoles.Admin.ToString()))
+                {
+                    leads = await context.SalesLeads
+                        .AsNoTracking()
+                        .Include(x => x.SalesRep)
+                        .Include(x => x.CreatedBy)
+                        .Include(x => x.ServicesInterestedIn)
+                            .ThenInclude(ls => ls.Service)
+                        .OrderByDescending(x => x.CreatedAt)
+                        .ToListAsync();
+                } else
+                {
+                    leads =  await context.SalesLeads
+                        .AsNoTracking()
+                        .Where(x => x.SalesRepId == currentUserId)
+                        .Include(x => x.SalesRep)
+                        .Include(x => x.CreatedBy)
+                        .Include(x => x.ServicesInterestedIn)
+                            .ThenInclude(ls => ls.Service)
+                        .OrderByDescending(x => x.CreatedAt)
+                        .ToListAsync();
+                }
+                return mapper.Map<List<LeadDTO>>(leads);
             }
-            return mapper.Map<List<LeadDTO>>(leads);
+            catch
+            {
+                logger.LogError("Get All Leads Method Terminated With Error");
+                throw;
+            }
         }
         public async Task<LeadDTO> GetLeadByIdAsync(int id)
         {

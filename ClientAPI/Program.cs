@@ -242,7 +242,7 @@ namespace ClientAPI
                 {
                     policy.WithOrigins(
                         "https://internal.theminaretagency.com",      // Frontend domain
-                        "https://internal-api.theminaretagency.com",  // API domain
+                        //"https://internal-api.theminaretagency.com",  // API domain
                         "http://localhost:4200"                       // Local development
                     )
                     //policy.AllowAnyOrigin()

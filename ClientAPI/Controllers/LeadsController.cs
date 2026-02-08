@@ -1,6 +1,5 @@
 ﻿using Core.DTOs.Leads;
 using Core.Interfaces;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using System.Text.Json;
@@ -23,20 +22,15 @@ namespace ClientAPI.Controllers
         [HttpGet]
         public async Task<IActionResult> GetLeads()
         {
+            var userId = httpContextAccessor?.HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId)) return BadRequest("Current User Id is NULL");
             try
             {
-                var userId = httpContextAccessor?.HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier);
-                Console.WriteLine($"[GetLeads] Request received from user: {userId} at {DateTime.UtcNow}");
-                
                 var leads = await leadService.GetAllLeadsAsync(userId);
-                
-                Console.WriteLine($"[GetLeads] Successfully retrieved {leads.Count} leads for user: {userId}");
                 return Ok(leads);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[GetLeads] Error: {ex.Message}");
-                Console.WriteLine($"[GetLeads] Stack Trace: {ex.StackTrace}");
                 return BadRequest(ex.Message);
             }
         }
@@ -146,20 +140,15 @@ namespace ClientAPI.Controllers
         [HttpGet("export")]
         public async Task<IActionResult> ExportLeads()
         {
+            var userId = httpContextAccessor?.HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId)) return BadRequest("Current User Id is NULL");
             try
-            {
-                var userId = httpContextAccessor?.HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier);
-                Console.WriteLine($"[ExportLeads] Request received from user: {userId} at {DateTime.UtcNow}");
-                
+            {                
                 var fileContent = await leadService.ExportLeadsToExcelAsync(userId);
-                
-                Console.WriteLine($"[ExportLeads] Successfully generated Excel file ({fileContent.Length} bytes) for user: {userId}");
                 return File(fileContent, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "Leads.xlsx");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[ExportLeads] Error: {ex.Message}");
-                Console.WriteLine($"[ExportLeads] Stack Trace: {ex.StackTrace}");
                 return BadRequest($"Export failed: {ex.Message}");
             }
         }
