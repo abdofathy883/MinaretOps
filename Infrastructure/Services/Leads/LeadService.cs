@@ -120,89 +120,131 @@ namespace Infrastructure.Services.Leads
                 logger.LogError($"Couldn't find current logged in user with Id: {currentUserId}");
                 throw new KeyNotFoundException($"Couldn't find current logged in user with Id: {currentUserId}");
             }
-            var roles = await userManager.GetRolesAsync(user);
-            var leads = new List<LeadDTO>();
+
+                var roles = await userManager.GetRolesAsync(user);
+
+            //var leads = new List<LeadDTO>();
             try
             {
-                if (roles.Contains(UserRoles.Admin.ToString()))
+                IQueryable<SalesLead> leadsQuery = context.SalesLeads
+        .AsNoTracking()
+        .Include(x => x.SalesRep)
+        .Include(x => x.CreatedBy)
+        .OrderByDescending(x => x.CreatedAt);
+
+                if (!roles.Contains(UserRoles.Admin.ToString()))
                 {
-                    leads = await context.SalesLeads
-                        .OrderByDescending(x => x.CreatedAt)
-                        .Select(x => new LeadDTO
-                        {
-                            Id = x.Id,
-                            BusinessName = x.BusinessName,
-                            WhatsAppNumber = x.WhatsAppNumber,
-                            ContactAttempts = x.ContactAttempts,
-                            ContactStatus = x.ContactStatus,
-                            LeadSource = x.LeadSource,
-                            DecisionMakerReached = x.DecisionMakerReached,
-                            Interested = x.Interested,
-                            InterestLevel = x.InterestLevel,
-                            MeetingAgreed = x.MeetingAgreed,
-                            MeetingDate = x.MeetingDate,
-                            MeetingAttend = x.MeetingAttend,
-                            QuotationSent = x.QuotationSent,
-                            FollowUpTime = x.FollowUpTime,
-                            FollowUpReason = x.FollowUpReason,
-                            Notes = x.Notes,
-                            SalesRepId = x.SalesRepId,
-                            SalesRepName = $"{x.SalesRep.FirstName} {x.SalesRep.LastName}",
-                            CreatedById = x.CreatedById,
-                            CreatedByName = $"{x.CreatedBy.FirstName} {x.CreatedBy.LastName}",
-                            CreatedAt = x.CreatedAt,
-                            UpdatedAt = x.UpdatedAt
-                        })
-                        .ToListAsync();
-                    //leads = await context.SalesLeads
-                    //    .AsNoTracking()
-                    //    .Include(x => x.SalesRep)
-                    //    .Include(x => x.CreatedBy)
-                    //    .Include(x => x.ServicesInterestedIn)
-                    //        .ThenInclude(ls => ls.Service)
-                    //    .OrderByDescending(x => x.CreatedAt)
-                    //    .ToListAsync();
-                } else
-                {
-                    //leads =  await context.SalesLeads
-                    //    .AsNoTracking()
-                    //    .Where(x => x.SalesRepId == currentUserId)
-                    //    .Include(x => x.SalesRep)
-                    //    .Include(x => x.CreatedBy)
-                    //    .Include(x => x.ServicesInterestedIn)
-                    //        .ThenInclude(ls => ls.Service)
-                    //    .OrderByDescending(x => x.CreatedAt)
-                    //    .ToListAsync();
-                    leads = await context.SalesLeads
-                        .Where(x => x.SalesRepId == user.Id)
-                        .OrderByDescending(x => x.CreatedAt)
-                        .Select(x => new LeadDTO
-                        {
-                            Id = x.Id,
-                            BusinessName = x.BusinessName,
-                            WhatsAppNumber = x.WhatsAppNumber,
-                            ContactAttempts = x.ContactAttempts,
-                            ContactStatus = x.ContactStatus,
-                            LeadSource = x.LeadSource,
-                            DecisionMakerReached = x.DecisionMakerReached,
-                            Interested = x.Interested,
-                            InterestLevel = x.InterestLevel,
-                            MeetingAgreed = x.MeetingAgreed,
-                            MeetingDate = x.MeetingDate,
-                            MeetingAttend = x.MeetingAttend,
-                            QuotationSent = x.QuotationSent,
-                            FollowUpTime = x.FollowUpTime,
-                            FollowUpReason = x.FollowUpReason,
-                            Notes = x.Notes,
-                            SalesRepId = x.SalesRepId,
-                            SalesRepName = $"{x.SalesRep.FirstName} {x.SalesRep.LastName}",
-                            CreatedById = x.CreatedById,
-                            CreatedByName = $"{x.CreatedBy.FirstName} {x.CreatedBy.LastName}",
-                            CreatedAt = x.CreatedAt,
-                            UpdatedAt = x.UpdatedAt
-                        })
-                        .ToListAsync();
+                    leadsQuery = leadsQuery.Where(x => x.SalesRepId == user.Id);
                 }
+
+                var leads = await leadsQuery
+                    .Select(x => new LeadDTO
+                    {
+                        Id = x.Id,
+                        BusinessName = x.BusinessName,
+                        WhatsAppNumber = x.WhatsAppNumber,
+                        ContactAttempts = x.ContactAttempts,
+                        ContactStatus = x.ContactStatus,
+                        LeadSource = x.LeadSource,
+                        DecisionMakerReached = x.DecisionMakerReached,
+                        Interested = x.Interested,
+                        InterestLevel = x.InterestLevel,
+                        MeetingAgreed = x.MeetingAgreed,
+                        MeetingDate = x.MeetingDate,
+                        MeetingAttend = x.MeetingAttend,
+                        QuotationSent = x.QuotationSent,
+                        FollowUpTime = x.FollowUpTime,
+                        FollowUpReason = x.FollowUpReason,
+                        Notes = x.Notes,
+                        SalesRepId = x.SalesRepId,
+                        SalesRepName = x.SalesRep != null
+                        ? x.SalesRep.FirstName + " " + x.SalesRep.LastName
+                        : string.Empty,
+                        CreatedById = x.CreatedById,
+                        CreatedByName = x.CreatedBy.FirstName + " " + x.CreatedBy.LastName,
+                        CreatedAt = x.CreatedAt,
+                        UpdatedAt = x.UpdatedAt
+                    })
+                    .ToListAsync();
+                //    if (roles.Contains(UserRoles.Admin.ToString()))
+                //    {
+                //        leads = await context.SalesLeads
+                //            .OrderByDescending(x => x.CreatedAt)
+                //            .Select(x => new LeadDTO
+                //            {
+                //                Id = x.Id,
+                //                BusinessName = x.BusinessName,
+                //                WhatsAppNumber = x.WhatsAppNumber,
+                //                ContactAttempts = x.ContactAttempts,
+                //                ContactStatus = x.ContactStatus,
+                //                LeadSource = x.LeadSource,
+                //                DecisionMakerReached = x.DecisionMakerReached,
+                //                Interested = x.Interested,
+                //                InterestLevel = x.InterestLevel,
+                //                MeetingAgreed = x.MeetingAgreed,
+                //                MeetingDate = x.MeetingDate,
+                //                MeetingAttend = x.MeetingAttend,
+                //                QuotationSent = x.QuotationSent,
+                //                FollowUpTime = x.FollowUpTime,
+                //                FollowUpReason = x.FollowUpReason,
+                //                Notes = x.Notes,
+                //                SalesRepId = x.SalesRepId,
+                //                SalesRepName = $"{x.SalesRep.FirstName} {x.SalesRep.LastName}",
+                //                CreatedById = x.CreatedById,
+                //                CreatedByName = $"{x.CreatedBy.FirstName} {x.CreatedBy.LastName}",
+                //                CreatedAt = x.CreatedAt,
+                //                UpdatedAt = x.UpdatedAt
+                //            })
+                //            .ToListAsync();
+                //        //leads = await context.SalesLeads
+                //        //    .AsNoTracking()
+                //        //    .Include(x => x.SalesRep)
+                //        //    .Include(x => x.CreatedBy)
+                //        //    .Include(x => x.ServicesInterestedIn)
+                //        //        .ThenInclude(ls => ls.Service)
+                //        //    .OrderByDescending(x => x.CreatedAt)
+                //        //    .ToListAsync();
+                //    } else
+                //    {
+                //        //leads =  await context.SalesLeads
+                //        //    .AsNoTracking()
+                //        //    .Where(x => x.SalesRepId == currentUserId)
+                //        //    .Include(x => x.SalesRep)
+                //        //    .Include(x => x.CreatedBy)
+                //        //    .Include(x => x.ServicesInterestedIn)
+                //        //        .ThenInclude(ls => ls.Service)
+                //        //    .OrderByDescending(x => x.CreatedAt)
+                //        //    .ToListAsync();
+                //        leads = await context.SalesLeads
+                //            .Where(x => x.SalesRepId == user.Id)
+                //            .OrderByDescending(x => x.CreatedAt)
+                //            .Select(x => new LeadDTO
+                //            {
+                //                Id = x.Id,
+                //                BusinessName = x.BusinessName,
+                //                WhatsAppNumber = x.WhatsAppNumber,
+                //                ContactAttempts = x.ContactAttempts,
+                //                ContactStatus = x.ContactStatus,
+                //                LeadSource = x.LeadSource,
+                //                DecisionMakerReached = x.DecisionMakerReached,
+                //                Interested = x.Interested,
+                //                InterestLevel = x.InterestLevel,
+                //                MeetingAgreed = x.MeetingAgreed,
+                //                MeetingDate = x.MeetingDate,
+                //                MeetingAttend = x.MeetingAttend,
+                //                QuotationSent = x.QuotationSent,
+                //                FollowUpTime = x.FollowUpTime,
+                //                FollowUpReason = x.FollowUpReason,
+                //                Notes = x.Notes,
+                //                SalesRepId = x.SalesRepId,
+                //                SalesRepName = $"{x.SalesRep.FirstName} {x.SalesRep.LastName}",
+                //                CreatedById = x.CreatedById,
+                //                CreatedByName = $"{x.CreatedBy.FirstName} {x.CreatedBy.LastName}",
+                //                CreatedAt = x.CreatedAt,
+                //                UpdatedAt = x.UpdatedAt
+                //            })
+                //            .ToListAsync();
+                //    }
                 //return mapper.Map<List<LeadDTO>>(leads);
                 return leads;
             }
