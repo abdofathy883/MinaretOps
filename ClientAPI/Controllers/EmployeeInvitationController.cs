@@ -1,4 +1,4 @@
-﻿using Core.DTOs.EmployeeOnBoarding;
+using Core.DTOs.EmployeeOnBoarding;
 using Core.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -61,7 +61,7 @@ namespace ClientAPI.Controllers
         [AllowAnonymous]
         public async Task<IActionResult> GetInvitationByTokenAsync(string token)
         {
-            if (!string.IsNullOrEmpty(token)) return BadRequest("Couldn't find invitation with this ID");
+            if (string.IsNullOrEmpty(token)) return BadRequest("Couldn't find invitation with this ID");
 
             try
             {

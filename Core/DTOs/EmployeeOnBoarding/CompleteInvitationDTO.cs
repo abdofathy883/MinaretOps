@@ -1,4 +1,4 @@
-﻿namespace Core.DTOs.EmployeeOnBoarding
+namespace Core.DTOs.EmployeeOnBoarding
 {
     public class CompleteInvitationDTO
     {
