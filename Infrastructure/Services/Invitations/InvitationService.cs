@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using Core.DTOs.EmployeeOnBoarding;
 using Core.Enums;
 using Core.Interfaces;
@@ -76,9 +76,9 @@ namespace Infrastructure.Services.Invitations
                     Template = "EmployeeInvitation",
                     Replacements = new Dictionary<string, string>
                     {
-                        { "{{InvitationLink}}", invitationLink },
-                        { "{{RoleName}}", dto.Role.ToString() },
-                        { "{{ExpiryDate}}", invitation.ExpiresAt.Value.ToString("yyyy-MM-dd") }
+                        { "InvitationLink", invitationLink },
+                        { "RoleName", dto.Role.ToString() },
+                        { "ExpiryDate", invitation.ExpiresAt.Value.ToString("yyyy-MM-dd") }
                     }
                 };
                 await helperService.AddOutboxAsync(OutboxTypes.Email, "Employee Invitation Email", emailPayload);
@@ -231,6 +231,11 @@ namespace Infrastructure.Services.Invitations
         }
         private async Task NotifyAdminsAsync(EmployeeOnBoardingInvitation invitation)
         {
+            var inviter = await context.Users
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Id == invitation.InvitedByUserId);
+            var inviterName = inviter != null ? $"{inviter.FirstName} {inviter.LastName}" : "—";
+
             var admins = await userManager.GetUsersInRoleAsync("Admin");
             foreach (var admin in admins)
             {
@@ -241,7 +246,11 @@ namespace Infrastructure.Services.Invitations
                     Template = "NewEmployeeInvited",
                     Replacements = new Dictionary<string, string>
                     {
-
+                        { "InvitedEmail", invitation.Email },
+                        { "RoleName", invitation.Role.ToString() },
+                        { "ExpiryDate", invitation.ExpiresAt?.ToString("yyyy-MM-dd") ?? "—" },
+                        { "InvitedAt", invitation.CreatedAt.ToString("yyyy-MM-dd HH:mm") },
+                        { "InvitedByName", inviterName }
                     }
                 };
                 await helperService.AddOutboxAsync(OutboxTypes.Email, "New Invitation Email", payload);
@@ -250,20 +259,27 @@ namespace Infrastructure.Services.Invitations
         }
         private async Task NotifyAdminsForApprovalAsync(EmployeeOnBoardingInvitation invitation)
         {
+            var employeeName = $"{invitation.FirstName} {invitation.LastName}".Trim();
+            if (string.IsNullOrEmpty(employeeName))
+                employeeName = invitation.Email;
+
             var admins = await userManager.GetUsersInRoleAsync("Admin");
             foreach (var admin in admins)
             {
                 var payload = new
                 {
                     To = admin.Email,
-                    Subject = "New Employee Has Been Approved",
+                    Subject = "Employee Onboarding Completed - Awaiting Approval",
                     Template = "EmployeeInvitationApproved",
                     Replacements = new Dictionary<string, string>
                     {
-
+                        { "EmployeeName", employeeName },
+                        { "EmployeeEmail", invitation.Email },
+                        { "Role", invitation.Role.ToString() },
+                        { "CompletedAt", invitation.CompletedAt?.ToString("yyyy-MM-dd HH:mm") ?? "—" }
                     }
                 };
-                await helperService.AddOutboxAsync(OutboxTypes.Email, "New Invitation Email", payload);
+                await helperService.AddOutboxAsync(OutboxTypes.Email, "Invitation Completed - Awaiting Approval", payload);
                 await context.SaveChangesAsync();
             }
         }
