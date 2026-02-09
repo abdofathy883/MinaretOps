@@ -171,46 +171,54 @@ namespace Infrastructure.Services.Invitations
             if (invitation == null)
                 throw new KeyNotFoundException("الدعوة غير موجودة أو غير مكتملة");
 
-            // Create user account
-            var user = new ApplicationUser
+            using var transaction = await context.Database.BeginTransactionAsync();
+            try
             {
-                FirstName = invitation.FirstName!,
-                LastName = invitation.LastName!,
-                UserName = invitation.Email.Split("@")[0],
-                Email = invitation.Email,
-                EmailConfirmed = true,
-                PhoneNumber = invitation.PhoneNumber,
-                PhoneNumberConfirmed = true,
-                City = invitation.City!,
-                Street = invitation.Street!,
-                NID = invitation.NID!,
-                PaymentNumber = invitation.PaymentNumber!,
-                DateOfHiring = invitation.DateOfHiring!.Value
-            };
-
-            var result = await userManager.CreateAsync(user, invitation.Password);
-            if (!result.Succeeded)
-                throw new InvalidObjectException("فشل في إنشاء حساب المستخدم");
-
-            await userManager.AddToRoleAsync(user, invitation.Role.ToString());
-
-            // Send welcome email with temporary password
-            var emailPayload = new
-            {
-                To = user.Email,
-                Subject = "Welcome to The Minaret Agency",
-                Template = "EmployeeOnBoarding",
-                Replacements = new Dictionary<string, string>
+                // Create user account
+                var user = new ApplicationUser
                 {
-                    { "EmpName", $"{user.FirstName} {user.LastName}" },
-                    { "EmpEmail", user.Email ?? "" },
-                    { "EmpRole", invitation.Role.ToString() },
-                }
-            };
-            await helperService.AddOutboxAsync(OutboxTypes.Email, "Employee Onboarding Email", emailPayload);
-            await context.SaveChangesAsync();
+                    FirstName = invitation.FirstName!,
+                    LastName = invitation.LastName!,
+                    UserName = invitation.Email.Split("@")[0],
+                    Email = invitation.Email,
+                    EmailConfirmed = true,
+                    PhoneNumber = invitation.PhoneNumber,
+                    PhoneNumberConfirmed = true,
+                    City = invitation.City!,
+                    Street = invitation.Street!,
+                    NID = invitation.NID!,
+                    PaymentNumber = invitation.PaymentNumber!,
+                    DateOfHiring = invitation.DateOfHiring!.Value
+                };
 
-            return true;
+                var result = await userManager.CreateAsync(user, invitation.Password);
+                if (!result.Succeeded)
+                    throw new InvalidObjectException("فشل في إنشاء حساب المستخدم");
+
+                await userManager.AddToRoleAsync(user, invitation.Role.ToString());
+                // Send welcome email with temporary password
+                var emailPayload = new
+                {
+                    To = user.Email,
+                    Subject = "Welcome to The Minaret Agency",
+                    Template = "EmployeeOnBoarding",
+                    Replacements = new Dictionary<string, string>
+                    {
+                        { "EmpName", $"{user.FirstName} {user.LastName}" },
+                        { "EmpEmail", user.Email ?? "" },
+                        { "EmpRole", invitation.Role.ToString() },
+                    }
+                };
+                await helperService.AddOutboxAsync(OutboxTypes.Email, "Employee Onboarding Email", emailPayload);
+                await context.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return true;
+            }
+            catch (Exception)
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
         }
         public async Task<bool> CancelInvitationAsync(int invitationId)
         {

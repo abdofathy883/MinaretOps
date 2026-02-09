@@ -29,8 +29,16 @@ namespace ClientAPI.Controllers
             if (string.IsNullOrEmpty(adminUserId))
                 return Unauthorized();
 
-            var invitation = await invitationService.CreateInvitationAsync(dto, adminUserId);
-            return Ok(invitation);
+            try
+            {
+                var invitation = await invitationService.CreateInvitationAsync(dto, adminUserId);
+                return Ok(invitation);
+            }
+            catch(Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+
         }
 
         [HttpGet("pending")]
@@ -53,16 +61,32 @@ namespace ClientAPI.Controllers
         [AllowAnonymous]
         public async Task<IActionResult> GetInvitationByTokenAsync(string token)
         {
-            var invitation = await invitationService.GetInvitationByTokenAsync(token);
-            return Ok(invitation);
+            if (!string.IsNullOrEmpty(token)) return BadRequest("Couldn't find invitation with this ID");
+
+            try
+            {
+                var invitation = await invitationService.GetInvitationByTokenAsync(token);
+                return Ok(invitation);
+            }
+            catch(Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         [HttpPost("complete")]
         [AllowAnonymous]
         public async Task<IActionResult> CompleteInvitationAsync([FromBody] CompleteInvitationDTO dto)
         {
-            var invitation = await invitationService.CompleteInvitationAsync(dto);
-            return Ok(invitation);
+            try
+            {
+                var invitation = await invitationService.CompleteInvitationAsync(dto);
+                return Ok(invitation);
+            }
+            catch(Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         [HttpPost("approve/{id}")]
