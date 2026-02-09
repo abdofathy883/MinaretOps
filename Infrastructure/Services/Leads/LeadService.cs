@@ -6,10 +6,12 @@ using Core.Interfaces;
 using Core.Models;
 using Infrastructure.Data;
 using Infrastructure.Services.Tasks;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System.Reflection;
+using System.Security.Claims;
 using System.Text.Json;
 
 namespace Infrastructure.Services.Leads
@@ -21,12 +23,19 @@ namespace Infrastructure.Services.Leads
         private readonly TaskHelperService helperService;
         private readonly IMapper mapper;
         private readonly ILogger<LeadService> logger;
+        private readonly IHttpContextAccessor httpContextAccessor;
 
-        public LeadService(MinaretOpsDbContext context, TaskHelperService _helperService, IMapper mapper, UserManager<ApplicationUser> userManager, ILogger<LeadService> _logger)
+        public LeadService(MinaretOpsDbContext context, 
+            TaskHelperService _helperService, 
+            IMapper mapper, 
+            UserManager<ApplicationUser> userManager,
+            IHttpContextAccessor httpContextAccessor,
+            ILogger<LeadService> _logger)
         {
             this.context = context;
             helperService = _helperService;
             this.mapper = mapper;
+            this.httpContextAccessor = httpContextAccessor;
             this.userManager = userManager;
             logger = _logger;
         }
@@ -121,7 +130,10 @@ namespace Infrastructure.Services.Leads
                 throw new KeyNotFoundException($"Couldn't find current logged in user with Id: {currentUserId}");
             }
 
-                var roles = await userManager.GetRolesAsync(user);
+                //var roles = await userManager.GetRolesAsync(user);
+            var roles = httpContextAccessor?.HttpContext?.User?.FindAll(ClaimTypes.Role)
+                ?.Select(c => c.Value)
+                ?.ToList() ?? new List<string>();
 
             //var leads = new List<LeadDTO>();
             try
@@ -134,7 +146,7 @@ namespace Infrastructure.Services.Leads
 
                 if (!roles.Contains(UserRoles.Admin.ToString()))
                 {
-                    leadsQuery = leadsQuery.Where(x => x.SalesRepId == user.Id);
+                    leadsQuery = leadsQuery.Where(x => x.SalesRepId == currentUserId);
                 }
 
                 var leads = await leadsQuery

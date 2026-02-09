@@ -40,6 +40,14 @@ namespace ClientAPI.Controllers
             var invitations = await invitationService.GetPendingInvitationsAsync();
             return Ok(invitations);
         }
+        
+        [HttpGet("all-invitaions")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> GetAllInvitationsAsync()
+        {
+            var invitations = await invitationService.GetAllInvitations();
+            return Ok(invitations);
+        }
 
         [HttpGet("token/{token}")]
         [AllowAnonymous]

@@ -12,8 +12,5 @@
         public required string PaymentNumber { get; set; }
         public required DateOnly DateOfHiring { get; set; }
         public required string Password { get; set; }
-        public string? ProfilePicture { get; set; }
-        public string? JobTitle { get; set; }
-        public string? Bio { get; set; }
     }
 }

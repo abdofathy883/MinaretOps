@@ -154,6 +154,7 @@ namespace Infrastructure.Services.Invitations
             invitation.DateOfHiring = dto.DateOfHiring;
             invitation.Status = InvitationStatus.Completed;
             invitation.CompletedAt = DateTime.UtcNow;
+            invitation.Password = dto.Password;
 
             await context.SaveChangesAsync();
 
@@ -265,6 +266,16 @@ namespace Infrastructure.Services.Invitations
                 await helperService.AddOutboxAsync(OutboxTypes.Email, "New Invitation Email", payload);
                 await context.SaveChangesAsync();
             }
+        }
+
+        public async Task<List<InvitationDTO>> GetAllInvitations()
+        {
+            var invitations = await context.EmployeeOnBoardingInvitations
+                .Include(i => i.InvitedBy)
+                .OrderByDescending(i => i.CreatedAt)
+                .ToListAsync();
+
+            return mapper.Map<List<InvitationDTO>>(invitations);
         }
     }
 }
