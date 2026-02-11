@@ -57,8 +57,15 @@ namespace ClientAPI.Controllers
         [HttpGet("get-all-incedints")]
         public async Task<IActionResult> GetAllIncedintsAsync()
         {
-            var result = await kPIService.GetAllIncedientsAsync();
-            return Ok(result);
+            try
+            {
+                var result = await kPIService.GetAllIncedientsAsync();
+                return Ok(result);
+            }
+            catch(Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using ClosedXML.Excel;
 using Core.DTOs.Leads;
 using Core.Enums;
@@ -130,7 +130,6 @@ namespace Infrastructure.Services.Leads
                 throw new KeyNotFoundException($"Couldn't find current logged in user with Id: {currentUserId}");
             }
 
-                //var roles = await userManager.GetRolesAsync(user);
             var roles = httpContextAccessor?.HttpContext?.User?.FindAll(ClaimTypes.Role)
                 ?.Select(c => c.Value)
                 ?.ToList() ?? new List<string>();
@@ -139,10 +138,10 @@ namespace Infrastructure.Services.Leads
             try
             {
                 IQueryable<SalesLead> leadsQuery = context.SalesLeads
-        .AsNoTracking()
-        .Include(x => x.SalesRep)
-        .Include(x => x.CreatedBy)
-        .OrderByDescending(x => x.CreatedAt);
+                    .AsNoTracking()
+                    .Include(x => x.SalesRep)
+                    .Include(x => x.CreatedBy)
+                    .OrderByDescending(x => x.CreatedAt);
 
                 if (!roles.Contains(UserRoles.Admin.ToString()))
                 {
@@ -178,86 +177,7 @@ namespace Infrastructure.Services.Leads
                         UpdatedAt = x.UpdatedAt
                     })
                     .ToListAsync();
-                //    if (roles.Contains(UserRoles.Admin.ToString()))
-                //    {
-                //        leads = await context.SalesLeads
-                //            .OrderByDescending(x => x.CreatedAt)
-                //            .Select(x => new LeadDTO
-                //            {
-                //                Id = x.Id,
-                //                BusinessName = x.BusinessName,
-                //                WhatsAppNumber = x.WhatsAppNumber,
-                //                ContactAttempts = x.ContactAttempts,
-                //                ContactStatus = x.ContactStatus,
-                //                LeadSource = x.LeadSource,
-                //                DecisionMakerReached = x.DecisionMakerReached,
-                //                Interested = x.Interested,
-                //                InterestLevel = x.InterestLevel,
-                //                MeetingAgreed = x.MeetingAgreed,
-                //                MeetingDate = x.MeetingDate,
-                //                MeetingAttend = x.MeetingAttend,
-                //                QuotationSent = x.QuotationSent,
-                //                FollowUpTime = x.FollowUpTime,
-                //                FollowUpReason = x.FollowUpReason,
-                //                Notes = x.Notes,
-                //                SalesRepId = x.SalesRepId,
-                //                SalesRepName = $"{x.SalesRep.FirstName} {x.SalesRep.LastName}",
-                //                CreatedById = x.CreatedById,
-                //                CreatedByName = $"{x.CreatedBy.FirstName} {x.CreatedBy.LastName}",
-                //                CreatedAt = x.CreatedAt,
-                //                UpdatedAt = x.UpdatedAt
-                //            })
-                //            .ToListAsync();
-                //        //leads = await context.SalesLeads
-                //        //    .AsNoTracking()
-                //        //    .Include(x => x.SalesRep)
-                //        //    .Include(x => x.CreatedBy)
-                //        //    .Include(x => x.ServicesInterestedIn)
-                //        //        .ThenInclude(ls => ls.Service)
-                //        //    .OrderByDescending(x => x.CreatedAt)
-                //        //    .ToListAsync();
-                //    } else
-                //    {
-                //        //leads =  await context.SalesLeads
-                //        //    .AsNoTracking()
-                //        //    .Where(x => x.SalesRepId == currentUserId)
-                //        //    .Include(x => x.SalesRep)
-                //        //    .Include(x => x.CreatedBy)
-                //        //    .Include(x => x.ServicesInterestedIn)
-                //        //        .ThenInclude(ls => ls.Service)
-                //        //    .OrderByDescending(x => x.CreatedAt)
-                //        //    .ToListAsync();
-                //        leads = await context.SalesLeads
-                //            .Where(x => x.SalesRepId == user.Id)
-                //            .OrderByDescending(x => x.CreatedAt)
-                //            .Select(x => new LeadDTO
-                //            {
-                //                Id = x.Id,
-                //                BusinessName = x.BusinessName,
-                //                WhatsAppNumber = x.WhatsAppNumber,
-                //                ContactAttempts = x.ContactAttempts,
-                //                ContactStatus = x.ContactStatus,
-                //                LeadSource = x.LeadSource,
-                //                DecisionMakerReached = x.DecisionMakerReached,
-                //                Interested = x.Interested,
-                //                InterestLevel = x.InterestLevel,
-                //                MeetingAgreed = x.MeetingAgreed,
-                //                MeetingDate = x.MeetingDate,
-                //                MeetingAttend = x.MeetingAttend,
-                //                QuotationSent = x.QuotationSent,
-                //                FollowUpTime = x.FollowUpTime,
-                //                FollowUpReason = x.FollowUpReason,
-                //                Notes = x.Notes,
-                //                SalesRepId = x.SalesRepId,
-                //                SalesRepName = $"{x.SalesRep.FirstName} {x.SalesRep.LastName}",
-                //                CreatedById = x.CreatedById,
-                //                CreatedByName = $"{x.CreatedBy.FirstName} {x.CreatedBy.LastName}",
-                //                CreatedAt = x.CreatedAt,
-                //                UpdatedAt = x.UpdatedAt
-                //            })
-                //            .ToListAsync();
-                //    }
-                //return mapper.Map<List<LeadDTO>>(leads);
+
                 return leads;
             }
             catch
@@ -278,7 +198,6 @@ namespace Infrastructure.Services.Leads
 
             return mapper.Map<LeadDTO>(lead);
         }
-
         public async Task<LeadDTO> UpdateLeadAsync(UpdateLeadDTO updateLeadDTO)
         {
              var lead = await context.SalesLeads
@@ -361,7 +280,6 @@ namespace Infrastructure.Services.Leads
             // We use GetLeadByIdAsync to ensure clean mapping with all includes
             return await GetLeadByIdAsync(lead.Id);
         }
-
         public async Task<LeadDTO> UpdateLeadFieldAsync(int id, string fieldName, object value)
         {
             var lead = await context.SalesLeads
@@ -417,7 +335,6 @@ namespace Infrastructure.Services.Leads
             
             return await GetLeadByIdAsync(id);
         }
-
         private async Task UpdateLeadServices(SalesLead lead, object value)
         {
             List<int> newServiceIds = new();
@@ -503,13 +420,11 @@ namespace Infrastructure.Services.Leads
             }
             await context.SaveChangesAsync();
         }
-
         private T ParseEnum<T>(string value) where T : struct
         {
             if (string.IsNullOrWhiteSpace(value)) return default;
             return Enum.TryParse<T>(value, true, out var result) ? result : default;
         }
-
         public async Task<byte[]> ExportLeadsToExcelAsync(string userId)
         {
             var leads = await GetAllLeadsAsync(userId);
@@ -567,7 +482,7 @@ namespace Infrastructure.Services.Leads
             var worksheet = workbook.Worksheets.Add("Leads Template");
 
             // Headers
-            worksheet.Cell(1, 1).Value = "Business Name";
+            worksheet.Cell(1, 1).Value = "Client Name";
             worksheet.Cell(1, 2).Value = "WhatsApp Number";
             worksheet.Cell(1, 3).Value = "Contact Status";
             worksheet.Cell(1, 4).Value = "Contact Attempts";
@@ -583,15 +498,28 @@ namespace Infrastructure.Services.Leads
             worksheet.Cell(1, 14).Value = "Follow Up Reason";
             worksheet.Cell(1, 15).Value = "Notes";
 
-            // Add a sample row?
-            worksheet.Cell(2, 1).Value = "Sample Business";
-            worksheet.Cell(2, 2).Value = "123456789";
 
-            // Add validation or comments if possible for Enums, but skipping for simplicity.
+            // Sample row with dropdown and tick-box friendly values
+            worksheet.Cell(2, 1).Value = "Mohamed Ahmed";
+            worksheet.Cell(2, 2).Value = "01012345678";
+            worksheet.Cell(2, 3).Value = "";
+            worksheet.Cell(2, 4).Value = 0;
+            worksheet.Cell(2, 5).Value = LeadSource.Facebook.ToString();
+            worksheet.Cell(2, 6).Value = false;
+            worksheet.Cell(2, 7).Value = false;
+            worksheet.Cell(2, 8).Value = InterestLevel.Cold.ToString();
+            worksheet.Cell(2, 9).Value = false;
+            worksheet.Cell(2, 10).Value = null as string;
+            worksheet.Cell(2, 11).Value = MeetingAttend.Pending.ToString();
+            worksheet.Cell(2, 12).Value = false;
+            worksheet.Cell(2, 13).Value = null as string;
+            worksheet.Cell(2, 14).Value = FollowUpReason.Later.ToString();
+            worksheet.Cell(2, 15).Value = "Sample notes";
 
             using var stream = new MemoryStream();
             workbook.SaveAs(stream);
             return stream.ToArray();
         }
+
     }
 }
