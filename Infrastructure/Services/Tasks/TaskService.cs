@@ -243,9 +243,9 @@ namespace Infrastructure.Services.Tasks
                 .ToListAsync();
             return mapper.Map<List<LightWieghtTaskDTO>>(tasks);
         }
-        public async Task<TaskDTO> UpdateTaskAsync(int taskId, UpdateTaskDTO updateTask, string userId)
+        public async Task<TaskDTO> UpdateTaskAsync(UpdateTaskDTO updateTask, string userId)
         {
-            var task = await helperService.GetTaskOrThrow(taskId);
+            var task = await helperService.GetTaskOrThrow(updateTask.Id);
             var user = await helperService.GetUserOrThrow(userId)
                 ?? throw new Exception();
             var emp = await helperService.GetUserOrThrow(updateTask.EmployeeId)

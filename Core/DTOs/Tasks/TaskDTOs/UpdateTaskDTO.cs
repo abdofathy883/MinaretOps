@@ -4,6 +4,7 @@ namespace Core.DTOs.Tasks.TaskDTOs
 {
     public class UpdateTaskDTO
     {
+        public int Id { get; set; }
         public required string Title { get; set; }
         public string? Description { get; set; }
         public DateTime? Deadline { get; set; }

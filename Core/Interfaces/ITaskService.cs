@@ -15,7 +15,7 @@ namespace Core.Interfaces
         Task<TaskDTO> GetTaskByIdAsync(int taskId);
         Task<bool> ChangeTaskStatusAsync(int taskId, CustomTaskStatus status, string userId);
         Task<TaskDTO> CompleteTaskAsync(int taskId, CreateTaskResourcesDTO taskResourcesDTO, string userId);
-        Task<TaskDTO> UpdateTaskAsync(int taskId, UpdateTaskDTO updateTask, string userId);
+        Task<TaskDTO> UpdateTaskAsync(UpdateTaskDTO updateTask, string userId);
         Task<bool> DeleteTaskAsync(int taskId);
         Task<TaskDTO> CreateTaskAsync(string userId, CreateTaskDTO createTask);
         Task<TaskGroupDTO> CreateTaskGroupAsync(CreateTaskGroupDTO createTaskGroup, string userId);

@@ -37,7 +37,7 @@ namespace ClientAPI.Controllers
             }
         }
 
-        [HttpGet("emp-tasks/{empId}")]
+        [HttpGet("emp-tasks")]
         public async Task<IActionResult> GetTasksByEmployeeId()
         {
             var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -54,14 +54,15 @@ namespace ClientAPI.Controllers
             }
         }
 
-        [HttpPut("update-task/{taskId}/{empId}")]
-        public async Task<IActionResult> UpdateTaskAsync(int taskId, string empId, UpdateTaskDTO updateTaskDTO)
+        [HttpPut("update-task")]
+        public async Task<IActionResult> UpdateTaskAsync([FromBody] UpdateTaskDTO updateTaskDTO)
         {
-            if (taskId == 0 || updateTaskDTO is null)
+            if (updateTaskDTO.Id == 0 || updateTaskDTO is null)
                 return BadRequest("Task Id is Null Or New Task Object Is Null");
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             try
             {
-                var result = await taskService.UpdateTaskAsync(taskId, updateTaskDTO, empId);
+                var result = await taskService.UpdateTaskAsync(updateTaskDTO, userId);
                 return Ok(result);
             }
             catch (Exception ex)
@@ -70,12 +71,13 @@ namespace ClientAPI.Controllers
             }
         }
 
-        [HttpPatch("change-status/{taskId}/{empId}")]
-        public async Task<IActionResult> ChangeTaskStatusAsync(int taskId, string empId, [FromBody] CustomTaskStatus status)
+        [HttpPatch("change-status/{taskId}")]
+        public async Task<IActionResult> ChangeTaskStatusAsync(int taskId, [FromBody] CustomTaskStatus status)
         {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             try
             {
-                var result = await taskService.ChangeTaskStatusAsync(taskId, status, empId);
+                var result = await taskService.ChangeTaskStatusAsync(taskId, status, userId);
                 return Ok(result);
             }
             catch (Exception ex)
@@ -116,11 +118,13 @@ namespace ClientAPI.Controllers
             }
         }
 
-        [HttpPost("create-task/{userId}")]
-        public async Task<IActionResult> CreateTaskAsync(string userId, CreateTaskDTO createTaskDTO)
+        [HttpPost("create-task")]
+        public async Task<IActionResult> CreateTaskAsync(CreateTaskDTO createTaskDTO)
         {
             if (createTaskDTO is null)
                 return BadRequest("New Task Object Is Null");
+
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             try
             {
                 var createdTask = await taskService.CreateTaskAsync(userId, createTaskDTO);
@@ -132,11 +136,12 @@ namespace ClientAPI.Controllers
             }
         }
 
-        [HttpPost("create-task-group/{userId}")]
-        public async Task<IActionResult> CreateTaskGroupAsync(CreateTaskGroupDTO createTaskGroupDTO, string userId)
+        [HttpPost("create-task-group")]
+        public async Task<IActionResult> CreateTaskGroupAsync(CreateTaskGroupDTO createTaskGroupDTO)
         {
             if (createTaskGroupDTO is null)
                 return BadRequest("Task Group Object Is Null");
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             try
             {
                 var createdTaskGroup = await taskService.CreateTaskGroupAsync(createTaskGroupDTO, userId);
@@ -182,14 +187,15 @@ namespace ClientAPI.Controllers
             }
         }
 
-        [HttpGet("search/{query}/{currentUserId}")]
-        public async Task<IActionResult> SearchTasksAsync(string query, string currentUserId)
+        [HttpGet("search/{query}")]
+        public async Task<IActionResult> SearchTasksAsync(string query)
         {
             if (string.IsNullOrWhiteSpace(query))
                 return BadRequest("Search query cannot be empty");
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             try
             {
-                var tasks = await taskService.SearchTasks(query, currentUserId);
+                var tasks = await taskService.SearchTasks(query, userId);
                 return Ok(tasks);
             }
             catch (Exception ex)
@@ -198,11 +204,13 @@ namespace ClientAPI.Controllers
             }
         }
 
-        [HttpPatch("complete/{taskId}/{userId}")]
-        public async Task<IActionResult> CompleteTaskAsync(int taskId, string userId, CreateTaskResourcesDTO createTaskResourcesDTO)
+        [HttpPatch("complete/{taskId}")]
+        public async Task<IActionResult> CompleteTaskAsync(int taskId, CreateTaskResourcesDTO createTaskResourcesDTO)
         {
             if (!ModelState.IsValid)
                 return BadRequest();
+
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
             var result = await taskService.CompleteTaskAsync(taskId, createTaskResourcesDTO, userId);
             return Ok(result);
@@ -219,9 +227,9 @@ namespace ClientAPI.Controllers
             [FromQuery] string? onDeadline,
             [FromQuery] string? team,
             [FromQuery] int pageNumber = 1,
-            [FromQuery] int pageSize = 20,
-            [FromQuery] string? currentUserId = null)
+            [FromQuery] int pageSize = 20)
         {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             try
             {
                 var filter = new TaskFilterDTO
@@ -238,18 +246,7 @@ namespace ClientAPI.Controllers
                     PageSize = pageSize
                 };
 
-                // If no currentUserId provided, try to get from claims
-                if (string.IsNullOrEmpty(currentUserId))
-                {
-                    currentUserId = User.FindFirst("sub")?.Value;
-                }
-
-                if (string.IsNullOrEmpty(currentUserId))
-                {
-                    return BadRequest("User ID is required");
-                }
-
-                var result = await taskService.GetPaginatedTasksAsync(filter, currentUserId);
+                var result = await taskService.GetPaginatedTasksAsync(filter, userId);
                 return Ok(result);
             }
             catch (Exception ex)

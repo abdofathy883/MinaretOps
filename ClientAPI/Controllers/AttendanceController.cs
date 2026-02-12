@@ -4,6 +4,7 @@ using Core.Enums;
 using Core.Interfaces;
 using Infrastructure.Services.Attendance;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace ClientAPI.Controllers
 {
@@ -37,32 +38,44 @@ namespace ClientAPI.Controllers
             }
         }
 
-        [HttpPost("clock-out/{empId}")]
-        public async Task<IActionResult> ClockOutAsync(string empId)
+        [HttpPost("clock-out")]
+        public async Task<IActionResult> ClockOutAsync()
         {
-            var result = await attendanceService.ClockOutAsync(empId);
-            return Ok(result);
-        }
-
-        [HttpGet("today-attendance/{employeeId}")]
-        public async Task<IActionResult> GetTodayAttendanceAsync(string employeeId)
-        {
-            if (string.IsNullOrEmpty(employeeId))
-                return BadRequest();
-            var attendances = await attendanceService.GetTodayAttendanceForEmployeeAsync(employeeId);
-            return Ok(attendances);
-        }
-
-        [HttpGet("employee-attendance/{employeeId}")]
-        public async Task<IActionResult> GetAttendanceRecordsByEmployeeAsync(string employeeId)
-        {
-            if (string.IsNullOrWhiteSpace(employeeId))
-            {
-                return BadRequest("Employee ID is required.");
-            }
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             try
             {
-                var records = await attendanceService.GetTodayAttendanceForEmployeeAsync(employeeId);
+                var result = await attendanceService.ClockOutAsync(userId);
+                return Ok(result);
+            }
+            catch(Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpGet("today-attendance")]
+        public async Task<IActionResult> GetTodayAttendanceAsync()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            try
+            {
+                var attendances = await attendanceService.GetTodayAttendanceForEmployeeAsync(userId);
+                return Ok(attendances);
+            }
+            catch(Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpGet("employee-attendance")]
+        public async Task<IActionResult> GetAttendanceRecordsByEmployeeAsync()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            try
+            {
+                var records = await attendanceService.GetTodayAttendanceForEmployeeAsync(userId);
                 return Ok(records);
             }
             catch (Exception ex)
@@ -106,20 +119,18 @@ namespace ClientAPI.Controllers
             return Ok(result);
         }
 
-        [HttpPut("admin-change-attendance/{adminId}/{recordId}")]
-        public async Task<IActionResult> ChangeAttendanceStatusByAdminAsync(string adminId, int recordId, [FromBody] AttendanceStatus newStatus)
+        [HttpPut("admin-change-attendance/{recordId}")]
+        public async Task<IActionResult> ChangeAttendanceStatusByAdminAsync(int recordId, [FromBody] AttendanceStatus newStatus)
         {
-            if (string.IsNullOrWhiteSpace(adminId))
-            {
-                return BadRequest("Admin ID is required.");
-            }
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
             if (!Enum.IsDefined(typeof(AttendanceStatus), newStatus))
             {
                 return BadRequest("Invalid attendance status.");
             }
             try
             {
-                var updatedRecord = await attendanceService.ChangeAttendanceStatusByAdminAsync(adminId, recordId, newStatus);
+                var updatedRecord = await attendanceService.ChangeAttendanceStatusByAdminAsync(userId, recordId, newStatus);
                 return Ok(updatedRecord);
             }
             catch (Exception ex)
@@ -128,17 +139,14 @@ namespace ClientAPI.Controllers
             }
         }
 
-        // Add these methods to the existing AttendanceController
-
         [HttpPost("start-break")]
-        public async Task<IActionResult> StartBreakAsync([FromBody] Start_EndBreakDTO breakDTO)
+        public async Task<IActionResult> StartBreakAsync()
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
             try
             {
-                var result = await breakService.StartBreakAsync(breakDTO);
+                var result = await breakService.StartBreakAsync(userId);
                 return Ok(result);
             }
             catch (Exception ex)
@@ -148,14 +156,13 @@ namespace ClientAPI.Controllers
         }
 
         [HttpPost("end-break")]
-        public async Task<IActionResult> EndBreakAsync([FromBody] Start_EndBreakDTO breakDTO)
+        public async Task<IActionResult> EndBreakAsync()
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
             try
             {
-                var result = await breakService.EndBreakAsync(breakDTO);
+                var result = await breakService.EndBreakAsync(userId);
                 return Ok(result);
             }
             catch (Exception ex)
@@ -164,15 +171,14 @@ namespace ClientAPI.Controllers
             }
         }
 
-        [HttpGet("active-break/{employeeId}")]
-        public async Task<IActionResult> GetActiveBreakAsync(string employeeId)
+        [HttpGet("active-break")]
+        public async Task<IActionResult> GetActiveBreakAsync()
         {
-            if (string.IsNullOrEmpty(employeeId))
-                return BadRequest("Employee ID is required");
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
             try
             {
-                var result = await breakService.GetActiveBreakAsync(employeeId);
+                var result = await breakService.GetActiveBreakAsync(userId);
                 return Ok(result);
             }
             catch (Exception ex)

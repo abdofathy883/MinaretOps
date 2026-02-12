@@ -28,15 +28,15 @@ namespace Infrastructure.Services.Attendance
             mapper = _mapper;
         }
 
-        public async Task<BreakDTO> EndBreakAsync(Start_EndBreakDTO breakDTO)
+        public async Task<BreakDTO> EndBreakAsync(string currentUserId)
         {
-            var user = await helperService.GetUserOrThrow(breakDTO.EmployeeId);
+            var user = await helperService.GetUserOrThrow(currentUserId);
 
             var egyptToday = TimeZoneHelper.GetEgyptToday();
 
             // Get today's attendance record
             var attendanceRecord = await context.AttendanceRecords
-                .FirstOrDefaultAsync(r => r.EmployeeId == breakDTO.EmployeeId && r.WorkDate == egyptToday);
+                .FirstOrDefaultAsync(r => r.EmployeeId == currentUserId && r.WorkDate == egyptToday);
 
             if (attendanceRecord == null)
                 throw new InvalidObjectException("لا يوجد سجل حضور لهذا اليوم");
@@ -70,15 +70,15 @@ namespace Infrastructure.Services.Attendance
             return activeBreak != null ? mapper.Map<BreakDTO>(activeBreak) : null;
         }
 
-        public async Task<BreakDTO> StartBreakAsync(Start_EndBreakDTO breakDTO)
+        public async Task<BreakDTO> StartBreakAsync(string currentUserId)
         {
-            var user = await helperService.GetUserOrThrow(breakDTO.EmployeeId);
+            var user = await helperService.GetUserOrThrow(currentUserId);
 
             var egyptToday = TimeZoneHelper.GetEgyptToday();
 
             // Get today's attendance record
             var attendanceRecord = await context.AttendanceRecords
-                .FirstOrDefaultAsync(r => r.EmployeeId == breakDTO.EmployeeId && r.WorkDate == egyptToday);
+                .FirstOrDefaultAsync(r => r.EmployeeId == currentUserId && r.WorkDate == egyptToday);
 
             if (attendanceRecord == null)
                 throw new InvalidObjectException("يجب تسجيل الحضور أولاً قبل بدء الاستراحة");
