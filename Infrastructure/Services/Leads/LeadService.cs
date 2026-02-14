@@ -438,38 +438,40 @@ namespace Infrastructure.Services.Leads
             // Headers
             worksheet.Cell(1, 1).Value = "Business Name";
             worksheet.Cell(1, 2).Value = "WhatsApp Number";
-            worksheet.Cell(1, 3).Value = "Contact Status";
-            worksheet.Cell(1, 4).Value = "Contact Attempts";
-            worksheet.Cell(1, 5).Value = "Lead Source";
-            worksheet.Cell(1, 6).Value = "Decision Maker Reached";
-            worksheet.Cell(1, 7).Value = "Interested";
-            worksheet.Cell(1, 8).Value = "Interest Level";
-            worksheet.Cell(1, 9).Value = "Meeting Agreed";
-            worksheet.Cell(1, 10).Value = "Meeting Date";
-            worksheet.Cell(1, 11).Value = "Meeting Attend";
-            worksheet.Cell(1, 12).Value = "Quotation Sent";
-            worksheet.Cell(1, 13).Value = "Follow Up Time";
-            worksheet.Cell(1, 14).Value = "Follow Up Reason";
-            worksheet.Cell(1, 15).Value = "Notes";
+            worksheet.Cell(1, 3).Value = "Employee";
+            worksheet.Cell(1, 4).Value = "Contact Status";
+            worksheet.Cell(1, 5).Value = "Contact Attempts";
+            worksheet.Cell(1, 6).Value = "Lead Source";
+            worksheet.Cell(1, 7).Value = "Decision Maker Reached";
+            worksheet.Cell(1, 8).Value = "Interested";
+            worksheet.Cell(1, 9).Value = "Interest Level";
+            worksheet.Cell(1, 10).Value = "Meeting Agreed";
+            worksheet.Cell(1, 11).Value = "Meeting Date";
+            worksheet.Cell(1, 12).Value = "Meeting Attend";
+            worksheet.Cell(1, 13).Value = "Quotation Sent";
+            worksheet.Cell(1, 14).Value = "Follow Up Time";
+            worksheet.Cell(1, 15).Value = "Follow Up Reason";
+            worksheet.Cell(1, 16).Value = "Notes";
 
             int row = 2;
             foreach (var lead in leads)
             {
                 worksheet.Cell(row, 1).Value = lead.BusinessName;
                 worksheet.Cell(row, 2).Value = lead.WhatsAppNumber;
-                worksheet.Cell(row, 3).Value = lead.ContactStatus.ToString();
-                worksheet.Cell(row, 4).Value = lead.ContactAttempts;
-                worksheet.Cell(row, 5).Value = lead.LeadSource.ToString();
-                worksheet.Cell(row, 6).Value = lead.DecisionMakerReached;
-                worksheet.Cell(row, 7).Value = lead.Interested;
-                worksheet.Cell(row, 8).Value = lead.InterestLevel.ToString();
-                worksheet.Cell(row, 9).Value = lead.MeetingAgreed;
-                worksheet.Cell(row, 10).Value = lead.MeetingDate?.ToString();
-                worksheet.Cell(row, 11).Value = lead.MeetingAttend.ToString();
-                worksheet.Cell(row, 12).Value = lead.QuotationSent;
-                worksheet.Cell(row, 13).Value = lead.FollowUpTime?.ToString();
-                worksheet.Cell(row, 14).Value = lead.FollowUpReason.ToString();
-                worksheet.Cell(row, 15).Value = lead.Notes;
+                worksheet.Cell(row, 3).Value = lead.SalesRepName ?? "NA";
+                worksheet.Cell(row, 4).Value = lead.ContactStatus.ToString();
+                worksheet.Cell(row, 5).Value = lead.ContactAttempts;
+                worksheet.Cell(row, 6).Value = lead.LeadSource.ToString();
+                worksheet.Cell(row, 7).Value = lead.DecisionMakerReached;
+                worksheet.Cell(row, 8).Value = lead.Interested;
+                worksheet.Cell(row, 9).Value = lead.InterestLevel.ToString();
+                worksheet.Cell(row, 10).Value = lead.MeetingAgreed;
+                worksheet.Cell(row, 11).Value = lead.MeetingDate?.ToString();
+                worksheet.Cell(row, 12).Value = lead.MeetingAttend.ToString();
+                worksheet.Cell(row, 13).Value = lead.QuotationSent;
+                worksheet.Cell(row, 14).Value = lead.FollowUpTime?.ToString();
+                worksheet.Cell(row, 15).Value = lead.FollowUpReason.ToString();
+                worksheet.Cell(row, 16).Value = lead.Notes;
                 row++;
             }
 
