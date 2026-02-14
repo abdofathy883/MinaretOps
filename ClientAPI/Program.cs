@@ -9,6 +9,7 @@ using Infrastructure.Services.Auth;
 using Infrastructure.Services.Branch;
 using Infrastructure.Services.Checkpoints;
 using Infrastructure.Services.Complaints;
+using Infrastructure.Services.ContactForm;
 using Infrastructure.Services.Contract;
 using Infrastructure.Services.Currency;
 using Infrastructure.Services.Discord;
@@ -29,6 +30,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
@@ -50,20 +52,20 @@ namespace ClientAPI
             builder.Services.AddDbContext<MinaretOpsDbContext>(options =>
             options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-            builder.Services
-                .AddIdentityCore<ApplicationUser>(options =>
-                    {
-                        options.User.RequireUniqueEmail = false;
-                    })
-                .AddRoles<IdentityRole>()
-                .AddEntityFrameworkStores<MinaretOpsDbContext>()
-                .AddDefaultTokenProviders();
+            builder.Services.AddIdentityCore<ApplicationUser>(options =>
+            {
+                options.User.RequireUniqueEmail = false;
+            })
+            .AddRoles<IdentityRole>()
+            .AddEntityFrameworkStores<MinaretOpsDbContext>()
+            .AddDefaultTokenProviders();
 
             JWTSettings jwtOptions = builder.Configuration.GetSection("JWT").Get<JWTSettings>()
                 ?? throw new Exception("Error in JWT Settings");
 
             builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSetting"));
             builder.Services.Configure<DiscordSettings>(builder.Configuration.GetSection("Discord"));
+            builder.Services.Configure<RecaptchaSeetings>(builder.Configuration.GetSection("Recaptcha"));
 
 
 
@@ -94,6 +96,16 @@ namespace ClientAPI
                     };
                 });
 
+            builder.Services.AddRateLimiter(options =>
+            {
+                options.AddFixedWindowLimiter("contact-limit", config =>
+                {
+                    config.PermitLimit = 5;
+                    config.Window = TimeSpan.FromMinutes(1);
+                    config.QueueLimit = 0;
+                });
+            });
+
             builder.Services.AddAuthorization();
             builder.Services.AddScoped<IAuthService, AuthService>();
             builder.Services.AddScoped<IJWTServices, JWTService>();
@@ -123,11 +135,13 @@ namespace ClientAPI
             builder.Services.AddScoped<IVaultService, VaultService>();
             builder.Services.AddScoped<ILeadService, Infrastructure.Services.Leads.LeadService>();
             builder.Services.AddScoped<IInvitationService, InvitationService>();
+            builder.Services.AddHttpClient<IContactService, ContactService>();
             builder.Services.AddSingleton<DiscordService>();
             builder.Services.AddHostedService<DiscordHostedService>();
             builder.Services.AddHostedService<OutboxProcessor>();
             builder.Services.AddHostedService<OutboxCleaner>();
             builder.Services.AddHttpContextAccessor();
+            //builder.Services.AddHttpClient();
 
 
             builder.Services.AddQuartz(q =>
@@ -234,8 +248,9 @@ namespace ClientAPI
                 options.AddPolicy("FrontendOnly", policy =>
                 {
                     policy.WithOrigins(
-                        "https://internal.theminaretagency.com",      // Frontend domain
-                        "http://localhost:4200"                       // Local development
+                        "https://internal.theminaretagency.com",
+                        "https://almnara.sa",
+                        "http://localhost:4200"
                     )
                     //policy.AllowAnyOrigin()
                     .AllowAnyMethod()

@@ -4,6 +4,7 @@ using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Infrastructure.Migrations
 {
     [DbContext(typeof(MinaretOpsDbContext))]
-    partial class MinaretOpsDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260214044212_AddedContactForm")]
+    partial class AddedContactForm
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1247,61 +1250,6 @@ namespace Infrastructure.Migrations
                     b.HasIndex("SalesRepId");
 
                     b.ToTable("SalesLeads");
-                });
-
-            modelBuilder.Entity("Core.Models.SeoContent", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("CanonicalUrl")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Description")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Keywords")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Language")
-                        .IsRequired()
-                        .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)");
-
-                    b.Property<string>("OgDescription")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("OgImage")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("OgTitle")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Robots")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Route")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("Title")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Route", "Language")
-                        .IsUnique();
-
-                    b.ToTable("SeoContents");
                 });
 
             modelBuilder.Entity("Core.Models.Service", b =>

@@ -44,6 +44,8 @@ namespace Infrastructure.Data
         public DbSet<VaultTransaction> VaultTransactions { get; set; }
         public DbSet<SalesLead> SalesLeads { get; set; }
         public DbSet<LeadServices> LeadServices { get; set; }
+        public DbSet<ContactEntry> ContactEntries { get; set; }
+        public DbSet<SeoContent> SeoContents { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -81,6 +83,7 @@ namespace Infrastructure.Data
             builder.ApplyConfiguration(new VaultTransactionConfig());
             builder.ApplyConfiguration(new LeadConfig());
             builder.ApplyConfiguration(new LeadServiceConfig());
+            builder.ApplyConfiguration(new SeoContentConfig());
         }
     }
 }

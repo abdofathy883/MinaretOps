@@ -1,8 +1,6 @@
 ﻿using Core.DTOs.Attendance;
-using Core.DTOs.AttendanceBreaks;
 using Core.Enums;
 using Core.Interfaces;
-using Infrastructure.Services.Attendance;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 

@@ -412,6 +412,7 @@ namespace Infrastructure.Services.Leads
                         FollowUpReason = ParseEnum<FollowUpReason>(row.Cell(14).GetValue<string>()),
                         Notes = row.Cell(15).GetValue<string>(),
                         CreatedById = currentUserId,
+                        SalesRepId = currentUserId,
                         CreatedAt = DateTime.UtcNow
                     };
                     // Handle default/optional fields

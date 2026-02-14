@@ -128,7 +128,7 @@ namespace ClientAPI.Controllers
 
             try
             {
-                var userId = httpContextAccessor?.HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier);
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
                 using var stream = file.OpenReadStream();
                 await leadService.ImportLeadsFromExcelAsync(stream, userId);
                 return Ok(new { message = "Leads imported successfully." });
