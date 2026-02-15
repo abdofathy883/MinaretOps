@@ -22,7 +22,31 @@ namespace Infrastructure.Data.Model_Configurations
                 .HasMaxLength(20);
 
             builder.Property(x => x.FollowUpReason)
-                .IsRequired(false);
+                .IsRequired(false)
+                .HasConversion<string>()
+                .HasMaxLength(100);
+
+            builder.Property(x => x.ContactStatus)
+                .HasConversion<string>()
+                .HasMaxLength(100);
+
+            builder.Property(x => x.CurrentLeadStatus)
+                .HasConversion<string>()
+                .HasMaxLength(100);
+
+            builder.Property(x => x.LeadSource)
+                .HasConversion<string>()
+                .HasMaxLength(100);
+
+            builder.Property(x => x.InterestLevel)
+                .HasConversion<string>()
+                .HasMaxLength(100);
+
+            builder.Property(x => x.MeetingAttend)
+                .HasConversion<string>()
+                .HasMaxLength(100);
+
+
 
             builder.Property(x => x.Notes)
                 .HasMaxLength(2000);

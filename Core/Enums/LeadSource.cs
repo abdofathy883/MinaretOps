@@ -1,17 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Core.Enums
+﻿namespace Core.Enums
 {
     public enum LeadSource
     {
         Facebook = 0,
-        Instigram = 1,
+        Instagram = 1,
         LinkedIn = 2,
         Referral = 3,
-        GoogleMaps = 4
+        GoogleMaps = 4,
+        Website = 5
     }
 }

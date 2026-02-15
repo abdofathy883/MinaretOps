@@ -13,6 +13,7 @@ namespace Infrastructure.MappingProfiles
                 .ForMember(dest => dest.WhatsAppNumber, opt => opt.MapFrom(src => src.WhatsAppNumber))
                 .ForMember(dest => dest.ContactAttempts, opt => opt.MapFrom(src => src.ContactAttempts))
                 .ForMember(dest => dest.ContactStatus, opt => opt.MapFrom(src => src.ContactStatus))
+                .ForMember(dest => dest.CurrentLeadStatus, opt => opt.MapFrom(src => src.CurrentLeadStatus))
                 .ForMember(dest => dest.LeadSource, opt => opt.MapFrom(src => src.LeadSource))
                 .ForMember(dest => dest.DecisionMakerReached, opt => opt.MapFrom(src => src.DecisionMakerReached))
                 .ForMember(dest => dest.Interested, opt => opt.MapFrom(src => src.Interested))

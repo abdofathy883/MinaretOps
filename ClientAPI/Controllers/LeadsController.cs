@@ -1,5 +1,6 @@
 ﻿using Core.DTOs.Leads;
 using Core.Interfaces;
+using Infrastructure.Services.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -166,6 +167,23 @@ namespace ClientAPI.Controllers
             catch (Exception ex)
             {
                 return BadRequest($"Template download failed: {ex.Message}");
+            }
+        }
+
+        [HttpGet("search/{query}")]
+        public async Task<IActionResult> SearchAsync(string query)
+        {
+            if (string.IsNullOrWhiteSpace(query))
+                return BadRequest("Search query cannot be empty");
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            try
+            {
+                var tasks = await leadService.SearchLeadsAsync(query, userId);
+                return Ok(tasks);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
             }
         }
     }

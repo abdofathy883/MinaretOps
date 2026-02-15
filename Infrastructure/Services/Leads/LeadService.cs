@@ -1,6 +1,7 @@
 using AutoMapper;
 using ClosedXML.Excel;
 using Core.DTOs.Leads;
+using Core.DTOs.Tasks.TaskDTOs;
 using Core.Enums;
 using Core.Interfaces;
 using Core.Models;
@@ -369,30 +370,52 @@ namespace Infrastructure.Services.Leads
 
             foreach (var row in rows)
             {
-                var whatsapp = row.Cell(2).GetValue<string>(); // Assume Col 2 is WhatsApp
+                var whatsapp = row.Cell(2).GetValue<string>(); // Col 2: WhatsApp
                 if (string.IsNullOrWhiteSpace(whatsapp)) continue;
 
                 var existingLead = await context.SalesLeads
                     .Include(l => l.ServicesInterestedIn)
                     .FirstOrDefaultAsync(l => l.WhatsAppNumber == whatsapp);
 
+                // Column Mapping (Synced with Export/Screenshot):
+                // 1: Client Name
+                // 2: WhatsApp Number
+                // 3: Employee (Ignored in Import)
+                // 4: Contact Status
+                // 5: Current Lead Status
+                // 6: Contact Attempts
+                // 7: Lead Source
+                // 8: Decision Maker Reached
+                // 9: Interested
+                // 10: Interest Level
+                // 11: Meeting Agreed
+                // 12: Meeting Date
+                // 13: Meeting Attend
+                // 14: Quotation Sent
+                // 15: Follow Up Time
+                // 16: Follow Up Reason
+                // 17: Notes
+
                 if (existingLead != null)
                 {
                     // Update
                     existingLead.BusinessName = row.Cell(1).GetValue<string>();
-                    existingLead.ContactStatus = ParseEnum<ContactStatus>(row.Cell(3).GetValue<string>());
-                    existingLead.ContactAttempts = row.Cell(4).GetValue<int>();
-                    existingLead.LeadSource = ParseEnum<LeadSource>(row.Cell(5).GetValue<string>());
-                    existingLead.DecisionMakerReached = row.Cell(6).GetValue<bool>();
-                    existingLead.Interested = row.Cell(7).GetValue<bool>();
-                    existingLead.InterestLevel = ParseEnum<InterestLevel>(row.Cell(8).GetValue<string>());
-                    existingLead.MeetingAgreed = row.Cell(9).GetValue<bool>();
-                    existingLead.FollowUpReason = ParseEnum<FollowUpReason>(row.Cell(14).GetValue<string>());
-                    existingLead.Notes = row.Cell(15).GetValue<string>();
+                    existingLead.ContactStatus = ParseEnum<ContactStatus>(row.Cell(4).GetValue<string>());
+                    existingLead.CurrentLeadStatus = ParseEnum<CurrentLeadStatus>(row.Cell(5).GetValue<string>());
+                    existingLead.ContactAttempts = row.Cell(6).GetValue<int>();
+                    existingLead.LeadSource = ParseEnum<LeadSource>(row.Cell(7).GetValue<string>());
+                    existingLead.DecisionMakerReached = row.Cell(8).GetValue<bool>();
+                    existingLead.Interested = row.Cell(9).GetValue<bool>();
+                    existingLead.InterestLevel = ParseEnum<InterestLevel>(row.Cell(10).GetValue<string>());
+                    existingLead.MeetingAgreed = row.Cell(11).GetValue<bool>();
+                    // row.Cell(12) Meeting Date
+                    // row.Cell(13) Meeting Attend
+                    existingLead.QuotationSent = row.Cell(14).GetValue<bool>();
+                    // row.Cell(15) Follow Up Time
+                    existingLead.FollowUpReason = ParseEnum<FollowUpReason>(row.Cell(16).GetValue<string>());
+                    existingLead.Notes = row.Cell(17).GetValue<string>();
 
                     existingLead.UpdatedAt = DateTime.UtcNow;
-                    // Note: Skipping Services, Meeting Date, etc for brevity/complexity in first pass unless requested
-
                     context.SalesLeads.Update(existingLead);
                 }
                 else
@@ -403,19 +426,23 @@ namespace Infrastructure.Services.Leads
                         BusinessName = row.Cell(1).GetValue<string>(),
                         WhatsAppNumber = whatsapp,
                         ContactStatus = ParseEnum<ContactStatus>(row.Cell(3).GetValue<string>()),
-                        ContactAttempts = row.Cell(4).GetValue<int>(),
-                        LeadSource = ParseEnum<LeadSource>(row.Cell(5).GetValue<string>()),
-                        DecisionMakerReached = row.Cell(6).GetValue<bool>(),
-                        Interested = row.Cell(7).GetValue<bool>(),
-                        InterestLevel = ParseEnum<InterestLevel>(row.Cell(8).GetValue<string>()),
-                        MeetingAgreed = row.Cell(9).GetValue<bool>(),
-                        FollowUpReason = ParseEnum<FollowUpReason>(row.Cell(14).GetValue<string>()),
-                        Notes = row.Cell(15).GetValue<string>(),
+                        CurrentLeadStatus = ParseEnum<CurrentLeadStatus>(row.Cell(4).GetValue<string>()),
+                        ContactAttempts = row.Cell(5).GetValue<int>(),
+                        LeadSource = ParseEnum<LeadSource>(row.Cell(6).GetValue<string>()),
+                        DecisionMakerReached = row.Cell(7).GetValue<bool>(),
+                        Interested = row.Cell(8).GetValue<bool>(),
+                        InterestLevel = ParseEnum<InterestLevel>(row.Cell(9).GetValue<string>()),
+                        MeetingAgreed = row.Cell(10).GetValue<bool>(),
+                        MeetingDate = row.Cell(11).GetValue<DateTime>(),
+                        MeetingAttend = ParseEnum<MeetingAttend>(row.Cell(12).GetValue<string>()),
+                        QuotationSent = row.Cell(13).GetValue<bool>(),
+                        FollowUpTime = row.Cell(14).GetValue<DateTime>(),
+                        FollowUpReason = ParseEnum<FollowUpReason>(row.Cell(15).GetValue<string>()),
+                        Notes = row.Cell(16).GetValue<string>(),
                         CreatedById = currentUserId,
                         SalesRepId = currentUserId,
                         CreatedAt = DateTime.UtcNow
                     };
-                    // Handle default/optional fields
                     context.SalesLeads.Add(newLead);
                 }
             }
@@ -440,6 +467,86 @@ namespace Infrastructure.Services.Leads
             worksheet.Cell(1, 2).Value = "WhatsApp Number";
             worksheet.Cell(1, 3).Value = "Employee";
             worksheet.Cell(1, 4).Value = "Contact Status";
+            worksheet.Cell(1, 5).Value = "Current Lead Status";
+            worksheet.Cell(1, 6).Value = "Contact Attempts";
+            worksheet.Cell(1, 7).Value = "Lead Source";
+            worksheet.Cell(1, 8).Value = "Decision Maker Reached";
+            worksheet.Cell(1, 9).Value = "Interested";
+            worksheet.Cell(1, 10).Value = "Interest Level";
+            worksheet.Cell(1, 11).Value = "Meeting Agreed";
+            worksheet.Cell(1, 12).Value = "Meeting Date";
+            worksheet.Cell(1, 13).Value = "Meeting Attend";
+            worksheet.Cell(1, 14).Value = "Quotation Sent";
+            worksheet.Cell(1, 15).Value = "Follow Up Time";
+            worksheet.Cell(1, 16).Value = "Follow Up Reason";
+            worksheet.Cell(1, 17).Value = "Notes";
+
+            int row = 2;
+            foreach (var lead in leads)
+            {
+                worksheet.Cell(row, 1).Value = lead.BusinessName;
+                worksheet.Cell(row, 2).Value = lead.WhatsAppNumber;
+                worksheet.Cell(row, 3).Value = lead.SalesRepName ?? "NA";
+                worksheet.Cell(row, 4).Value = lead.ContactStatus.ToString();
+                worksheet.Cell(row, 5).Value = lead.CurrentLeadStatus.ToString();
+                worksheet.Cell(row, 6).Value = lead.ContactAttempts;
+                worksheet.Cell(row, 7).Value = lead.LeadSource.ToString();
+                worksheet.Cell(row, 8).Value = lead.DecisionMakerReached;
+                worksheet.Cell(row, 9).Value = lead.Interested;
+                worksheet.Cell(row, 10).Value = lead.InterestLevel.ToString();
+                worksheet.Cell(row, 11).Value = lead.MeetingAgreed;
+                worksheet.Cell(row, 12).Value = lead.MeetingDate?.ToString();
+                worksheet.Cell(row, 13).Value = lead.MeetingAttend.ToString();
+                worksheet.Cell(row, 14).Value = lead.QuotationSent;
+                worksheet.Cell(row, 15).Value = lead.FollowUpTime?.ToString();
+                worksheet.Cell(row, 16).Value = lead.FollowUpReason.ToString();
+                worksheet.Cell(row, 17).Value = lead.Notes;
+                row++;
+            }
+
+            using var stream = new MemoryStream();
+            workbook.SaveAs(stream);
+            return stream.ToArray();
+        }
+        public async Task<byte[]> GetLeadTemplateAsync()
+        {
+            using var workbook = new XLWorkbook();
+            
+            // --- 1. Data Validation Sheet (Hidden) ---
+            var validationSheet = workbook.Worksheets.Add("DataValidation");
+            validationSheet.Visibility = XLWorksheetVisibility.Hidden;
+
+            // Helper to populate column and get range
+            string PopulateValidationColumn(int colIndex, IEnumerable<string> values)
+            {
+                int rowIndex = 1;
+                foreach (var value in values)
+                {
+                    validationSheet.Cell(rowIndex++, colIndex).Value = value;
+                }
+                var lastRow = rowIndex - 1;
+                var colLetter = validationSheet.Column(colIndex).ColumnLetter();
+                return $"DataValidation!${colLetter}$1:${colLetter}${lastRow}";
+            }
+
+            // Populate Validation Lists
+            var contactStatusRange = PopulateValidationColumn(1, Enum.GetNames<ContactStatus>());
+            var currentStatusRange = PopulateValidationColumn(2, Enum.GetNames<CurrentLeadStatus>());
+            var leadSourceRange = PopulateValidationColumn(3, Enum.GetNames<LeadSource>());
+            var interestLevelRange = PopulateValidationColumn(4, Enum.GetNames<InterestLevel>());
+            var meetingAttendRange = PopulateValidationColumn(5, Enum.GetNames<MeetingAttend>());
+            var followUpReasonRange = PopulateValidationColumn(6, Enum.GetNames<FollowUpReason>());
+            var booleanRange = PopulateValidationColumn(7, new[] { "TRUE", "FALSE" });
+
+
+            // --- 2. Main Template Sheet ---
+            var worksheet = workbook.Worksheets.Add("Leads Template");
+
+            // Headers
+            worksheet.Cell(1, 1).Value = "Client Name";
+            worksheet.Cell(1, 2).Value = "WhatsApp Number";
+            worksheet.Cell(1, 3).Value = "Contact Status";
+            worksheet.Cell(1, 4).Value = "Current Lead Status";
             worksheet.Cell(1, 5).Value = "Contact Attempts";
             worksheet.Cell(1, 6).Value = "Lead Source";
             worksheet.Cell(1, 7).Value = "Decision Maker Reached";
@@ -453,76 +560,85 @@ namespace Infrastructure.Services.Leads
             worksheet.Cell(1, 15).Value = "Follow Up Reason";
             worksheet.Cell(1, 16).Value = "Notes";
 
-            int row = 2;
-            foreach (var lead in leads)
-            {
-                worksheet.Cell(row, 1).Value = lead.BusinessName;
-                worksheet.Cell(row, 2).Value = lead.WhatsAppNumber;
-                worksheet.Cell(row, 3).Value = lead.SalesRepName ?? "NA";
-                worksheet.Cell(row, 4).Value = lead.ContactStatus.ToString();
-                worksheet.Cell(row, 5).Value = lead.ContactAttempts;
-                worksheet.Cell(row, 6).Value = lead.LeadSource.ToString();
-                worksheet.Cell(row, 7).Value = lead.DecisionMakerReached;
-                worksheet.Cell(row, 8).Value = lead.Interested;
-                worksheet.Cell(row, 9).Value = lead.InterestLevel.ToString();
-                worksheet.Cell(row, 10).Value = lead.MeetingAgreed;
-                worksheet.Cell(row, 11).Value = lead.MeetingDate?.ToString();
-                worksheet.Cell(row, 12).Value = lead.MeetingAttend.ToString();
-                worksheet.Cell(row, 13).Value = lead.QuotationSent;
-                worksheet.Cell(row, 14).Value = lead.FollowUpTime?.ToString();
-                worksheet.Cell(row, 15).Value = lead.FollowUpReason.ToString();
-                worksheet.Cell(row, 16).Value = lead.Notes;
-                row++;
-            }
 
-            using var stream = new MemoryStream();
-            workbook.SaveAs(stream);
-            return stream.ToArray();
-        }
-        public async Task<byte[]> GetLeadTemplateAsync()
-        {
-            using var workbook = new XLWorkbook();
-            var worksheet = workbook.Worksheets.Add("Leads Template");
-
-            // Headers
-            worksheet.Cell(1, 1).Value = "Client Name";
-            worksheet.Cell(1, 2).Value = "WhatsApp Number";
-            worksheet.Cell(1, 3).Value = "Contact Status";
-            worksheet.Cell(1, 4).Value = "Contact Attempts";
-            worksheet.Cell(1, 5).Value = "Lead Source";
-            worksheet.Cell(1, 6).Value = "Decision Maker Reached";
-            worksheet.Cell(1, 7).Value = "Interested";
-            worksheet.Cell(1, 8).Value = "Interest Level";
-            worksheet.Cell(1, 9).Value = "Meeting Agreed";
-            worksheet.Cell(1, 10).Value = "Meeting Date";
-            worksheet.Cell(1, 11).Value = "Meeting Attend";
-            worksheet.Cell(1, 12).Value = "Quotation Sent";
-            worksheet.Cell(1, 13).Value = "Follow Up Time";
-            worksheet.Cell(1, 14).Value = "Follow Up Reason";
-            worksheet.Cell(1, 15).Value = "Notes";
-
-
-            // Sample row with dropdown and tick-box friendly values
+            // Sample row
             worksheet.Cell(2, 1).Value = "Mohamed Ahmed";
             worksheet.Cell(2, 2).Value = "01012345678";
-            worksheet.Cell(2, 3).Value = "";
-            worksheet.Cell(2, 4).Value = 0;
-            worksheet.Cell(2, 5).Value = LeadSource.Facebook.ToString();
-            worksheet.Cell(2, 6).Value = false;
+            worksheet.Cell(2, 3).Value = ContactStatus.NotContactedYet.ToString();
+            worksheet.Cell(2, 4).Value = CurrentLeadStatus.NewLead.ToString();
+            worksheet.Cell(2, 5).Value = 0;
+            worksheet.Cell(2, 6).Value = LeadSource.Facebook.ToString();
             worksheet.Cell(2, 7).Value = false;
-            worksheet.Cell(2, 8).Value = InterestLevel.Cold.ToString();
-            worksheet.Cell(2, 9).Value = false;
-            worksheet.Cell(2, 10).Value = null as string;
-            worksheet.Cell(2, 11).Value = MeetingAttend.Pending.ToString();
-            worksheet.Cell(2, 12).Value = false;
-            worksheet.Cell(2, 13).Value = null as string;
-            worksheet.Cell(2, 14).Value = FollowUpReason.Later.ToString();
-            worksheet.Cell(2, 15).Value = "Sample notes";
+            worksheet.Cell(2, 8).Value = false;
+            worksheet.Cell(2, 9).Value = InterestLevel.Cold.ToString();
+            worksheet.Cell(2, 10).Value = false;
+            worksheet.Cell(2, 11).Value = null as string;
+            worksheet.Cell(2, 12).Value = MeetingAttend.Pending.ToString();
+            worksheet.Cell(2, 13).Value = false;
+            worksheet.Cell(2, 14).Value = null as string;
+            worksheet.Cell(2, 15).Value = FollowUpReason.Later.ToString();
+            worksheet.Cell(2, 16).Value = "Sample notes";
+
+            // Apply Validation
+            var rowCount = 1000;
+
+            worksheet.Range(2, 3, rowCount, 3).SetDataValidation().List(contactStatusRange, true);
+            worksheet.Range(2, 4, rowCount, 4).SetDataValidation().List(currentStatusRange, true);
+            worksheet.Range(2, 6, rowCount, 6).SetDataValidation().List(leadSourceRange, true);
+            worksheet.Range(2, 9, rowCount, 9).SetDataValidation().List(interestLevelRange, true);
+            worksheet.Range(2, 12, rowCount, 12).SetDataValidation().List(meetingAttendRange, true);
+            worksheet.Range(2, 15, rowCount, 15).SetDataValidation().List(followUpReasonRange, true);
+
+            // Booleans
+            worksheet.Range(2, 8, rowCount, 8).SetDataValidation().List(booleanRange, true); // Decision Maker
+            worksheet.Range(2, 9, rowCount, 9).SetDataValidation().List(booleanRange, true); // Interested
+            worksheet.Range(2, 11, rowCount, 11).SetDataValidation().List(booleanRange, true); // Meeting Agreed
+            worksheet.Range(2, 14, rowCount, 14).SetDataValidation().List(booleanRange, true); // Quotation Sent
 
             using var stream = new MemoryStream();
             workbook.SaveAs(stream);
             return stream.ToArray();
         }
 
+        public async Task<List<LeadDTO>> SearchLeadsAsync(string query, string currentUserId)
+        {
+            if (string.IsNullOrWhiteSpace(query))
+                return new List<LeadDTO>();
+
+            query = query.Trim();
+            //var isId = int.TryParse(query, out int taskId);
+
+            var emp = await helperService.GetUserOrThrow(currentUserId);
+
+            var roles = await userManager.GetRolesAsync(emp);
+
+            IQueryable<SalesLead> leadsQuery = context.SalesLeads
+                .Include(t => t.ServicesInterestedIn)
+                .Include(t => t.SalesRep)
+                .Include(t => t.CreatedBy);
+
+            // Role-based filtering
+            if (roles.Contains("Admin"))
+            {
+                // no extra filter
+            }
+            else
+            {
+                // Regular employee
+                leadsQuery = leadsQuery.Where(t => t.SalesRepId == currentUserId);
+            }
+
+            // Search condition
+            leadsQuery = leadsQuery.Where(l =>
+                EF.Functions.Like(l.BusinessName, $"%{query}%")
+                || EF.Functions.Like(l.WhatsAppNumber, $"%{query}%"));
+                //(isId && t.Id == taskId));
+
+            var leads = await leadsQuery
+                .OrderByDescending(t => t.Id)
+                .ToListAsync();
+
+            return mapper.Map<List<LeadDTO>>(leads);
+        }
     }
 }

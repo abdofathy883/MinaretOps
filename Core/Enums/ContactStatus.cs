@@ -1,9 +1,16 @@
-﻿namespace Core.Enums
+﻿using System.ComponentModel;
+
+namespace Core.Enums
 {
     public enum ContactStatus
     {
-        NoReply = 0,
-        Replied = 1,
-        WrongNumber = 2
+        [Description("Not Contacted Yet")]
+        NotContactedYet = 0,
+        [Description("Contacted With No Reply")]
+        ContactedWithNoReply = 1,
+        [Description("Contacted And Replied")]
+        ContactedAndReplied = 2,
+        [Description("Wrong Number")]
+        WrongNumber = 3
     }
 }

@@ -5,6 +5,7 @@ namespace Core.Interfaces
     public interface ILeadService
     {
         Task<List<LeadDTO>> GetAllLeadsAsync(string currentUserId);
+        Task<List<LeadDTO>> SearchLeadsAsync(string query, string currentUserId);
         Task<LeadDTO> GetLeadByIdAsync(int id);
         Task<LeadDTO> CreateLeadAsync(CreateLeadDTO createLeadDTO, string currentUserId);
         Task<LeadDTO> UpdateLeadAsync(UpdateLeadDTO updateLeadDTO);

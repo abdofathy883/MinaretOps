@@ -9,6 +9,7 @@ namespace Core.DTOs.Leads
         public required string WhatsAppNumber { get; set; }
         public int ContactAttempts { get; set; }
         public ContactStatus ContactStatus { get; set; }
+        public CurrentLeadStatus CurrentLeadStatus { get; set; }
         public LeadSource LeadSource { get; set; }
         public bool DecisionMakerReached { get; set; }
         public bool Interested { get; set; }
