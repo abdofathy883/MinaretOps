@@ -366,54 +366,54 @@ namespace Infrastructure.Services.Leads
         {
             using var workbook = new XLWorkbook(fileStream);
             var worksheet = workbook.Worksheet(1);
-            var rows = worksheet.RangeUsed().RowsUsed().Skip(1); // Skip header
+            var rows = worksheet.RowsUsed().Skip(1); // Skip header
 
             foreach (var row in rows)
             {
-                var whatsapp = row.Cell(2).GetValue<string>(); // Col 2: WhatsApp
+                var rowNumber = row.RowNumber();
+                var whatsapp = worksheet.Cell(rowNumber, 2).GetValue<string>(); // Col 2: WhatsApp
                 if (string.IsNullOrWhiteSpace(whatsapp)) continue;
 
                 var existingLead = await context.SalesLeads
                     .Include(l => l.ServicesInterestedIn)
                     .FirstOrDefaultAsync(l => l.WhatsAppNumber == whatsapp);
 
-                // Column Mapping (Synced with Export/Screenshot):
+                // Column Mapping (Synced with Template):
                 // 1: Client Name
                 // 2: WhatsApp Number
-                // 3: Employee (Ignored in Import)
-                // 4: Contact Status
-                // 5: Current Lead Status
-                // 6: Contact Attempts
-                // 7: Lead Source
-                // 8: Decision Maker Reached
-                // 9: Interested
-                // 10: Interest Level
-                // 11: Meeting Agreed
-                // 12: Meeting Date
-                // 13: Meeting Attend
-                // 14: Quotation Sent
-                // 15: Follow Up Time
-                // 16: Follow Up Reason
-                // 17: Notes
+                // 3: Contact Status
+                // 4: Current Lead Status
+                // 5: Contact Attempts
+                // 6: Lead Source
+                // 7: Decision Maker Reached
+                // 8: Interested
+                // 9: Interest Level
+                // 10: Meeting Agreed
+                // 11: Meeting Date
+                // 12: Meeting Attend
+                // 13: Quotation Sent
+                // 14: Follow Up Time
+                // 15: Follow Up Reason
+                // 16: Notes
 
                 if (existingLead != null)
                 {
                     // Update
-                    existingLead.BusinessName = row.Cell(1).GetValue<string>();
-                    existingLead.ContactStatus = ParseEnum<ContactStatus>(row.Cell(4).GetValue<string>());
-                    existingLead.CurrentLeadStatus = ParseEnum<CurrentLeadStatus>(row.Cell(5).GetValue<string>());
-                    existingLead.ContactAttempts = row.Cell(6).GetValue<int>();
-                    existingLead.LeadSource = ParseEnum<LeadSource>(row.Cell(7).GetValue<string>());
-                    existingLead.DecisionMakerReached = row.Cell(8).GetValue<bool>();
-                    existingLead.Interested = row.Cell(9).GetValue<bool>();
-                    existingLead.InterestLevel = ParseEnum<InterestLevel>(row.Cell(10).GetValue<string>());
-                    existingLead.MeetingAgreed = row.Cell(11).GetValue<bool>();
-                    // row.Cell(12) Meeting Date
-                    // row.Cell(13) Meeting Attend
-                    existingLead.QuotationSent = row.Cell(14).GetValue<bool>();
-                    // row.Cell(15) Follow Up Time
-                    existingLead.FollowUpReason = ParseEnum<FollowUpReason>(row.Cell(16).GetValue<string>());
-                    existingLead.Notes = row.Cell(17).GetValue<string>();
+                    existingLead.BusinessName = worksheet.Cell(rowNumber, 1).GetValue<string>();
+                    existingLead.ContactStatus = ParseEnum<ContactStatus>(worksheet.Cell(rowNumber, 3).GetValue<string>());
+                    existingLead.CurrentLeadStatus = ParseEnum<CurrentLeadStatus>(worksheet.Cell(rowNumber, 4).GetValue<string>());
+                    existingLead.ContactAttempts = worksheet.Cell(rowNumber, 5).GetValue<int>();
+                    existingLead.LeadSource = ParseEnum<LeadSource>(worksheet.Cell(rowNumber, 6).GetValue<string>());
+                    existingLead.DecisionMakerReached = worksheet.Cell(rowNumber, 7).GetValue<bool>();
+                    existingLead.Interested = worksheet.Cell(rowNumber, 8).GetValue<bool>();
+                    existingLead.InterestLevel = ParseEnum<InterestLevel>(worksheet.Cell(rowNumber, 9).GetValue<string>());
+                    existingLead.MeetingAgreed = worksheet.Cell(rowNumber, 10).GetValue<bool>();
+                    existingLead.MeetingDate = worksheet.Cell(rowNumber, 11).GetValue<DateTime?>();
+                    existingLead.MeetingAttend = ParseEnum<MeetingAttend>(worksheet.Cell(rowNumber, 12).GetValue<string>());
+                    existingLead.QuotationSent = worksheet.Cell(rowNumber, 13).GetValue<bool>();
+                    existingLead.FollowUpTime = worksheet.Cell(rowNumber, 14).GetValue<DateTime?>();
+                    existingLead.FollowUpReason = ParseEnum<FollowUpReason>(worksheet.Cell(rowNumber, 15).GetValue<string>());
+                    existingLead.Notes = worksheet.Cell(rowNumber, 16).GetValue<string>();
 
                     existingLead.UpdatedAt = DateTime.UtcNow;
                     context.SalesLeads.Update(existingLead);
@@ -423,22 +423,22 @@ namespace Infrastructure.Services.Leads
                     // Create
                     var newLead = new SalesLead
                     {
-                        BusinessName = row.Cell(1).GetValue<string>(),
+                        BusinessName = worksheet.Cell(rowNumber, 1).GetValue<string>(),
                         WhatsAppNumber = whatsapp,
-                        ContactStatus = ParseEnum<ContactStatus>(row.Cell(3).GetValue<string>()),
-                        CurrentLeadStatus = ParseEnum<CurrentLeadStatus>(row.Cell(4).GetValue<string>()),
-                        ContactAttempts = row.Cell(5).GetValue<int>(),
-                        LeadSource = ParseEnum<LeadSource>(row.Cell(6).GetValue<string>()),
-                        DecisionMakerReached = row.Cell(7).GetValue<bool>(),
-                        Interested = row.Cell(8).GetValue<bool>(),
-                        InterestLevel = ParseEnum<InterestLevel>(row.Cell(9).GetValue<string>()),
-                        MeetingAgreed = row.Cell(10).GetValue<bool>(),
-                        MeetingDate = row.Cell(11).GetValue<DateTime>(),
-                        MeetingAttend = ParseEnum<MeetingAttend>(row.Cell(12).GetValue<string>()),
-                        QuotationSent = row.Cell(13).GetValue<bool>(),
-                        FollowUpTime = row.Cell(14).GetValue<DateTime>(),
-                        FollowUpReason = ParseEnum<FollowUpReason>(row.Cell(15).GetValue<string>()),
-                        Notes = row.Cell(16).GetValue<string>(),
+                        ContactStatus = ParseEnum<ContactStatus>(worksheet.Cell(rowNumber, 3).GetValue<string>()),
+                        CurrentLeadStatus = ParseEnum<CurrentLeadStatus>(worksheet.Cell(rowNumber, 4).GetValue<string>()),
+                        ContactAttempts = worksheet.Cell(rowNumber, 5).GetValue<int>(),
+                        LeadSource = ParseEnum<LeadSource>(worksheet.Cell(rowNumber, 6).GetValue<string>()),
+                        DecisionMakerReached = worksheet.Cell(rowNumber, 7).GetValue<bool>(),
+                        Interested = worksheet.Cell(rowNumber, 8).GetValue<bool>(),
+                        InterestLevel = ParseEnum<InterestLevel>(worksheet.Cell(rowNumber, 9).GetValue<string>()),
+                        MeetingAgreed = worksheet.Cell(rowNumber, 10).GetValue<bool>(),
+                        MeetingDate = worksheet.Cell(rowNumber, 11).GetValue<DateTime?>(),
+                        MeetingAttend = ParseEnum<MeetingAttend>(worksheet.Cell(rowNumber, 12).GetValue<string>()),
+                        QuotationSent = worksheet.Cell(rowNumber, 13).GetValue<bool>(),
+                        FollowUpTime = worksheet.Cell(rowNumber, 14).GetValue<DateTime?>(),
+                        FollowUpReason = ParseEnum<FollowUpReason>(worksheet.Cell(rowNumber, 15).GetValue<string>()),
+                        Notes = worksheet.Cell(rowNumber, 16).GetValue<string>(),
                         CreatedById = currentUserId,
                         SalesRepId = currentUserId,
                         CreatedAt = DateTime.UtcNow
