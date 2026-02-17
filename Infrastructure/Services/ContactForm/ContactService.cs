@@ -34,7 +34,8 @@ namespace Infrastructure.Services.ContactForm
                 FullName = newEntry.FullName,
                 Email = newEntry.Email,
                 PhoneNumber = newEntry.PhoneNumber,
-                Message = newEntry.Message
+                Message = newEntry.Message,
+                CreatedAt = DateTime.UtcNow
             };
 
             await context.ContactEntries.AddAsync(entry);
@@ -83,16 +84,33 @@ namespace Infrastructure.Services.ContactForm
 
         public async Task<bool> VerifyTokenAsync(string token)
         {
+            if (string.IsNullOrWhiteSpace(token))
+                return false;
+
             var secretKey = options.Value.SecretKey;
+            var content = new FormUrlEncodedContent(new[]
+            {
+                new KeyValuePair<string, string>("secret", secretKey),
+                new KeyValuePair<string, string>("response", token)
+            });
+
             var response = await httpClient.PostAsync(
-            $"https://www.google.com/recaptcha/api/siteverify?secret={secretKey}&response={token}",
-            null);
+                "https://www.google.com/recaptcha/api/siteverify",
+                content);
+
+            if (!response.IsSuccessStatusCode)
+                return false;
 
             var json = await response.Content.ReadAsStringAsync();
 
+            Console.WriteLine(json);
+
             var result = JsonSerializer.Deserialize<RecaptchaResponse>(json);
 
-            return result!.Success && result.Score >= 0.5;
+            if (result is null)
+                return false;
+
+            return result.Success;
         }
     }
 }
