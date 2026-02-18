@@ -10,6 +10,8 @@ namespace Infrastructure.MappingProfiles
         {
             CreateMap<SeoContent, SeoContentDTO>()
                 .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id))
+                .ForMember(dest => dest.Route, opt => opt.MapFrom(src => src.Route))
+                .ForMember(dest => dest.Language, opt => opt.MapFrom(src => src.Language))
                 .ForMember(dest => dest.Title, opt => opt.MapFrom(src => src.Title))
                 .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description))
                 .ForMember(dest => dest.Keywords, opt => opt.MapFrom(src => src.Keywords))

@@ -48,7 +48,7 @@ namespace Infrastructure.Services.Seo
             return mapper.Map<SeoContentDTO>(seoContent);
         }
 
-        public async Task<SeoContentDTO> GetContentByRoute(string route, string language = "en")
+        public async Task<SeoContentDTO> GetContentByRoute(string route, string language)
         {
             var sanitizedRoute = route.StartsWith("/") ? route : "/" + route;
             if (sanitizedRoute == "//") sanitizedRoute = "/";

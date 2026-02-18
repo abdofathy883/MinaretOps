@@ -84,6 +84,37 @@ namespace Infrastructure.Data
                 }
             }
 
+            if (!await context.SeoContents.AnyAsync())
+            {
+                var home = new SeoContent
+                {
+                    Route = "/",
+                    Language = "ar"
+                };
+                await context.SeoContents.AddAsync(home);
+
+                var about = new SeoContent
+                {
+                    Route = "/about-us",
+                    Language = "ar"
+                };
+                await context.SeoContents.AddAsync(about);
+
+                var services = new SeoContent
+                {
+                    Route = "/our-services",
+                    Language = "ar"
+                };
+                await context.SeoContents.AddAsync(services);
+                
+                var contact = new SeoContent
+                {
+                    Route = "/contact-us",
+                    Language = "ar"
+                };
+                await context.SeoContents.AddAsync(contact);
+            }
+
             await context.SaveChangesAsync();
         }
     }

@@ -23,6 +23,7 @@ using Infrastructure.Services.MediaUploads;
 using Infrastructure.Services.OutboxProcessor;
 using Infrastructure.Services.Payroll;
 using Infrastructure.Services.Reporting;
+using Infrastructure.Services.Seo;
 using Infrastructure.Services.Services;
 using Infrastructure.Services.Tasks;
 using Infrastructure.Services.Vault;
@@ -136,6 +137,7 @@ namespace ClientAPI
             builder.Services.AddScoped<ILeadService, Infrastructure.Services.Leads.LeadService>();
             builder.Services.AddScoped<IInvitationService, InvitationService>();
             builder.Services.AddHttpClient<IContactService, ContactService>();
+            builder.Services.AddScoped<ISeoService, SeoService>();
             builder.Services.AddSingleton<DiscordService>();
             builder.Services.AddHostedService<DiscordHostedService>();
             builder.Services.AddHostedService<OutboxProcessor>();
@@ -201,6 +203,7 @@ namespace ClientAPI
                 cfg.AddProfile<VaultProfile>();
                 cfg.AddProfile<LeadProfile>();
                 cfg.AddProfile<EmpInvitationProfile>();
+                cfg.AddProfile<SeoContentProfile>();
             });
 
             builder.Services.AddControllers();

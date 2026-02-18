@@ -16,8 +16,8 @@ namespace ClientAPI.Controllers
             this.seoService = seoService;
         }
 
-        [HttpGet("{*route}")]
-        public async Task<IActionResult> Get(string route, [FromQuery] string language = "en")
+        [HttpGet("{language}/{*route}")]
+        public async Task<IActionResult> Get(string language, string route)
         {
             // Decode the route if necessary, though ASP.NET Core usually handles it
             var content = await seoService.GetContentByRoute(route, language);
@@ -30,6 +30,7 @@ namespace ClientAPI.Controllers
         }
 
         [HttpPost]
+        [Consumes("multipart/form-data")]
         public async Task<IActionResult> Save([FromForm] CreateSeoContentDTO model)
         {
             if (string.IsNullOrEmpty(model.Route))
