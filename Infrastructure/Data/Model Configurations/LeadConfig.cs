@@ -61,7 +61,7 @@ namespace Infrastructure.Data.Model_Configurations
             builder.HasOne(x => x.CreatedBy)
                 .WithMany()
                 .HasForeignKey(x => x.CreatedById)
-                .IsRequired()
+                .IsRequired(false)
                 .OnDelete(DeleteBehavior.Restrict);
 
             // Many-to-Many Configuration for ServicesInterestedIn (via LeadServices join entity)

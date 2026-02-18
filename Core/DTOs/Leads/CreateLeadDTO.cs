@@ -1,5 +1,4 @@
 ﻿using Core.Enums;
-using Core.Models;
 
 namespace Core.DTOs.Leads
 {
@@ -23,6 +22,6 @@ namespace Core.DTOs.Leads
         public DateTime? FollowUpTime { get; set; }
         public string? Notes { get; set; }
         public string? SalesRepId { get; set; }
-        public required string CreatedById { get; set; }
+        public string? CreatedById { get; set; }
     }
 }

@@ -84,6 +84,7 @@ namespace Infrastructure.Data
             builder.ApplyConfiguration(new LeadConfig());
             builder.ApplyConfiguration(new LeadServiceConfig());
             builder.ApplyConfiguration(new SeoContentConfig());
+            builder.ApplyConfiguration(new ContactFormConfig());
         }
     }
 }

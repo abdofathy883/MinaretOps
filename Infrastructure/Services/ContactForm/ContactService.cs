@@ -1,10 +1,12 @@
 ﻿using Core.DTOs.ContactForm;
+using Core.DTOs.Leads;
 using Core.Interfaces;
 using Core.Models;
 using Core.Settings;
 using Infrastructure.Data;
 using Infrastructure.Services.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Text.Json;
 
@@ -17,14 +19,16 @@ namespace Infrastructure.Services.ContactForm
         private readonly TaskHelperService helperService;
         private readonly HttpClient httpClient;
         private readonly IOptions<RecaptchaSeetings> options;
+        private readonly ILogger<ContactService> logger;
 
-        public ContactService(MinaretOpsDbContext context, ILeadService leadService, TaskHelperService taskHelperService, HttpClient httpClient, IOptions<RecaptchaSeetings> options)
+        public ContactService(MinaretOpsDbContext context, ILeadService leadService, TaskHelperService taskHelperService, HttpClient httpClient, IOptions<RecaptchaSeetings> options, ILogger<ContactService> logger)
         {
             this.context = context;
             this.leadService = leadService;
             this.helperService = taskHelperService;
             this.httpClient = httpClient;
             this.options = options;
+            this.logger = logger;
         }
 
         public async Task<bool> CreateContactEntry(NewEntryDTO newEntry)
@@ -45,28 +49,39 @@ namespace Infrastructure.Services.ContactForm
                 var emailPayload = new
                 {
                     To = newEntry.Email,
-                    Subject = "Task Updates",
-                    Template = "ContactForm",
+                    Subject = "We Have Got Your Message",
+                    Template = "ContactFormSubmission",
                     Replacements = new Dictionary<string, string>
                     {
-                        
+                        { "{{FullName}}", newEntry.FullName },
+                        { "{{Email}}", newEntry.Email },
+                        { "{{PhoneNumber}}", newEntry.PhoneNumber },
+                        { "{{Message}}", newEntry.Message ?? string.Empty }
                     }
                 };
                 await helperService.AddOutboxAsync(Core.Enums.OutboxTypes.Email, "New Contact Form Entry", emailPayload);
             }
+            await context.SaveChangesAsync();
+            try
+            {
+                var lead = new CreateLeadDTO
+                {
+                    BusinessName = newEntry.FullName,
+                    WhatsAppNumber = newEntry.PhoneNumber,
+                    ContactStatus = Core.Enums.ContactStatus.NotContactedYet,
+                    CurrentLeadStatus = Core.Enums.CurrentLeadStatus.NewLead,
+                    LeadSource = Core.Enums.LeadSource.Website,
+                    Interested = true,
+                    InterestLevel = Core.Enums.InterestLevel.Hot,
+                };
+                await leadService.CreateLeadAsync(lead);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error creating lead from contact form entry with ID {EntryId}", entry.Id);
+            }
 
-            //var lead = new CreateLeadDTO
-            //{
-            //    BusinessName = newEntry.FullName,
-            //    WhatsAppNumber = newEntry.PhoneNumber,
-            //    ContactStatus = Core.Enums.ContactStatus.NoReply,
-            //    LeadSource = Core.Enums.LeadSource.Facebook,
-            //    Interested = true,
-            //    InterestLevel = Core.Enums.InterestLevel.Hot,
-
-            //};
-            //await leadService.CreateLeadAsync(lead);
-            return await context.SaveChangesAsync() > 0;
+            return true;
         }
 
         public async Task<ContactEntry> GetByIdAsync(int id)

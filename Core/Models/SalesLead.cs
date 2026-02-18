@@ -24,8 +24,8 @@ namespace Core.Models
         public string? Notes { get; set; }
         public string? SalesRepId { get; set; }
         public ApplicationUser? SalesRep { get; set; }
-        public required string CreatedById { get; set; }
-        public ApplicationUser CreatedBy { get; set; } = default!;
+        public string? CreatedById { get; set; }
+        public ApplicationUser? CreatedBy { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
     }

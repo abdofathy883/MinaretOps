@@ -41,13 +41,11 @@ namespace Infrastructure.Services.Leads
             logger = _logger;
         }
 
-        public async Task<LeadDTO> CreateLeadAsync(CreateLeadDTO createLeadDTO, string currentUserId)
+        public async Task<LeadDTO> CreateLeadAsync(CreateLeadDTO createLeadDTO, string? currentUserId = null)
         {
-            var salesRep = await context.Users.FindAsync(createLeadDTO.SalesRepId)
-                ?? throw new KeyNotFoundException($"Sales Representative with ID {createLeadDTO.SalesRepId} not found.");
+            var salesRep = await context.Users.FindAsync(createLeadDTO.SalesRepId);
 
-            var createdBy = await context.Users.FindAsync(currentUserId)
-                ?? throw new KeyNotFoundException($"Creator User with ID {createLeadDTO.CreatedById} not found.");
+            var createdBy = await context.Users.FindAsync(currentUserId);
 
             
             var lead = new SalesLead

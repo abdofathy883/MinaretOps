@@ -24,8 +24,8 @@ namespace Core.DTOs.Leads
         public string? Notes { get; set; }
         public string? SalesRepId { get; set; }
         public string? SalesRepName { get; set; }
-        public required string CreatedById { get; set; }
-        public required string CreatedByName { get; set; }
+        public string? CreatedById { get; set; }
+        public string? CreatedByName { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
     }

@@ -26,9 +26,11 @@ namespace Infrastructure.MappingProfiles
                 .ForMember(dest => dest.FollowUpTime, opt => opt.MapFrom(src => src.FollowUpTime))
                 .ForMember(dest => dest.Notes, opt => opt.MapFrom(src => src.Notes))
                 .ForMember(dest => dest.SalesRepId, opt => opt.MapFrom(src => src.SalesRepId))
-                .ForMember(dest => dest.SalesRepName, opt => opt.MapFrom(src => $"{src.SalesRep.FirstName} {src.SalesRep.LastName}"))
+                .ForMember(dest => dest.SalesRepName, opt => opt.MapFrom(src => src.SalesRep != null ?
+                $"{src.SalesRep.FirstName} {src.SalesRep.LastName}" : null))
                 .ForMember(dest => dest.CreatedById, opt => opt.MapFrom(src => src.CreatedById))
-                .ForMember(dest => dest.CreatedByName, opt => opt.MapFrom(src => $"{src.CreatedBy.FirstName} {src.CreatedBy.LastName}"))
+                .ForMember(dest => dest.CreatedByName, opt => opt.MapFrom(src => src.CreatedBy != null ?
+                $"{src.CreatedBy.FirstName} {src.CreatedBy.LastName}" : null))
                 .ForMember(dest => dest.ServicesInterestedIn, opt => opt.MapFrom(src => src.ServicesInterestedIn));
 
             CreateMap<LeadServices, LeadServicesDTO>()
