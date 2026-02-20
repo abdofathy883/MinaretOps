@@ -1,5 +1,6 @@
 ﻿using Core.DTOs.ContactForm;
 using Core.DTOs.Leads;
+using Core.Enums.Leads;
 using Core.Interfaces;
 using Core.Models;
 using Core.Settings;
@@ -68,11 +69,10 @@ namespace Infrastructure.Services.ContactForm
                 {
                     BusinessName = newEntry.FullName,
                     WhatsAppNumber = newEntry.PhoneNumber,
-                    ContactStatus = Core.Enums.ContactStatus.NotContactedYet,
-                    CurrentLeadStatus = Core.Enums.CurrentLeadStatus.NewLead,
-                    LeadSource = Core.Enums.LeadSource.Website,
-                    Interested = true,
-                    InterestLevel = Core.Enums.InterestLevel.Hot,
+                    ContactStatus = ContactStatus.NotContactedYet,
+                    CurrentLeadStatus = CurrentLeadStatus.NewLead,
+                    LeadSource = LeadSource.Website,
+                    InterestLevel = InterestLevel.Hot,
                 };
                 await leadService.CreateLeadAsync(lead);
             }

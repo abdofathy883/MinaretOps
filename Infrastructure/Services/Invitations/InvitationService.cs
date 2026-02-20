@@ -1,6 +1,7 @@
 using AutoMapper;
 using Core.DTOs.EmployeeOnBoarding;
 using Core.Enums;
+using Core.Enums.Auth_Attendance;
 using Core.Interfaces;
 using Core.Models;
 using Infrastructure.Data;

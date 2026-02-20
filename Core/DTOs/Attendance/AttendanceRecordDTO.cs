@@ -1,5 +1,5 @@
 ﻿using Core.DTOs.AttendanceBreaks;
-using Core.Enums;
+using Core.Enums.Auth_Attendance;
 
 namespace Core.DTOs.Attendance
 {

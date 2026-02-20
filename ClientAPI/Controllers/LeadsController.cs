@@ -122,53 +122,9 @@ namespace ClientAPI.Controllers
                 return BadRequest(ex.Message);
             }
         }
-        [HttpPost("import")]
-        public async Task<IActionResult> ImportLeads(IFormFile file)
-        {
-            if (file == null || file.Length == 0) return BadRequest("File is empty.");
+        
 
-            try
-            {
-                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-                using var stream = file.OpenReadStream();
-                await leadService.ImportLeadsFromExcelAsync(stream, userId);
-                return Ok(new { message = "Leads imported successfully." });
-            }
-            catch (Exception ex)
-            {
-                return BadRequest($"Import failed: {ex.Message}");
-            }
-        }
-
-        [HttpGet("export")]
-        public async Task<IActionResult> ExportLeads()
-        {
-            var userId = httpContextAccessor?.HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(userId)) return BadRequest("Current User Id is NULL");
-            try
-            {                
-                var fileContent = await leadService.ExportLeadsToExcelAsync(userId);
-                return File(fileContent, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "Leads.xlsx");
-            }
-            catch (Exception ex)
-            {
-                return BadRequest($"Export failed: {ex.Message}");
-            }
-        }
-
-        [HttpGet("template")]
-        public async Task<IActionResult> GetTemplate()
-        {
-            try
-            {
-                var fileContent = await leadService.GetLeadTemplateAsync();
-                return File(fileContent, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "LeadsTemplate.xlsx");
-            }
-            catch (Exception ex)
-            {
-                return BadRequest($"Template download failed: {ex.Message}");
-            }
-        }
+        
 
         [HttpGet("search/{query}")]
         public async Task<IActionResult> SearchAsync(string query)
@@ -186,5 +142,7 @@ namespace ClientAPI.Controllers
                 return BadRequest(ex.Message);
             }
         }
+
+        
     }
 }

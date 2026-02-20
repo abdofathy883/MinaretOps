@@ -1,4 +1,4 @@
-﻿namespace Core.Enums
+﻿namespace Core.Enums.Leads
 {
     public enum LeadSource
     {
@@ -7,6 +7,7 @@
         LinkedIn = 2,
         Referral = 3,
         GoogleMaps = 4,
-        Website = 5
+        Website = 5,
+        FreelancingPlatforms = 6
     }
 }

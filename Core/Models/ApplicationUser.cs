@@ -1,4 +1,4 @@
-﻿using Core.Enums;
+﻿using Core.Enums.Auth_Attendance;
 using Core.Interfaces;
 using Microsoft.AspNetCore.Identity;
 using System.ComponentModel.DataAnnotations;

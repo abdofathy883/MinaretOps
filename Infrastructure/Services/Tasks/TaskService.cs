@@ -6,6 +6,7 @@ using Core.DTOs.Tasks.TaskDTOs;
 using Core.DTOs.Tasks.TaskGroupDTOs;
 using Core.DTOs.Tasks.TaskResourcesDTOs;
 using Core.Enums;
+using Core.Enums.Auth_Attendance;
 using Core.Interfaces;
 using Core.Models;
 using Infrastructure.Data;

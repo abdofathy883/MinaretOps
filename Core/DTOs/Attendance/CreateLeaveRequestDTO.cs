@@ -1,4 +1,4 @@
-﻿using Core.Enums;
+﻿using Core.Enums.Auth_Attendance;
 using Microsoft.AspNetCore.Http;
 
 namespace Core.DTOs.Attendance

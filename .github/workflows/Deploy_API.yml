@@ -1,55 +1,3 @@
-# name: Deploy_API
-
-# on:
-#   push:
-#     branches:
-#       - master
-
-# jobs:
-#   deploy:
-#     runs-on: ubuntu-latest
-
-#     steps:
-#     - name: Checkout Code
-#       uses: actions/checkout@v4
-
-#     - name: Setup SSH Agent
-#       uses: webfactory/ssh-agent@v0.9.0
-#       with:
-#         ssh-private-key: ${{ secrets.VPS_SSH_KEY }}
-
-#     - name: Deploy via SSH
-#       run: |
-#         ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }} << 'EOF'
-#           set -e
-#           cd /var/www/minaretopsapi || mkdir -p /var/www/minaretopsapi/src && cd /var/www/minaretopsapi
-          
-#           Make sure git repo is clean and up to date
-#           git init
-#           git remote remove origin || true
-#           git remote add origin https://${{ secrets.GIT_USERNAME }}:${{ secrets.GIT_TOKEN }}@github.com/abdofathy883/MinaretOps.git
-#           Initialize or update repo
-#           if [ ! -d ".git" ]; then
-#             git init
-#             git remote add origin https://${{ secrets.GIT_USERNAME }}:${{ secrets.GIT_TOKEN }}@github.com/abdofathy883/MinaretOps.git
-#           else
-#             git remote set-url origin https://${{ secrets.GIT_USERNAME }}:${{ secrets.GIT_TOKEN }}@github.com/abdofathy883/MinaretOps.git
-#           fi
-
-#           git fetch origin master
-#           git reset --hard origin/master
-          
-#           Publish into the folder expected by systemd
-#           dotnet publish /var/www/minaretopsapi/src/ClientAPI/ClientAPI.csproj -c Release -o /var/www/minaretopsapi/published
-          
-#           dotnet publish ClientAPI/ClientAPI.csproj -c Release -o /var/www/minaretopsapi/published
-
-#           Restart the correct service
-#           systemctl daemon-reload
-#           systemctl restart minaretapi.service
-#           systemctl status minaretapi.service --no-pager -l
-#         EOF
-
 name: Deploy_API
 
 on:
@@ -78,14 +26,24 @@ jobs:
     - name: Build and publish
       run: dotnet publish ClientAPI/ClientAPI.csproj -c Release -o ./publish-output
 
+    - name: Show build output (debug)
+      run: |
+        echo "Built at $(date -Iseconds)"
+        echo "Commit: ${{ github.sha }} | Ref: ${{ github.ref }}"
+        ls -la ./publish-output/ | head -30
+
     - name: Deploy build output to server
       run: |
         rsync -avz --delete -e "ssh -o StrictHostKeyChecking=no" \
           ./publish-output/ \
           ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }}:/var/www/minaretopsapi/published/
 
+    - name: Verify on server (debug)
+      run: |
+        ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }} \
+          "echo '--- /var/www/minaretopsapi/published/ ---'; ls -la /var/www/minaretopsapi/published/ | head -20; echo '--- ClientAPI.dll mtime ---'; stat -c '%y %n' /var/www/minaretopsapi/published/ClientAPI.dll 2>/dev/null || true"
+
     - name: Restart service on server
       run: |
         ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }} \
           "systemctl daemon-reload && systemctl restart minaretapi.service && systemctl status minaretapi.service --no-pager -l"
-

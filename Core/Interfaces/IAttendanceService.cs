@@ -1,5 +1,5 @@
 ﻿using Core.DTOs.Attendance;
-using Core.Enums;
+using Core.Enums.Auth_Attendance;
 
 namespace Core.Interfaces
 {

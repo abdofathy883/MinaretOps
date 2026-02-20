@@ -21,35 +21,51 @@ namespace Infrastructure.Data.Model_Configurations
                 .IsRequired()
                 .HasMaxLength(20);
 
-            builder.Property(x => x.FollowUpReason)
+            builder.Property(x => x.Country)
                 .IsRequired(false)
-                .HasConversion<string>()
+                .HasMaxLength(50);
+
+            builder.Property(x => x.Occupation)
+                .IsRequired(false)
                 .HasMaxLength(100);
 
             builder.Property(x => x.ContactStatus)
                 .HasConversion<string>()
-                .HasMaxLength(100);
+                .HasMaxLength(50);
 
             builder.Property(x => x.CurrentLeadStatus)
                 .HasConversion<string>()
-                .HasMaxLength(100);
+                .HasMaxLength(50);
 
             builder.Property(x => x.LeadSource)
                 .HasConversion<string>()
-                .HasMaxLength(100);
+                .HasMaxLength(50);
+            
+            builder.Property(x => x.FreelancePlatform)
+                .IsRequired(false)
+                .HasConversion<string>()
+                .HasMaxLength(50);
 
             builder.Property(x => x.InterestLevel)
                 .HasConversion<string>()
                 .HasMaxLength(100);
 
-            builder.Property(x => x.MeetingAttend)
+            builder.Property(x => x.Responsibility)
+                .HasConversion<string>()
+                .HasMaxLength(50);
+
+            builder.Property(x => x.Budget)
+                .HasConversion<string>()
+                .HasMaxLength(50);
+            
+            builder.Property(x => x.Timeline)
+                .HasConversion<string>()
+                .HasMaxLength(50);
+
+            builder.Property(x => x.NeedsExpectation)
                 .HasConversion<string>()
                 .HasMaxLength(100);
 
-
-
-            builder.Property(x => x.Notes)
-                .HasMaxLength(2000);
 
             // Configure Relationships
             builder.HasOne(x => x.SalesRep)

@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel;
 
-namespace Core.Enums
+namespace Core.Enums.Leads
 {
     public enum ContactStatus
     {

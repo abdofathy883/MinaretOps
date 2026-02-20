@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Core.DTOs.Leads;
+using Core.DTOs.Leads.Notes;
 using Core.Models;
 
 namespace Infrastructure.MappingProfiles
@@ -11,18 +12,19 @@ namespace Infrastructure.MappingProfiles
             CreateMap<SalesLead, LeadDTO>()
                 .ForMember(dest => dest.BusinessName, opt => opt.MapFrom(src => src.BusinessName))
                 .ForMember(dest => dest.WhatsAppNumber, opt => opt.MapFrom(src => src.WhatsAppNumber))
-                .ForMember(dest => dest.ContactAttempts, opt => opt.MapFrom(src => src.ContactAttempts))
+                .ForMember(dest => dest.Country, opt => opt.MapFrom(src => src.Country))
+                .ForMember(dest => dest.Occupation, opt => opt.MapFrom(src => src.Occupation))
                 .ForMember(dest => dest.ContactStatus, opt => opt.MapFrom(src => src.ContactStatus))
                 .ForMember(dest => dest.CurrentLeadStatus, opt => opt.MapFrom(src => src.CurrentLeadStatus))
                 .ForMember(dest => dest.LeadSource, opt => opt.MapFrom(src => src.LeadSource))
-                .ForMember(dest => dest.DecisionMakerReached, opt => opt.MapFrom(src => src.DecisionMakerReached))
-                .ForMember(dest => dest.Interested, opt => opt.MapFrom(src => src.Interested))
+                .ForMember(dest => dest.FreelancePlatform, opt => opt.MapFrom(src => src.FreelancePlatform))
                 .ForMember(dest => dest.InterestLevel, opt => opt.MapFrom(src => src.InterestLevel))
-                .ForMember(dest => dest.MeetingAgreed, opt => opt.MapFrom(src => src.MeetingAgreed))
+                .ForMember(dest => dest.Budget, opt => opt.MapFrom(src => src.Budget))
+                .ForMember(dest => dest.Timeline, opt => opt.MapFrom(src => src.Timeline))
+                .ForMember(dest => dest.Responsibility, opt => opt.MapFrom(src => src.Responsibility))
+                .ForMember(dest => dest.NeedsExpectation, opt => opt.MapFrom(src => src.NeedsExpectation))
                 .ForMember(dest => dest.MeetingDate, opt => opt.MapFrom(src => src.MeetingDate))
-                .ForMember(dest => dest.MeetingAttend, opt => opt.MapFrom(src => src.MeetingAttend))
                 .ForMember(dest => dest.QuotationSent, opt => opt.MapFrom(src => src.QuotationSent))
-                .ForMember(dest => dest.FollowUpReason, opt => opt.MapFrom(src => src.FollowUpReason))
                 .ForMember(dest => dest.FollowUpTime, opt => opt.MapFrom(src => src.FollowUpTime))
                 .ForMember(dest => dest.Notes, opt => opt.MapFrom(src => src.Notes))
                 .ForMember(dest => dest.SalesRepId, opt => opt.MapFrom(src => src.SalesRepId))
@@ -36,6 +38,15 @@ namespace Infrastructure.MappingProfiles
             CreateMap<LeadServices, LeadServicesDTO>()
                 .ForMember(dest => dest.ServiceTitle, opt => opt.MapFrom(src => src.Service.Title))
                 .ForMember(dest => dest.LeadName, opt => opt.MapFrom(src => src.Lead.BusinessName));
+
+            CreateMap<LeadNote, LeadNoteDTO>()
+                .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id))
+                .ForMember(dest => dest.Note, opt => opt.MapFrom(src => src.Note))
+                .ForMember(dest => dest.LeadId, opt => opt.MapFrom(src => src.LeadId))
+                .ForMember(dest => dest.CreatedById, opt => opt.MapFrom(src => src.CreatedById))
+                .ForMember(dest => dest.CreatedByName, opt => opt.MapFrom(src => $"{src.CreatedBy.FirstName} {src.CreatedBy.LastName}"))
+                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => src.CreatedAt));
+
         }
     }
 }

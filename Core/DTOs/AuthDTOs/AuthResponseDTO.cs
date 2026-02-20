@@ -1,4 +1,4 @@
-﻿using Core.Enums;
+﻿using Core.Enums.Auth_Attendance;
 using System.Text.Json.Serialization;
 
 namespace Core.DTOs.AuthDTOs

@@ -1,4 +1,4 @@
-﻿namespace Core.Enums
+﻿namespace Core.Enums.Auth_Attendance
 {
     public enum UserRoles
     {
