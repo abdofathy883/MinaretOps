@@ -47,7 +47,8 @@ namespace Infrastructure.Services.Leads
         {
             var salesRep = await context.Users.FindAsync(createLeadDTO.SalesRepId);
 
-            var createdBy = await context.Users.FindAsync(currentUserId);
+            var createdBy = await context.Users.FindAsync(currentUserId)
+                ?? throw new KeyNotFoundException();
 
             
             var lead = new SalesLead
@@ -68,10 +69,15 @@ namespace Infrastructure.Services.Leads
                 MeetingDate = createLeadDTO.MeetingDate,
                 FollowUpTime = createLeadDTO.FollowUpTime,
                 QuotationSent = createLeadDTO.QuotationSent,
-                SalesRepId = salesRep.Id,
+                //SalesRepId = salesRep.Id ?? string.Empty,
                 CreatedById = createdBy.Id,
                 CreatedAt = DateTime.UtcNow
             };
+
+            if (salesRep is not null)
+            {
+                lead.SalesRepId = salesRep.Id;
+            }
 
             context.SalesLeads.Add(lead);
 
@@ -104,7 +110,7 @@ namespace Infrastructure.Services.Leads
                 }
             }
 
-            if (!string.IsNullOrEmpty(salesRep.Email))
+            if (salesRep is not null && !string.IsNullOrEmpty(salesRep.Email))
             {
                 var emailPayload = new
                 {
