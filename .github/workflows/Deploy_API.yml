@@ -24,7 +24,8 @@ jobs:
         ssh-private-key: ${{ secrets.VPS_SSH_KEY }}
 
     - name: Build and publish
-      run: dotnet publish ClientAPI/ClientAPI.csproj -c Release -o ./publish-output
+      run: dotnet publish ClientAPI/ClientAPI.csproj -c Release -r linux-x64 --self-contained false -o ./publish-output
+      #run: dotnet publish ClientAPI/ClientAPI.csproj -c Release -o ./publish-output
 
     - name: Show build output (debug)
       run: |
@@ -36,14 +37,18 @@ jobs:
       run: |
         rsync -avz --delete -e "ssh -o StrictHostKeyChecking=no" \
           ./publish-output/ \
-          ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }}:/var/www/minaretopsapi/published/
+          ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }}:/var/www/minaretapi/
 
-    - name: Verify on server (debug)
+    - name: Verify on server
       run: |
         ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }} \
-          "echo '--- /var/www/minaretopsapi/published/ ---'; ls -la /var/www/minaretopsapi/published/ | head -20; echo '--- ClientAPI.dll mtime ---'; stat -c '%y %n' /var/www/minaretopsapi/published/ClientAPI.dll 2>/dev/null || true"
+          "echo '--- /var/www/minaretapi/ ---'; \
+           ls -la /var/www/minaretapi/ | head -20; \
+           echo '--- ClientAPI.dll mtime ---'; \
+           stat -c '%y %n' /var/www/minaretapi/ClientAPI.dll 2>/dev/null || true"
 
     - name: Restart service on server
       run: |
         ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }} \
-          "systemctl daemon-reload && systemctl restart minaretapi.service && systemctl status minaretapi.service --no-pager -l"
+          "systemctl restart minaretapi.service && \
+           systemctl status minaretapi.service --no-pager -l"
