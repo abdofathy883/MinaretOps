@@ -10,7 +10,7 @@ namespace Core.DTOs.Leads.Notes
     public class CreateLeadNoteDTO
     {
         public string Note { get; set; }
-        public required string CreatedById { get; set; }
+        //public required string CreatedById { get; set; }
         public int LeadId { get; set; }
     }
 }

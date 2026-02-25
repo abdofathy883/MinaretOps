@@ -19,13 +19,13 @@ namespace Infrastructure.Services.Leads
             this.mapper = mapper;
         }
 
-        public async Task<LeadNoteDTO> CreateNote(CreateLeadNoteDTO leadNote)
+        public async Task<LeadNoteDTO> CreateNote(CreateLeadNoteDTO leadNote, string currentUserId)
         {
             var lead = await context.SalesLeads
                 .SingleAsync(l => l.Id == leadNote.LeadId);
 
             var user = await context.Users
-                .SingleAsync(u => u.Id == leadNote.CreatedById);
+                .SingleAsync(u => u.Id == currentUserId);
 
             var note = new LeadNote
             {

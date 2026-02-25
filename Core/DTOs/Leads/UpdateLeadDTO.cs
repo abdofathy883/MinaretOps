@@ -1,4 +1,5 @@
-﻿using Core.Enums.Leads;
+using Core.DTOs.Leads.Notes;
+using Core.Enums.Leads;
 
 namespace Core.DTOs.Leads
 {

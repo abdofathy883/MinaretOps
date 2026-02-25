@@ -226,6 +226,7 @@ namespace Infrastructure.Services.Leads
         {
              var lead = await context.SalesLeads
                 .Include(x => x.ServicesInterestedIn)
+                .Include(x => x.Notes)
                 .Include(x => x.SalesRep) // Include SalesRep for email if needed
                 .SingleAsync(x => x.Id == updateLeadDTO.Id)
                 ?? throw new KeyNotFoundException($"Lead with ID {updateLeadDTO.Id} not found.");

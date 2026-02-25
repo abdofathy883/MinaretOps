@@ -4,7 +4,7 @@ namespace Core.Interfaces
 {
     public interface ILeadNoteService
     {
-        Task<LeadNoteDTO> CreateNote(CreateLeadNoteDTO leadNote);
+        Task<LeadNoteDTO> CreateNote(CreateLeadNoteDTO leadNote, string currentUserId);
         Task<List<LeadNoteDTO>> GetAllNotes(int leadId);
     }
 }

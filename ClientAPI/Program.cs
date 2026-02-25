@@ -18,6 +18,7 @@ using Infrastructure.Services.InternalTasks;
 using Infrastructure.Services.Invitations;
 using Infrastructure.Services.JobDescription;
 using Infrastructure.Services.KPI;
+using Infrastructure.Services.Leads;
 using Infrastructure.Services.LeaveRequestService;
 using Infrastructure.Services.MediaUploads;
 using Infrastructure.Services.OutboxProcessor;
@@ -135,6 +136,8 @@ namespace ClientAPI
             builder.Services.AddScoped<IBranchService, BranchService>();
             builder.Services.AddScoped<IVaultService, VaultService>();
             builder.Services.AddScoped<ILeadService, Infrastructure.Services.Leads.LeadService>();
+            builder.Services.AddScoped<ILeadNoteService, LeadNoteService>();
+            builder.Services.AddScoped<IleadFileService, LeadFileService>();
             builder.Services.AddScoped<IInvitationService, InvitationService>();
             builder.Services.AddHttpClient<IContactService, ContactService>();
             builder.Services.AddScoped<ISeoService, SeoService>();

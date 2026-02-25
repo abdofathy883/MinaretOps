@@ -31,8 +31,16 @@ namespace ClientAPI.Controllers
         [HttpPost("create-note")]
         public async Task<IActionResult> CreateNote(CreateLeadNoteDTO createNote)
         {
-            var result = await noteService.CreateNote(createNote);
-            return Ok(result);
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            try
+            {
+                var result = await noteService.CreateNote(createNote, userId);
+                return Ok(result);
+            }
+            catch(Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         [HttpPost("import")]
