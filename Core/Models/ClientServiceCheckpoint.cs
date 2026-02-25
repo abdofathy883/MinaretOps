@@ -1,11 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Core.Models
 {
+    [Table("ClientServiceCheckpoint", Schema = "Clients")]
     public class ClientServiceCheckpoint
     {
         public int Id { get; set; }

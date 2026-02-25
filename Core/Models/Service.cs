@@ -1,8 +1,9 @@
-﻿using Core.Enums;
-using Core.Interfaces;
+﻿using Core.Interfaces;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Core.Models
 {
+    [Table("Service", Schema = "Services")]
     public class Service: IAuditable, IDeletable
     {
         public int Id { get; set; }

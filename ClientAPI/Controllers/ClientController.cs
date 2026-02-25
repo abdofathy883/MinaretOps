@@ -14,10 +14,18 @@ namespace ClientAPI.Controllers
             clientService = client;
         }
 
-        [HttpGet]
+        [HttpGet("active")]
+        public async Task<IActionResult> GetAllActiveAsync()
+        {
+            var clients = await clientService.GetAllActiveAsync();
+
+            return Ok(clients);
+        }
+        
+        [HttpGet("all")]
         public async Task<IActionResult> GetAllAsync()
         {
-            var clients = await clientService.GetAllClientsAsync();
+            var clients = await clientService.GetAllAsync();
 
             return Ok(clients);
         }

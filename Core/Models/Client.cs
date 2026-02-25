@@ -1,8 +1,10 @@
 ﻿using Core.Enums;
 using Core.Interfaces;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Core.Models
 {
+    [Table("Client", Schema = "Clients")]
     public class Client: IAuditable
     {
         public int Id { get; set; }

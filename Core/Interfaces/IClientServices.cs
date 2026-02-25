@@ -4,7 +4,8 @@ namespace Core.Interfaces
 {
     public interface IClientServices
     {
-        Task<List<LightWieghtClientDTO>> GetAllClientsAsync();
+        Task<List<LightWieghtClientDTO>> GetAllAsync();
+        Task<List<LightWieghtClientDTO>> GetAllActiveAsync();
         Task<ClientDTO> GetClientByIdAsync(int clientId);
         Task<ClientDTO> AddClientAsync(CreateClientDTO clientDTO, string userId);
         Task<ClientDTO> UpdateClientAsync(int clientId, UpdateClientDTO updateClientDTO);

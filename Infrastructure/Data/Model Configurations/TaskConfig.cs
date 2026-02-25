@@ -56,7 +56,7 @@ namespace Infrastructure.Data.Model_Configurations
             builder.HasOne(t => t.TaskGroup)
                 .WithMany(tg => tg.Tasks)
                 .HasForeignKey(t => t.TaskGroupId)
-                .OnDelete(DeleteBehavior.Restrict); // Changed from Cascade
+                .OnDelete(DeleteBehavior.SetNull); // Changed from Cascade
 
             // Relationship with ApplicationUser (Employee)
             builder.HasOne(t => t.Employee)

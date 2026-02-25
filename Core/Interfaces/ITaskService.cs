@@ -10,6 +10,7 @@ namespace Core.Interfaces
     public interface ITaskService
     {
         Task<List<TaskDTO>> GetAllArchivedTasksAsync();
+        Task<List<LightWieghtTaskDTO>> GetAllCompletedAsync();
         Task<List<LightWieghtTaskDTO>> GetTasksByEmployeeIdAsync(string empId);
         Task<PaginatedTaskResultDTO> GetPaginatedTasksAsync(TaskFilterDTO filter, string currentUserId);
         Task<TaskDTO> GetTaskByIdAsync(int taskId);

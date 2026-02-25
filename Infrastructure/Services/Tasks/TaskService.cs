@@ -1076,5 +1076,19 @@ namespace Infrastructure.Services.Tasks
                 throw;
             }
         }
+
+        public async Task<List<LightWieghtTaskDTO>> GetAllCompletedAsync()
+        {
+            var tasks = await context.Tasks
+                .Where(t => t.Status == CustomTaskStatus.Completed && t.Status == CustomTaskStatus.Rejected)
+                .Include(t => t.ClientService)
+                    .ThenInclude(cs => cs.Service)
+                .Include(t => t.ClientService)
+                    .ThenInclude(cs => cs.Client)
+                .Include(t => t.Employee)
+                .ToListAsync();
+
+            return mapper.Map<List<LightWieghtTaskDTO>>(tasks);
+        }
     }
 }

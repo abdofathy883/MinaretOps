@@ -1,5 +1,8 @@
-﻿namespace Core.Models
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace Core.Models
 {
+    [Table("SeoContent", Schema = "Content")]
     public class SeoContent
     {
         public int Id { get; set; }

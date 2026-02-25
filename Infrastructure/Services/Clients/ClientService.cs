@@ -11,6 +11,7 @@ using Infrastructure.Services.Discord;
 using Infrastructure.Services.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using System.Net;
 
 namespace Infrastructure.Services.Clients
 {
@@ -38,9 +39,10 @@ namespace Infrastructure.Services.Clients
             checkpointService = _checkpointService;
             discordService = _discordService;
         }
-        public async Task<List<LightWieghtClientDTO>> GetAllClientsAsync()
+        public async Task<List<LightWieghtClientDTO>> GetAllActiveAsync()
         {
             var clients = await dbContext.Clients
+                .Where(c => c.Status == ClientStatus.Active)
                 .Include(c => c.ClientServices)
                     .ThenInclude(cs => cs.Service)
                 .Include(c => c.AccountManager)
@@ -61,27 +63,31 @@ namespace Infrastructure.Services.Clients
                 }).ToListAsync();
 
             return clients;
+        }
+        public async Task<List<LightWieghtClientDTO>> GetAllAsync()
+        {
+            var clients = await dbContext.Clients
+                //.Where(c => c.Status == ClientStatus.OnHold || c.Status == ClientStatus.Cancelled)
+                .Include(c => c.ClientServices)
+                    .ThenInclude(cs => cs.Service)
+                .Include(c => c.AccountManager)
+                .Select(c => new LightWieghtClientDTO
+                {
+                    Id = c.Id,
+                    Name = c.Name,
+                    CompanyName = c.CompanyName,
+                    Status = c.Status,
+                    ServiceId = c.ClientServices
+                    .Select(cs => cs.ServiceId).FirstOrDefault(),
+                    ServiceTitle = c.ClientServices
+                    .Select(cs => cs.Service.Title).FirstOrDefault() ?? string.Empty,
+                    AccountManagerId = c.AccountManagerId,
+                    AccountManagerName = c.AccountManager != null
+                        ? $"{c.AccountManager.FirstName} {c.AccountManager.LastName}"
+                        : string.Empty
+                }).ToListAsync();
 
-            //var clients = await (from c in dbContext.Clients.AsNoTracking()
-            //                     join u in dbContext.ApplicationUsers on c.AccountManagerId equals u.Id into users
-            //                     from u in users.DefaultIfEmpty()
-            //                     select new LightWieghtClientDTO
-            //                     {
-            //                         Id = c.Id,
-            //                         Name = c.Name,
-            //                         CompanyName = c.CompanyName,
-            //                         Status = c.Status,
-            //                         ServiceId = c.ClientServices
-            //                             .Select(cs => cs.ServiceId).FirstOrDefault(),
-            //                         ServiceTitle = c.ClientServices
-            //                             .Select(cs => cs.Service.Title).FirstOrDefault() ?? string.Empty,
-            //                         AccountManagerId = (string?)c.AccountManagerId ?? string.Empty,
-            //                         AccountManagerName = u != null 
-            //                            ? u.FirstName + " " + u.LastName 
-            //                            : "Unknown User"
-            //                     }).ToListAsync();
-
-            //return clients;
+            return clients;
         }
         public async Task<ClientDTO> GetClientByIdAsync(int clientId)
         {
@@ -281,6 +287,20 @@ namespace Infrastructure.Services.Clients
             var client = await dbContext.Clients
                 .Include(c => c.AccountManager)
                 .Include(c => c.ClientServices)
+                    .ThenInclude(cs => cs.Service)
+                .Include(c => c.ClientServices)
+                    .ThenInclude(cs => cs.TaskGroups)
+                        .ThenInclude(tg => tg.Tasks)
+                            .ThenInclude(t => t.Employee)
+                .Include(c => c.ClientServices)
+                    .ThenInclude(cs => cs.ClientServiceCheckpoints)
+                        .ThenInclude(csc => csc.ServiceCheckpoint)
+                .Include(c => c.ClientServices)
+                    .ThenInclude(cs => cs.ClientServiceCheckpoints)
+                        .ThenInclude(csc => csc.CompletedByEmployee)
+                //.FirstOrDefaultAsync(c => c.Id == client.Id);
+                //.Include(c => c.AccountManager)
+                //.Include(c => c.ClientServices)
                 .FirstOrDefaultAsync(c => c.Id == clientId)
                 ?? throw new InvalidObjectException("لا يوجد عميل بهذه البيانات");
 
@@ -347,7 +367,27 @@ namespace Infrastructure.Services.Clients
 
             dbContext.Update(client);
             await dbContext.SaveChangesAsync();
+
+            // Reload the client with all related entities for mapping
+            //var clientForMapping = await dbContext.Clients
+            //    .AsNoTracking()
+            //    .Include(c => c.AccountManager)
+            //    .Include(c => c.ClientServices)
+            //        .ThenInclude(cs => cs.Service)
+            //    .Include(c => c.ClientServices)
+            //        .ThenInclude(cs => cs.TaskGroups)
+            //            .ThenInclude(tg => tg.Tasks)
+            //                .ThenInclude(t => t.Employee)
+            //    .Include(c => c.ClientServices)
+            //        .ThenInclude(cs => cs.ClientServiceCheckpoints)
+            //            .ThenInclude(csc => csc.ServiceCheckpoint)
+            //    .Include(c => c.ClientServices)
+            //        .ThenInclude(cs => cs.ClientServiceCheckpoints)
+            //            .ThenInclude(csc => csc.CompletedByEmployee)
+            //    .FirstOrDefaultAsync(c => c.Id == client.Id);
+
             return mapper.Map<ClientDTO>(client);
+            //return mapper.Map<ClientDTO>(client);
         }
         private async Task<Client> GetClientOrThrow(int clientId)
         {

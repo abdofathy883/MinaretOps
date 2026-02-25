@@ -1,5 +1,8 @@
-﻿namespace Core.Models
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace Core.Models
 {
+    [Table("LeadNote", Schema = "CRM")]
     public class LeadNote
     {
         public int Id { get; set; }

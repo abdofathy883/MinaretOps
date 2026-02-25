@@ -1,7 +1,9 @@
 ﻿using Core.Enums;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Core.Models
 {
+    [Table("InternalTask", Schema = "Tasks")]
     public class InternalTask
     {
         public int Id { get; set; }

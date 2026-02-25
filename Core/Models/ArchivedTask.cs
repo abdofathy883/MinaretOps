@@ -1,7 +1,9 @@
 ﻿using Core.Enums;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Core.Models
 {
+    [Table("ArchivedTask", Schema = "Tasks")]
     public class ArchivedTask
     {
         public int Id { get; set; }
@@ -24,8 +26,8 @@ namespace Core.Models
             Status == CustomTaskStatus.Completed &&
             CompletedAt.HasValue &&
             CompletedAt.Value <= Deadline;
-        public int TaskGroupId { get; set; }
-        public TaskGroup TaskGroup { get; set; } = default!;
+        public int? TaskGroupId { get; set; }
+        public TaskGroup? TaskGroup { get; set; }
         public List<TaskItemHistory> TaskHistory { get; set; } = new();
         public List<TaskCompletionResources> CompletionResources { get; set; } = new();
         public string? CompletionNotes { get; set; }

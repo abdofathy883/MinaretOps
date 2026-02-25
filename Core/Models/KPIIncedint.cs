@@ -1,7 +1,9 @@
 ﻿using Core.Enums;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Core.Models
 {
+    [Table("KPIIncedint", Schema = "HR")]
     public class KPIIncedint
     {
         public int Id { get; set; }

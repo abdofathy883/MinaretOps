@@ -1,7 +1,9 @@
 ﻿using Core.Enums.Auth_Attendance;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Core.Models
 {
+    [Table("EmployeeOnBoardingInvitation", Schema = "Identity")]
     public class EmployeeOnBoardingInvitation
     {
         public int Id { get; set; }

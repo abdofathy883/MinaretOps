@@ -2,9 +2,11 @@
 using Core.Interfaces;
 using Microsoft.AspNetCore.Identity;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Core.Models
 {
+    [Table("ApplicationUser", Schema = "Identity")]
     public class ApplicationUser: IdentityUser, IAuditable, IDeletable
     {
         [Required] [MaxLength(30)] [MinLength(3)]

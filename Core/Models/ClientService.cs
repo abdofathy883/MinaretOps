@@ -1,5 +1,8 @@
-﻿namespace Core.Models
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace Core.Models
 {
+    [Table("ClientService", Schema = "Clients")]
     public class ClientService
     {
         public int Id { get; set; }

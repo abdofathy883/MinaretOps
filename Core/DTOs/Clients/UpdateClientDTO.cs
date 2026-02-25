@@ -16,7 +16,7 @@ namespace Core.DTOs.Clients
         public string? CommercialRegisterNumber { get; set; }
         public string? TaxCardNumber { get; set; }
         public string Country { get; set; }
-        public string AccountManagerId { get; set; }
+        public string? AccountManagerId { get; set; }
         public string? DiscordChannelId { get; set; }
         public ClientStatus Status { get; set; }
         public string? StatusNotes { get; set; }

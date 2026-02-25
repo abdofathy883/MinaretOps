@@ -1,15 +1,18 @@
-﻿namespace Core.Models
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace Core.Models
 {
+    [Table("TaskItemHistory", Schema = "Tasks")]
     public class TaskItemHistory
     {
         public int Id { get; set; }
-        public int? TaskItemId { get; set; }  // Changed from int to int? (nullable)
-        public TaskItem? TaskItem { get; set; }  // Changed from default! to nullable
+        public int? TaskItemId { get; set; }
+        public TaskItem? TaskItem { get; set; }
 
-        public int? ArchivedTaskId { get; set; }  // ADD THIS
-        public ArchivedTask? ArchivedTask { get; set; }  // ADD THIS
+        public int? ArchivedTaskId { get; set; }
+        public ArchivedTask? ArchivedTask { get; set; }
 
-        public string PropertyName { get; set; } = default!; // e.g. "Status", "Deadline"
+        public string PropertyName { get; set; } = default!;
         public string? OldValue { get; set; }
         public string? NewValue { get; set; }
 

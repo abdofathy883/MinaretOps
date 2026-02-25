@@ -1,5 +1,8 @@
-﻿namespace Core.Models
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace Core.Models
 {
+    [Table("AnnouncementLink", Schema = "Communication")]
     public class AnnouncementLink
     {
         public int Id { get; set; }

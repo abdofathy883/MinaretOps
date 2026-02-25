@@ -1,11 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Core.Models
 {
+    [Table("JobResponsibility", Schema = "HR")]
     public class JobResponsibility
     {
         public int Id { get; set; }

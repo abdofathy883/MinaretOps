@@ -1,7 +1,9 @@
 ﻿using Core.Enums.Leads;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Core.Models
 {
+    [Table("SalesLead", Schema = "CRM")]
     public class SalesLead
     {
         public int Id { get; set; }

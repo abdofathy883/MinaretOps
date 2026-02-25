@@ -1,5 +1,8 @@
-﻿namespace Core.Models
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace Core.Models
 {
+    [Table("SalaryPayment", Schema = "HR")]
     public class SalaryPayment
     {
         public int Id { get; set; }

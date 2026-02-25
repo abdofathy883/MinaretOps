@@ -36,6 +36,20 @@ namespace ClientAPI.Controllers
                 return BadRequest(ex.Message);
             }
         }
+        
+        [HttpGet("completed-tasks")]
+        public async Task<IActionResult> GetAllCompletedTasksAsync()
+        {
+            try
+            {
+                var tasks = await taskService.GetAllCompletedAsync();
+                return Ok(tasks);
+            }
+            catch(Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
 
         [HttpGet("emp-tasks")]
         public async Task<IActionResult> GetTasksByEmployeeId()
