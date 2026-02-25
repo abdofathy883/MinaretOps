@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using Core.DTOs.Payloads;
 using Core.DTOs.Tasks;
 using Core.DTOs.Tasks.CommentDTOs;
@@ -1079,8 +1079,10 @@ namespace Infrastructure.Services.Tasks
 
         public async Task<List<LightWieghtTaskDTO>> GetAllCompletedAsync()
         {
-            var tasks = await context.Tasks
-                .Where(t => t.Status == CustomTaskStatus.Completed && t.Status == CustomTaskStatus.Rejected)
+            var completedStatuses = new[] { CustomTaskStatus.Completed, CustomTaskStatus.Rejected };
+
+            var activeTasks = await context.Tasks
+                .Where(t => completedStatuses.Contains(t.Status))
                 .Include(t => t.ClientService)
                     .ThenInclude(cs => cs.Service)
                 .Include(t => t.ClientService)
@@ -1088,7 +1090,22 @@ namespace Infrastructure.Services.Tasks
                 .Include(t => t.Employee)
                 .ToListAsync();
 
-            return mapper.Map<List<LightWieghtTaskDTO>>(tasks);
+            //var archivedTasks = await context.ArchivedTasks
+            //    .Where(t => completedStatuses.Contains(t.Status))
+            //    .Include(t => t.ClientService)
+            //        .ThenInclude(cs => cs.Service)
+            //    .Include(t => t.ClientService)
+            //        .ThenInclude(cs => cs.Client)
+            //    .Include(t => t.Employee)
+            //    .ToListAsync();
+
+            var activeDtos = mapper.Map<List<LightWieghtTaskDTO>>(activeTasks);
+            //var archivedDtos = mapper.Map<List<LightWieghtTaskDTO>>(archivedTasks);
+
+            //return activeDtos.Concat(archivedDtos)
+            //    .OrderByDescending(t => t.CompletedAt ?? t.CreatedAt)
+            //    .ToList();
+            return activeDtos;
         }
     }
 }
