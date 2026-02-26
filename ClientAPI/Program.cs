@@ -205,6 +205,7 @@ namespace ClientAPI
                 cfg.AddProfile<BranchProfile>();
                 cfg.AddProfile<VaultProfile>();
                 cfg.AddProfile<LeadProfile>();
+                cfg.AddProfile<LeadHistoryProfile>();
                 cfg.AddProfile<EmpInvitationProfile>();
                 cfg.AddProfile<SeoContentProfile>();
             });

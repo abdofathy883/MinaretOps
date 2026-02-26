@@ -1,7 +1,8 @@
-﻿using AutoMapper;
+using AutoMapper;
 using Core.DTOs.Leads;
 using Core.DTOs.Leads.Notes;
 using Core.Models;
+using System.Linq;
 
 namespace Infrastructure.MappingProfiles
 {
@@ -33,7 +34,8 @@ namespace Infrastructure.MappingProfiles
                 .ForMember(dest => dest.CreatedById, opt => opt.MapFrom(src => src.CreatedById))
                 .ForMember(dest => dest.CreatedByName, opt => opt.MapFrom(src => src.CreatedBy != null ?
                 $"{src.CreatedBy.FirstName} {src.CreatedBy.LastName}" : null))
-                .ForMember(dest => dest.ServicesInterestedIn, opt => opt.MapFrom(src => src.ServicesInterestedIn));
+                .ForMember(dest => dest.ServicesInterestedIn, opt => opt.MapFrom(src => src.ServicesInterestedIn))
+                .ForMember(dest => dest.LeadHistory, opt => opt.MapFrom(src => src.LeadHistory.OrderByDescending(h => h.UpdatedAt).ToList()));
 
             CreateMap<LeadServices, LeadServicesDTO>()
                 .ForMember(dest => dest.ServiceTitle, opt => opt.MapFrom(src => src.Service.Title))

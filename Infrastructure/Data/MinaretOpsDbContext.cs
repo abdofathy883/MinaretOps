@@ -43,6 +43,7 @@ namespace Infrastructure.Data
         public DbSet<Vault> Vaults { get; set; }
         public DbSet<VaultTransaction> VaultTransactions { get; set; }
         public DbSet<SalesLead> SalesLeads { get; set; }
+        public DbSet<SalesLeadHistory> LeadHistory { get; set; }
         public DbSet<LeadServices> LeadServices { get; set; }
         public DbSet<LeadNote> LeadNotes { get; set; }
         public DbSet<ContactEntry> ContactEntries { get; set; }
@@ -83,6 +84,7 @@ namespace Infrastructure.Data
             builder.ApplyConfiguration(new VaultConfig());
             builder.ApplyConfiguration(new VaultTransactionConfig());
             builder.ApplyConfiguration(new LeadConfig());
+            builder.ApplyConfiguration(new LeadHistoryConfig());
             builder.ApplyConfiguration(new LeadNoteConfig());
             builder.ApplyConfiguration(new LeadServiceConfig());
             builder.ApplyConfiguration(new SeoContentConfig());

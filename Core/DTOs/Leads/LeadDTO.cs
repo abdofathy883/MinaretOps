@@ -1,4 +1,4 @@
-﻿using Core.DTOs.Leads.Notes;
+using Core.DTOs.Leads.Notes;
 using Core.Enums.Leads;
 using Core.Models;
 
@@ -32,5 +32,6 @@ namespace Core.DTOs.Leads
         public string? CreatedByName { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
+        public List<LeadHistoryDTO> LeadHistory { get; set; } = new();
     }
 }

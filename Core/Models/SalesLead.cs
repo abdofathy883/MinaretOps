@@ -1,4 +1,4 @@
-﻿using Core.Enums.Leads;
+using Core.Enums.Leads;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Core.Models
@@ -32,5 +32,6 @@ namespace Core.Models
         public ApplicationUser? CreatedBy { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
+        public List<SalesLeadHistory> LeadHistory { get; set; } = new();
     }
 }
