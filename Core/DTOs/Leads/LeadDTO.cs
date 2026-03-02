@@ -32,6 +32,7 @@ namespace Core.DTOs.Leads
         public string? CreatedByName { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
+        public double QualificationScore { get; set; }
         public List<LeadHistoryDTO> LeadHistory { get; set; } = new();
     }
 }

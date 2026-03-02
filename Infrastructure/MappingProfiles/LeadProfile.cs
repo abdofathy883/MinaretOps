@@ -1,6 +1,7 @@
 using AutoMapper;
 using Core.DTOs.Leads;
 using Core.DTOs.Leads.Notes;
+using Core.Helpers;
 using Core.Models;
 using System.Linq;
 
@@ -35,6 +36,8 @@ namespace Infrastructure.MappingProfiles
                 .ForMember(dest => dest.CreatedByName, opt => opt.MapFrom(src => src.CreatedBy != null ?
                 $"{src.CreatedBy.FirstName} {src.CreatedBy.LastName}" : null))
                 .ForMember(dest => dest.ServicesInterestedIn, opt => opt.MapFrom(src => src.ServicesInterestedIn))
+                .ForMember(dest => dest.QualificationScore, opt => opt.MapFrom(src =>
+                    LeadQualificationCalculator.Calculate(src.Budget, src.Responsibility, src.InterestLevel, src.Timeline, src.NeedsExpectation)))
                 .ForMember(dest => dest.LeadHistory, opt => opt.MapFrom(src => src.LeadHistory.OrderByDescending(h => h.UpdatedAt).ToList()));
 
             CreateMap<LeadServices, LeadServicesDTO>()

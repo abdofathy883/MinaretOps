@@ -5,6 +5,7 @@ using Core.DTOs.Leads.Notes;
 using Core.Enums;
 using Core.Enums.Auth_Attendance;
 using Core.Enums.Leads;
+using Core.Helpers;
 using Core.Interfaces;
 using Core.Models;
 using Infrastructure.Data;
@@ -215,7 +216,9 @@ namespace Infrastructure.Services.Leads
                         SalesRepId = x.SalesRepId,
                         SalesRepName = x.SalesRep != null
                         ? x.SalesRep.FirstName + " " + x.SalesRep.LastName
-                        : string.Empty
+                        : string.Empty,
+                        QualificationScore = LeadQualificationCalculator.Calculate(
+                            x.Budget, x.Responsibility, x.InterestLevel, x.Timeline, x.NeedsExpectation)
                     })
                     .ToListAsync();
 

@@ -1,5 +1,6 @@
 using ClosedXML.Excel;
 using Core.Enums.Leads;
+using Core.Helpers;
 using Core.Interfaces;
 using Core.Models;
 using Infrastructure.Data;
@@ -181,6 +182,7 @@ namespace Infrastructure.Services.Leads
             worksheet.Cell(1, 16).Value = "Quotation Sent";
             worksheet.Cell(1, 17).Value = "Services Interested In";
             worksheet.Cell(1, 18).Value = "Notes";
+            worksheet.Cell(1, 19).Value = "Qualification Score";
 
             int row = 2;
             foreach (var lead in leads)
@@ -203,6 +205,8 @@ namespace Infrastructure.Services.Leads
                 worksheet.Cell(row, 16).Value = lead.QuotationSent;
                 worksheet.Cell(row, 17).Value = string.Join(", ", lead.ServicesInterestedIn.Where(s => s.Service != null).Select(s => s.Service!.Title));
                 worksheet.Cell(row, 18).Value = string.Join("; ", lead.Notes.Where(n => !string.IsNullOrEmpty(n.Note)).Select(n => n.Note!));
+                worksheet.Cell(row, 19).Value = LeadQualificationCalculator.Calculate(
+                    lead.Budget, lead.Responsibility, lead.InterestLevel, lead.Timeline, lead.NeedsExpectation);
                 row++;
             }
 
