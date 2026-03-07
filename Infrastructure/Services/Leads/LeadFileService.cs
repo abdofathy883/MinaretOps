@@ -1,4 +1,5 @@
 using ClosedXML.Excel;
+using Core.DTOs.Leads;
 using Core.Enums.Leads;
 using Core.Helpers;
 using Core.Interfaces;
@@ -17,139 +18,229 @@ namespace Infrastructure.Services.Leads
             this.context = context;
         }
 
-        public async Task ImportLeadsFromExcelAsync(Stream fileStream, string currentUserId)
+        public async Task<byte[]> GenerateImportTemplateAsync()
         {
+            using var workbook = new XLWorkbook();
+            var ws = workbook.Worksheets.Add("Leads");
+
+            string[] headers =
+            {
+                "Business Name", "WhatsApp Number", "Country", "Occupation",
+                "Contact Status", "Current Lead Status", "Lead Source",
+                "Freelance Platform", "Responsibility", "Budget",
+                "Timeline", "Needs Expectation", "Interest Level",
+                "Meeting Date", "Follow Up Time", "Quotation Sent",
+                "Services Interested In", "Notes"
+            };
+
+            for (int i = 0; i < headers.Length; i++)
+            {
+                var cell = ws.Cell(1, i + 1);
+                cell.Value = headers[i];
+                cell.Style.Font.Bold = true;
+                cell.Style.Fill.BackgroundColor = XLColor.LightGray;
+            }
+
+            int templateRows = 1000;
+
+            AddDropdown(ws, 5, templateRows, EnumHelper.GetAllDescriptions<ContactStatus>());
+            AddDropdown(ws, 6, templateRows, EnumHelper.GetAllDescriptions<CurrentLeadStatus>());
+            AddDropdown(ws, 7, templateRows, EnumHelper.GetAllDescriptions<LeadSource>());
+            AddDropdown(ws, 8, templateRows, EnumHelper.GetAllDescriptions<FreelancePlatform>());
+            AddDropdown(ws, 9, templateRows, EnumHelper.GetAllDescriptions<LeadResponsibility>());
+            AddDropdown(ws, 10, templateRows, EnumHelper.GetAllDescriptions<LeadBudget>());
+            AddDropdown(ws, 11, templateRows, EnumHelper.GetAllDescriptions<LeadTimeline>());
+            AddDropdown(ws, 12, templateRows, EnumHelper.GetAllDescriptions<NeedsExpectation>());
+            AddDropdown(ws, 13, templateRows, EnumHelper.GetAllDescriptions<InterestLevel>());
+            AddDropdown(ws, 16, templateRows, new List<string> { "TRUE", "FALSE" });
+
+            var services = await context.Services
+                .Where(s => !s.IsDeleted)
+                .Select(s => s.Title)
+                .ToListAsync();
+
+            if (services.Count > 0)
+            {
+                AddDropdown(ws, 17, templateRows, services);
+            }
+
+            ws.Columns().AdjustToContents();
+
+            using var stream = new MemoryStream();
+            workbook.SaveAs(stream);
+            return stream.ToArray();
+        }
+
+        private static void AddDropdown(IXLWorksheet ws, int column, int rowCount, List<string> values)
+        {
+            var joined = string.Join(",", values.Select(v => $"\"{v}\""));
+            var range = ws.Range(2, column, rowCount + 1, column);
+            range.CreateDataValidation().List(joined, true);
+        }
+
+        public async Task<LeadImportResultDto> ImportLeadsFromExcelAsync(Stream fileStream, string currentUserId)
+        {
+            var result = new LeadImportResultDto();
+
             using var workbook = new XLWorkbook(fileStream);
             var worksheet = workbook.Worksheet(1);
-            var rows = worksheet.RowsUsed().Skip(1).ToList(); // Skip header
+            var rows = worksheet.RowsUsed().Skip(1).ToList();
+
+            result.TotalRows = rows.Count;
 
             foreach (var row in rows)
             {
                 var rowNumber = row.RowNumber();
-                var whatsapp = worksheet.Cell(rowNumber, 2).GetValue<string>(); // Col 2: WhatsApp
-                if (string.IsNullOrWhiteSpace(whatsapp)) continue;
+                var businessName = GetStringOrNull(worksheet.Cell(rowNumber, 1));
+                var whatsapp = GetStringOrNull(worksheet.Cell(rowNumber, 2));
 
-                var existingLead = await context.SalesLeads
-                    .Include(l => l.ServicesInterestedIn)
-                    .FirstOrDefaultAsync(l => l.WhatsAppNumber == whatsapp);
-
-                if (existingLead != null)
+                if (string.IsNullOrWhiteSpace(whatsapp) || string.IsNullOrWhiteSpace(businessName))
                 {
-                    // Update
-                    existingLead.BusinessName = worksheet.Cell(rowNumber, 1).GetValue<string>();
-                    existingLead.Country = GetStringOrNull(worksheet.Cell(rowNumber, 3));
-                    existingLead.Occupation = GetStringOrNull(worksheet.Cell(rowNumber, 4));
-                    existingLead.ContactStatus = ParseEnum<ContactStatus>(worksheet.Cell(rowNumber, 5).GetValue<string>());
-                    existingLead.CurrentLeadStatus = ParseEnum<CurrentLeadStatus>(worksheet.Cell(rowNumber, 6).GetValue<string>());
-                    existingLead.LeadSource = ParseEnum<LeadSource>(worksheet.Cell(rowNumber, 7).GetValue<string>());
-                    existingLead.FreelancePlatform = ParseNullableEnum<FreelancePlatform>(worksheet.Cell(rowNumber, 8).GetValue<string>());
-                    existingLead.Responsibility = ParseEnum<LeadResponsibility>(worksheet.Cell(rowNumber, 9).GetValue<string>());
-                    existingLead.Budget = ParseEnum<LeadBudget>(worksheet.Cell(rowNumber, 10).GetValue<string>());
-                    existingLead.Timeline = ParseEnum<LeadTimeline>(worksheet.Cell(rowNumber, 11).GetValue<string>());
-                    existingLead.NeedsExpectation = ParseEnum<NeedsExpectation>(worksheet.Cell(rowNumber, 12).GetValue<string>());
-                    existingLead.InterestLevel = ParseEnum<InterestLevel>(worksheet.Cell(rowNumber, 13).GetValue<string>());
-                    existingLead.MeetingDate = worksheet.Cell(rowNumber, 14).GetValue<DateTime?>();
-                    existingLead.FollowUpTime = worksheet.Cell(rowNumber, 15).GetValue<DateTime?>();
-                    existingLead.QuotationSent = worksheet.Cell(rowNumber, 16).GetValue<bool>();
-
-                    existingLead.UpdatedAt = DateTime.UtcNow;
-                    context.SalesLeads.Update(existingLead);
-                }
-                else
-                {
-                    // Create
-                    var newLead = new SalesLead
+                    result.SkippedCount++;
+                    if (!string.IsNullOrWhiteSpace(whatsapp) || !string.IsNullOrWhiteSpace(businessName))
                     {
-                        BusinessName = worksheet.Cell(rowNumber, 1).GetValue<string>(),
+                        result.Errors.Add(new LeadImportRowError
+                        {
+                            RowNumber = rowNumber,
+                            BusinessName = businessName ?? "",
+                            WhatsAppNumber = whatsapp ?? "",
+                            ErrorMessage = "Both Business Name and WhatsApp Number are required."
+                        });
+                        result.FailedCount++;
+                        result.SkippedCount--;
+                    }
+                    continue;
+                }
+
+                try
+                {
+                    var existingLead = await context.SalesLeads
+                        .Include(l => l.ServicesInterestedIn)
+                        .Include(l => l.Notes)
+                        .FirstOrDefaultAsync(l =>
+                            l.BusinessName == businessName && l.WhatsAppNumber == whatsapp);
+
+                    if (existingLead != null)
+                    {
+                        UpdateLeadFromRow(existingLead, worksheet, rowNumber);
+                        existingLead.UpdatedAt = DateTime.UtcNow;
+                        context.SalesLeads.Update(existingLead);
+
+                        await UpsertServicesAndNotes(existingLead, worksheet, rowNumber, currentUserId);
+
+                        result.UpdatedCount++;
+                    }
+                    else
+                    {
+                        var newLead = CreateLeadFromRow(worksheet, rowNumber, currentUserId);
+                        context.SalesLeads.Add(newLead);
+                        await context.SaveChangesAsync();
+
+                        await UpsertServicesAndNotes(newLead, worksheet, rowNumber, currentUserId);
+
+                        result.CreatedCount++;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    result.FailedCount++;
+                    result.Errors.Add(new LeadImportRowError
+                    {
+                        RowNumber = rowNumber,
+                        BusinessName = businessName,
                         WhatsAppNumber = whatsapp,
-                        Country = GetStringOrNull(worksheet.Cell(rowNumber, 3)),
-                        Occupation = GetStringOrNull(worksheet.Cell(rowNumber, 4)),
-                        ContactStatus = ParseEnum<ContactStatus>(worksheet.Cell(rowNumber, 5).GetValue<string>()),
-                        CurrentLeadStatus = ParseEnum<CurrentLeadStatus>(worksheet.Cell(rowNumber, 6).GetValue<string>()),
-                        LeadSource = ParseEnum<LeadSource>(worksheet.Cell(rowNumber, 7).GetValue<string>()),
-                        FreelancePlatform = ParseNullableEnum<FreelancePlatform>(worksheet.Cell(rowNumber, 8).GetValue<string>()),
-                        Responsibility = ParseEnum<LeadResponsibility>(worksheet.Cell(rowNumber, 9).GetValue<string>()),
-                        Budget = ParseEnum<LeadBudget>(worksheet.Cell(rowNumber, 10).GetValue<string>()),
-                        Timeline = ParseEnum<LeadTimeline>(worksheet.Cell(rowNumber, 11).GetValue<string>()),
-                        NeedsExpectation = ParseEnum<NeedsExpectation>(worksheet.Cell(rowNumber, 12).GetValue<string>()),
-                        InterestLevel = ParseEnum<InterestLevel>(worksheet.Cell(rowNumber, 13).GetValue<string>()),
-                        MeetingDate = worksheet.Cell(rowNumber, 14).GetValue<DateTime?>(),
-                        FollowUpTime = worksheet.Cell(rowNumber, 15).GetValue<DateTime?>(),
-                        QuotationSent = worksheet.Cell(rowNumber, 16).GetValue<bool>(),
-                        CreatedById = currentUserId,
-                        SalesRepId = currentUserId,
-                        CreatedAt = DateTime.UtcNow
-                    };
-                    context.SalesLeads.Add(newLead);
+                        ErrorMessage = ex.Message
+                    });
                 }
             }
+
             await context.SaveChangesAsync();
+            return result;
+        }
 
-            // Second pass: update ServicesInterestedIn and Notes by WhatsApp (we have Ids now)
-            foreach (var row in rows)
+        private void UpdateLeadFromRow(SalesLead lead, IXLWorksheet ws, int row)
+        {
+            lead.Country = GetStringOrNull(ws.Cell(row, 3));
+            lead.Occupation = GetStringOrNull(ws.Cell(row, 4));
+            lead.ContactStatus = EnumHelper.ParseFromDescription<ContactStatus>(ws.Cell(row, 5).GetValue<string>());
+            lead.CurrentLeadStatus = EnumHelper.ParseFromDescription<CurrentLeadStatus>(ws.Cell(row, 6).GetValue<string>());
+            lead.LeadSource = EnumHelper.ParseFromDescription<LeadSource>(ws.Cell(row, 7).GetValue<string>());
+            lead.FreelancePlatform = EnumHelper.ParseNullableFromDescription<FreelancePlatform>(ws.Cell(row, 8).GetValue<string>());
+            lead.Responsibility = EnumHelper.ParseFromDescription<LeadResponsibility>(ws.Cell(row, 9).GetValue<string>());
+            lead.Budget = EnumHelper.ParseFromDescription<LeadBudget>(ws.Cell(row, 10).GetValue<string>());
+            lead.Timeline = EnumHelper.ParseFromDescription<LeadTimeline>(ws.Cell(row, 11).GetValue<string>());
+            lead.NeedsExpectation = EnumHelper.ParseFromDescription<NeedsExpectation>(ws.Cell(row, 12).GetValue<string>());
+            lead.InterestLevel = EnumHelper.ParseFromDescription<InterestLevel>(ws.Cell(row, 13).GetValue<string>());
+            lead.MeetingDate = GetDateTimeOrNull(ws.Cell(row, 14));
+            lead.FollowUpTime = GetDateTimeOrNull(ws.Cell(row, 15));
+            lead.QuotationSent = GetBoolValue(ws.Cell(row, 16));
+        }
+
+        private SalesLead CreateLeadFromRow(IXLWorksheet ws, int row, string currentUserId)
+        {
+            return new SalesLead
             {
-                var rowNumber = row.RowNumber();
-                var whatsapp = worksheet.Cell(rowNumber, 2).GetValue<string>();
-                if (string.IsNullOrWhiteSpace(whatsapp)) continue;
+                BusinessName = ws.Cell(row, 1).GetValue<string>().Trim(),
+                WhatsAppNumber = ws.Cell(row, 2).GetValue<string>().Trim(),
+                Country = GetStringOrNull(ws.Cell(row, 3)),
+                Occupation = GetStringOrNull(ws.Cell(row, 4)),
+                ContactStatus = EnumHelper.ParseFromDescription<ContactStatus>(ws.Cell(row, 5).GetValue<string>()),
+                CurrentLeadStatus = EnumHelper.ParseFromDescription<CurrentLeadStatus>(ws.Cell(row, 6).GetValue<string>()),
+                LeadSource = EnumHelper.ParseFromDescription<LeadSource>(ws.Cell(row, 7).GetValue<string>()),
+                FreelancePlatform = EnumHelper.ParseNullableFromDescription<FreelancePlatform>(ws.Cell(row, 8).GetValue<string>()),
+                Responsibility = EnumHelper.ParseFromDescription<LeadResponsibility>(ws.Cell(row, 9).GetValue<string>()),
+                Budget = EnumHelper.ParseFromDescription<LeadBudget>(ws.Cell(row, 10).GetValue<string>()),
+                Timeline = EnumHelper.ParseFromDescription<LeadTimeline>(ws.Cell(row, 11).GetValue<string>()),
+                NeedsExpectation = EnumHelper.ParseFromDescription<NeedsExpectation>(ws.Cell(row, 12).GetValue<string>()),
+                InterestLevel = EnumHelper.ParseFromDescription<InterestLevel>(ws.Cell(row, 13).GetValue<string>()),
+                MeetingDate = GetDateTimeOrNull(ws.Cell(row, 14)),
+                FollowUpTime = GetDateTimeOrNull(ws.Cell(row, 15)),
+                QuotationSent = GetBoolValue(ws.Cell(row, 16)),
+                CreatedById = currentUserId,
+                SalesRepId = currentUserId,
+                CreatedAt = DateTime.UtcNow
+            };
+        }
 
-                var lead = await context.SalesLeads
-                    .Include(l => l.ServicesInterestedIn)
-                    .Include(l => l.Notes)
-                    .FirstOrDefaultAsync(l => l.WhatsAppNumber == whatsapp);
-                if (lead == null) continue;
+        private async Task UpsertServicesAndNotes(SalesLead lead, IXLWorksheet ws, int row, string currentUserId)
+        {
+            var servicesCell = GetStringOrNull(ws.Cell(row, 17));
+            if (!string.IsNullOrWhiteSpace(servicesCell))
+            {
+                var titles = servicesCell.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+                var services = await context.Services
+                    .Where(s => titles.Contains(s.Title) && !s.IsDeleted)
+                    .ToListAsync();
 
-                var servicesCell = worksheet.Cell(rowNumber, 17).GetValue<string>();
-                if (!string.IsNullOrWhiteSpace(servicesCell))
+                var existingServiceIds = lead.ServicesInterestedIn.Select(s => s.ServiceId).ToHashSet();
+                foreach (var service in services)
                 {
-                    var titles = servicesCell.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-                    var services = await context.Services
-                        .Where(s => titles.Contains(s.Title))
-                        .ToListAsync();
-                    context.LeadServices.RemoveRange(lead.ServicesInterestedIn);
-                    foreach (var service in services)
+                    if (!existingServiceIds.Contains(service.Id))
                     {
                         context.LeadServices.Add(new LeadServices { LeadId = lead.Id, ServiceId = service.Id });
                     }
                 }
+            }
 
-                var notesCell = worksheet.Cell(rowNumber, 18).GetValue<string>();
-                if (!string.IsNullOrWhiteSpace(notesCell))
+            var notesCell = GetStringOrNull(ws.Cell(row, 18));
+            if (!string.IsNullOrWhiteSpace(notesCell))
+            {
+                var hasNote = lead.Notes.Any(n => n.Note == notesCell);
+                if (!hasNote)
                 {
-                    var hasNote = lead.Notes.Any(n => n.Note == notesCell);
-                    if (!hasNote)
+                    lead.Notes.Add(new LeadNote
                     {
-                        lead.Notes.Add(new LeadNote
-                        {
-                            Note = notesCell,
-                            CreatedById = currentUserId,
-                            LeadId = lead.Id,
-                            CreatedAt = DateTime.UtcNow
-                        });
-                    }
+                        Note = notesCell,
+                        CreatedById = currentUserId,
+                        LeadId = lead.Id,
+                        CreatedAt = DateTime.UtcNow
+                    });
                 }
             }
-            await context.SaveChangesAsync();
-        }
-        private static T? ParseNullableEnum<T>(string value) where T : struct
-        {
-            if (string.IsNullOrWhiteSpace(value)) return null;
-            return Enum.TryParse<T>(value, true, out var result) ? result : null;
         }
 
-        private static T ParseEnum<T>(string value) where T : struct
-        {
-            if (string.IsNullOrWhiteSpace(value)) return default;
-            return Enum.TryParse<T>(value, true, out var result) ? result : default;
-        }
-
-        private static string? GetStringOrNull(IXLCell cell)
-        {
-            var v = cell.GetValue<string>();
-            return string.IsNullOrWhiteSpace(v) ? null : v.Trim();
-        }
         public async Task<byte[]> ExportLeadsToExcelAsync(string userId)
         {
-            //var leads = await GetAllLeadsAsync(userId);
             var leads = await context.SalesLeads
                 .AsNoTracking()
                 .Where(x => x.SalesRepId == userId)
@@ -163,7 +254,6 @@ namespace Infrastructure.Services.Leads
             using var workbook = new XLWorkbook();
             var worksheet = workbook.Worksheets.Add("Leads");
 
-            // Headers (column order must match import)
             worksheet.Cell(1, 1).Value = "Business Name";
             worksheet.Cell(1, 2).Value = "WhatsApp Number";
             worksheet.Cell(1, 3).Value = "Country";
@@ -191,17 +281,19 @@ namespace Infrastructure.Services.Leads
                 worksheet.Cell(row, 2).Value = lead.WhatsAppNumber;
                 worksheet.Cell(row, 3).Value = lead.Country ?? "";
                 worksheet.Cell(row, 4).Value = lead.Occupation ?? "";
-                worksheet.Cell(row, 5).Value = lead.ContactStatus.ToString();
-                worksheet.Cell(row, 6).Value = lead.CurrentLeadStatus.ToString();
-                worksheet.Cell(row, 7).Value = lead.LeadSource.ToString();
-                worksheet.Cell(row, 8).Value = lead.FreelancePlatform?.ToString() ?? "";
-                worksheet.Cell(row, 9).Value = lead.Responsibility.ToString();
-                worksheet.Cell(row, 10).Value = lead.Budget.ToString();
-                worksheet.Cell(row, 11).Value = lead.Timeline.ToString();
-                worksheet.Cell(row, 12).Value = lead.NeedsExpectation.ToString();
-                worksheet.Cell(row, 13).Value = lead.InterestLevel.ToString();
-                worksheet.Cell(row, 14).Value = lead.MeetingDate?.ToString() ?? "";
-                worksheet.Cell(row, 15).Value = lead.FollowUpTime?.ToString() ?? "";
+                worksheet.Cell(row, 5).Value = EnumHelper.GetDescription(lead.ContactStatus);
+                worksheet.Cell(row, 6).Value = EnumHelper.GetDescription(lead.CurrentLeadStatus);
+                worksheet.Cell(row, 7).Value = EnumHelper.GetDescription(lead.LeadSource);
+                worksheet.Cell(row, 8).Value = lead.FreelancePlatform.HasValue
+                    ? EnumHelper.GetDescription(lead.FreelancePlatform.Value)
+                    : "";
+                worksheet.Cell(row, 9).Value = EnumHelper.GetDescription(lead.Responsibility);
+                worksheet.Cell(row, 10).Value = EnumHelper.GetDescription(lead.Budget);
+                worksheet.Cell(row, 11).Value = EnumHelper.GetDescription(lead.Timeline);
+                worksheet.Cell(row, 12).Value = EnumHelper.GetDescription(lead.NeedsExpectation);
+                worksheet.Cell(row, 13).Value = EnumHelper.GetDescription(lead.InterestLevel);
+                worksheet.Cell(row, 14).Value = lead.MeetingDate?.ToString("yyyy-MM-dd HH:mm") ?? "";
+                worksheet.Cell(row, 15).Value = lead.FollowUpTime?.ToString("yyyy-MM-dd HH:mm") ?? "";
                 worksheet.Cell(row, 16).Value = lead.QuotationSent;
                 worksheet.Cell(row, 17).Value = string.Join(", ", lead.ServicesInterestedIn.Where(s => s.Service != null).Select(s => s.Service!.Title));
                 worksheet.Cell(row, 18).Value = string.Join("; ", lead.Notes.Where(n => !string.IsNullOrEmpty(n.Note)).Select(n => n.Note!));
@@ -210,9 +302,48 @@ namespace Infrastructure.Services.Leads
                 row++;
             }
 
+            worksheet.Columns().AdjustToContents();
+
             using var stream = new MemoryStream();
             workbook.SaveAs(stream);
             return stream.ToArray();
+        }
+
+        private static string? GetStringOrNull(IXLCell cell)
+        {
+            var v = cell.GetValue<string>();
+            return string.IsNullOrWhiteSpace(v) ? null : v.Trim();
+        }
+
+        private static DateTime? GetDateTimeOrNull(IXLCell cell)
+        {
+            try
+            {
+                if (cell.IsEmpty()) return null;
+                var str = cell.GetValue<string>();
+                if (string.IsNullOrWhiteSpace(str)) return null;
+                return DateTime.TryParse(str, out var dt) ? dt : null;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private static bool GetBoolValue(IXLCell cell)
+        {
+            try
+            {
+                if (cell.IsEmpty()) return false;
+                var str = cell.GetValue<string>().Trim();
+                return str.Equals("TRUE", StringComparison.OrdinalIgnoreCase)
+                    || str == "1"
+                    || str.Equals("yes", StringComparison.OrdinalIgnoreCase);
+            }
+            catch
+            {
+                return false;
+            }
         }
     }
 }

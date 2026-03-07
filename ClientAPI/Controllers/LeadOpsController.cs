@@ -1,8 +1,5 @@
-﻿using Core.DTOs.Leads.Notes;
+using Core.DTOs.Leads.Notes;
 using Core.Interfaces;
-using Core.Models;
-using Infrastructure.Services.Leads;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
@@ -37,9 +34,25 @@ namespace ClientAPI.Controllers
                 var result = await noteService.CreateNote(createNote, userId);
                 return Ok(result);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpGet("template")]
+        public async Task<IActionResult> DownloadTemplate()
+        {
+            try
+            {
+                var fileContent = await fileService.GenerateImportTemplateAsync();
+                return File(fileContent,
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    "Leads Template.xlsx");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Template generation failed: {ex.Message}");
             }
         }
 
@@ -52,8 +65,8 @@ namespace ClientAPI.Controllers
             {
                 var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
                 using var stream = file.OpenReadStream();
-                await fileService.ImportLeadsFromExcelAsync(stream, userId);
-                return Ok(new { message = "Leads imported successfully." });
+                var result = await fileService.ImportLeadsFromExcelAsync(stream, userId);
+                return Ok(result);
             }
             catch (Exception ex)
             {

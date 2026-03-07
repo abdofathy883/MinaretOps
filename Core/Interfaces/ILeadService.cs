@@ -1,11 +1,11 @@
-﻿using Core.DTOs.Leads;
+using Core.DTOs.Leads;
 using Core.DTOs.Leads.Notes;
 
 namespace Core.Interfaces
 {
     public interface ILeadService
     {
-        Task<List<LeadDTO>> GetAllLeadsAsync(string currentUserId);
+        Task<PaginatedLeadResultDTO> GetAllLeadsAsync(LeadFilterDTO filter);
         Task<LeadDTO> GetLeadByIdAsync(int id);
         Task<LeadDTO> CreateLeadAsync(CreateLeadDTO createLeadDTO, string? currentUserId = null);
         Task<LeadDTO> UpdateLeadAsync(UpdateLeadDTO updateLeadDTO);

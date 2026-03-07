@@ -1,4 +1,4 @@
-﻿using Core.DTOs.Leads;
+using Core.DTOs.Leads;
 using Core.Interfaces;
 using Infrastructure.Services.Tasks;
 using Microsoft.AspNetCore.Authorization;
@@ -23,14 +23,20 @@ namespace ClientAPI.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetLeads()
+        public async Task<IActionResult> GetLeads([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 30)
         {
             var userId = httpContextAccessor?.HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userId)) return BadRequest("Current User Id is NULL");
             try
             {
-                var leads = await leadService.GetAllLeadsAsync(userId);
-                return Ok(leads);
+                var filter = new LeadFilterDTO
+                {
+                    CurrentUserId = userId,
+                    PageNumber = pageNumber,
+                    PageSize = pageSize
+                };
+                var result = await leadService.GetAllLeadsAsync(filter);
+                return Ok(result);
             }
             catch (Exception ex)
             {

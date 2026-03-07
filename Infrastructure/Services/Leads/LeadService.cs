@@ -173,20 +173,19 @@ namespace Infrastructure.Services.Leads
             context.SalesLeads.Remove(lead);
             return await context.SaveChangesAsync() > 0;
         }
-        public async Task<List<LeadDTO>> GetAllLeadsAsync(string currentUserId)
+        public async Task<PaginatedLeadResultDTO> GetAllLeadsAsync(LeadFilterDTO filter)
         {
-            var user = await context.Users.FindAsync(currentUserId);
+            var user = await context.Users.FindAsync(filter.CurrentUserId);
             if (user is null)
             {
-                logger.LogError($"Couldn't find current logged in user with Id: {currentUserId}");
-                throw new KeyNotFoundException($"Couldn't find current logged in user with Id: {currentUserId}");
+                logger.LogError($"Couldn't find current logged in user with Id: {filter.CurrentUserId}");
+                throw new KeyNotFoundException($"Couldn't find current logged in user with Id: {filter.CurrentUserId}");
             }
 
             var roles = httpContextAccessor?.HttpContext?.User?.FindAll(ClaimTypes.Role)
                 ?.Select(c => c.Value)
                 ?.ToList() ?? new List<string>();
 
-            //var leads = new List<LeadDTO>();
             try
             {
                 IQueryable<SalesLead> leadsQuery = context.SalesLeads
@@ -198,10 +197,15 @@ namespace Infrastructure.Services.Leads
 
                 if (!roles.Contains(UserRoles.Admin.ToString()))
                 {
-                    leadsQuery = leadsQuery.Where(x => x.SalesRepId == currentUserId);
+                    leadsQuery = leadsQuery.Where(x => x.SalesRepId == filter.CurrentUserId);
                 }
 
+                var totalRecords = await leadsQuery.CountAsync();
+                var totalPages = (int)Math.Ceiling(totalRecords / (double)filter.PageSize);
+
                 var leads = await leadsQuery
+                    .Skip((filter.PageNumber - 1) * filter.PageSize)
+                    .Take(filter.PageSize)
                     .Select(x => new LeadDTO
                     {
                         Id = x.Id,
@@ -222,7 +226,14 @@ namespace Infrastructure.Services.Leads
                     })
                     .ToListAsync();
 
-                return leads;
+                return new PaginatedLeadResultDTO
+                {
+                    Records = leads,
+                    TotalRecords = totalRecords,
+                    PageNumber = filter.PageNumber,
+                    PageSize = filter.PageSize,
+                    TotalPages = totalPages
+                };
             }
             catch
             {
