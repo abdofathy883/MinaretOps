@@ -17,11 +17,14 @@ namespace Infrastructure.Services.Leads
         {
             this.context = context;
         }
-
         public async Task<byte[]> GenerateImportTemplateAsync()
         {
             using var workbook = new XLWorkbook();
             var ws = workbook.Worksheets.Add("Leads");
+
+            // Hidden reference sheet for dropdowns (bypasses Excel's 255-char inline limit)
+            var refSheet = workbook.Worksheets.Add("_Ref");
+            refSheet.Visibility = XLWorksheetVisibility.VeryHidden;
 
             string[] headers =
             {
@@ -42,17 +45,30 @@ namespace Infrastructure.Services.Leads
             }
 
             int templateRows = 1000;
+            int refCol = 1; // each enum gets its own column in _Ref sheet
 
-            AddDropdown(ws, 5, templateRows, EnumHelper.GetAllDescriptions<ContactStatus>());
-            AddDropdown(ws, 6, templateRows, EnumHelper.GetAllDescriptions<CurrentLeadStatus>());
-            AddDropdown(ws, 7, templateRows, EnumHelper.GetAllDescriptions<LeadSource>());
-            AddDropdown(ws, 8, templateRows, EnumHelper.GetAllDescriptions<FreelancePlatform>());
-            AddDropdown(ws, 9, templateRows, EnumHelper.GetAllDescriptions<LeadResponsibility>());
-            AddDropdown(ws, 10, templateRows, EnumHelper.GetAllDescriptions<LeadBudget>());
-            AddDropdown(ws, 11, templateRows, EnumHelper.GetAllDescriptions<LeadTimeline>());
-            AddDropdown(ws, 12, templateRows, EnumHelper.GetAllDescriptions<NeedsExpectation>());
-            AddDropdown(ws, 13, templateRows, EnumHelper.GetAllDescriptions<InterestLevel>());
-            AddDropdown(ws, 16, templateRows, new List<string> { "TRUE", "FALSE" });
+            void AddDropdownFromRef(int wsColumn, List<string> values)
+            {
+                for (int i = 0; i < values.Count; i++)
+                    refSheet.Cell(i + 1, refCol).Value = values[i];
+
+                var rangeAddress = $"'_Ref'!${ToColumnLetter(refCol)}$1:${ToColumnLetter(refCol)}${values.Count}";
+                var dataRange = ws.Range(2, wsColumn, templateRows + 1, wsColumn);
+                dataRange.CreateDataValidation().List(rangeAddress, true);
+
+                refCol++;
+            }
+
+            AddDropdownFromRef(5, EnumHelper.GetAllDescriptions<ContactStatus>());
+            AddDropdownFromRef(6, EnumHelper.GetAllDescriptions<CurrentLeadStatus>());
+            AddDropdownFromRef(7, EnumHelper.GetAllDescriptions<LeadSource>());
+            AddDropdownFromRef(8, EnumHelper.GetAllDescriptions<FreelancePlatform>());
+            AddDropdownFromRef(9, EnumHelper.GetAllDescriptions<LeadResponsibility>());
+            AddDropdownFromRef(10, EnumHelper.GetAllDescriptions<LeadBudget>());
+            AddDropdownFromRef(11, EnumHelper.GetAllDescriptions<LeadTimeline>());
+            AddDropdownFromRef(12, EnumHelper.GetAllDescriptions<NeedsExpectation>());
+            AddDropdownFromRef(13, EnumHelper.GetAllDescriptions<InterestLevel>());
+            AddDropdownFromRef(16, new List<string> { "TRUE", "FALSE" });
 
             var services = await context.Services
                 .Where(s => !s.IsDeleted)
@@ -60,9 +76,22 @@ namespace Infrastructure.Services.Leads
                 .ToListAsync();
 
             if (services.Count > 0)
-            {
-                AddDropdown(ws, 17, templateRows, services);
-            }
+                AddDropdownFromRef(17, services);
+
+            // Format date columns
+            ws.Range(2, 14, templateRows + 1, 14).Style.DateFormat.Format = "yyyy-MM-dd HH:mm";
+            ws.Range(2, 15, templateRows + 1, 15).Style.DateFormat.Format = "yyyy-MM-dd HH:mm";
+
+            // Add sample row so users know the expected format
+            ws.Cell(2, 1).Value = "Example Business";
+            ws.Cell(2, 2).Value = "+201001234567";
+            ws.Cell(2, 3).Value = "Egypt";
+            ws.Cell(2, 4).Value = "Restaurant Owner";
+            ws.Cell(2, 14).Value = "";
+            ws.Cell(2, 15).Value = "";
+
+            ws.Row(2).Style.Font.Italic = true;
+            ws.Row(2).Style.Font.FontColor = XLColor.Gray;
 
             ws.Columns().AdjustToContents();
 
@@ -71,12 +100,91 @@ namespace Infrastructure.Services.Leads
             return stream.ToArray();
         }
 
-        private static void AddDropdown(IXLWorksheet ws, int column, int rowCount, List<string> values)
+        private static string ToColumnLetter(int col)
         {
-            var joined = string.Join(",", values.Select(v => $"\"{v}\""));
-            var range = ws.Range(2, column, rowCount + 1, column);
-            range.CreateDataValidation().List(joined, true);
+            string result = "";
+            while (col > 0)
+            {
+                col--;
+                result = (char)('A' + col % 26) + result;
+                col /= 26;
+            }
+            return result;
         }
+
+        //public async Task<byte[]> GenerateImportTemplateAsync()
+        //{
+        //    using var workbook = new XLWorkbook();
+        //    var ws = workbook.Worksheets.Add("Leads");
+
+        //    string[] headers =
+        //    {
+        //        "Business Name", "WhatsApp Number", "Country", "Occupation",
+        //        "Contact Status", "Current Lead Status", "Lead Source",
+        //        "Freelance Platform", "Responsibility", "Budget",
+        //        "Timeline", "Needs Expectation", "Interest Level",
+        //        "Meeting Date", "Follow Up Time", "Quotation Sent",
+        //        "Services Interested In", "Notes"
+        //    };
+
+        //    for (int i = 0; i < headers.Length; i++)
+        //    {
+        //        var cell = ws.Cell(1, i + 1);
+        //        cell.Value = headers[i];
+        //        cell.Style.Font.Bold = true;
+        //        cell.Style.Fill.BackgroundColor = XLColor.LightGray;
+        //    }
+
+        //    int templateRows = 1000;
+
+        //    AddDropdown(ws, 5, templateRows, EnumHelper.GetAllDescriptions<ContactStatus>());
+        //    AddDropdown(ws, 6, templateRows, EnumHelper.GetAllDescriptions<CurrentLeadStatus>());
+        //    AddDropdown(ws, 7, templateRows, EnumHelper.GetAllDescriptions<LeadSource>());
+        //    AddDropdown(ws, 8, templateRows, EnumHelper.GetAllDescriptions<FreelancePlatform>());
+        //    AddDropdown(ws, 9, templateRows, EnumHelper.GetAllDescriptions<LeadResponsibility>());
+        //    AddDropdown(ws, 10, templateRows, EnumHelper.GetAllDescriptions<LeadBudget>());
+        //    AddDropdown(ws, 11, templateRows, EnumHelper.GetAllDescriptions<LeadTimeline>());
+        //    AddDropdown(ws, 12, templateRows, EnumHelper.GetAllDescriptions<NeedsExpectation>());
+        //    AddDropdown(ws, 13, templateRows, EnumHelper.GetAllDescriptions<InterestLevel>());
+        //    AddDropdown(ws, 16, templateRows, new List<string> { "TRUE", "FALSE" });
+
+        //    var services = await context.Services
+        //        .Where(s => !s.IsDeleted)
+        //        .Select(s => s.Title)
+        //        .ToListAsync();
+
+        //    if (services.Count > 0)
+        //    {
+        //        AddDropdown(ws, 17, templateRows, services);
+        //    }
+
+        //    ws.Columns().AdjustToContents();
+
+        //    using var stream = new MemoryStream();
+        //    workbook.SaveAs(stream);
+        //    return stream.ToArray();
+        //}
+
+        //private static void AddDropdown(IXLWorksheet ws, int column, int rowCount, List<string> values)
+        //{
+        //    var joined = string.Join(",", values.Select(v => $"\"{v}\""));
+        //    var range = ws.Range(2, column, rowCount + 1, column);
+        //    range.CreateDataValidation().List(joined, true);
+        //}
+
+        //private static void AddDropdownFromSheet(IXLWorksheet ws, IXLWorksheet refSheet,
+        //    int column, int rowCount, List<string> values, string rangeName)
+        //{
+        //    // Write values to the reference sheet
+        //    for (int i = 0; i < values.Count; i++)
+        //        refSheet.Cell(i + 1, 1).Value = values[i]; // column A, rows 1..n
+
+        //    // Named range pointing to those cells
+        //    var namedRange = $"'{refSheet.Name}'!$A$1:$A${values.Count}";
+
+        //    var range = ws.Range(2, column, rowCount + 1, column);
+        //    range.CreateDataValidation().List(namedRange, true);
+        //}
 
         public async Task<LeadImportResultDto> ImportLeadsFromExcelAsync(Stream fileStream, string currentUserId)
         {
