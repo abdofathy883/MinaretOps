@@ -1,4 +1,4 @@
-using ClosedXML.Excel;
+﻿using ClosedXML.Excel;
 using Core.DTOs.Leads;
 using Core.Enums.Leads;
 using Core.Helpers;
@@ -6,6 +6,7 @@ using Core.Interfaces;
 using Core.Models;
 using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using System.Threading.Tasks;
 
 namespace Infrastructure.Services.Leads
 {
@@ -112,80 +113,6 @@ namespace Infrastructure.Services.Leads
             return result;
         }
 
-        //public async Task<byte[]> GenerateImportTemplateAsync()
-        //{
-        //    using var workbook = new XLWorkbook();
-        //    var ws = workbook.Worksheets.Add("Leads");
-
-        //    string[] headers =
-        //    {
-        //        "Business Name", "WhatsApp Number", "Country", "Occupation",
-        //        "Contact Status", "Current Lead Status", "Lead Source",
-        //        "Freelance Platform", "Responsibility", "Budget",
-        //        "Timeline", "Needs Expectation", "Interest Level",
-        //        "Meeting Date", "Follow Up Time", "Quotation Sent",
-        //        "Services Interested In", "Notes"
-        //    };
-
-        //    for (int i = 0; i < headers.Length; i++)
-        //    {
-        //        var cell = ws.Cell(1, i + 1);
-        //        cell.Value = headers[i];
-        //        cell.Style.Font.Bold = true;
-        //        cell.Style.Fill.BackgroundColor = XLColor.LightGray;
-        //    }
-
-        //    int templateRows = 1000;
-
-        //    AddDropdown(ws, 5, templateRows, EnumHelper.GetAllDescriptions<ContactStatus>());
-        //    AddDropdown(ws, 6, templateRows, EnumHelper.GetAllDescriptions<CurrentLeadStatus>());
-        //    AddDropdown(ws, 7, templateRows, EnumHelper.GetAllDescriptions<LeadSource>());
-        //    AddDropdown(ws, 8, templateRows, EnumHelper.GetAllDescriptions<FreelancePlatform>());
-        //    AddDropdown(ws, 9, templateRows, EnumHelper.GetAllDescriptions<LeadResponsibility>());
-        //    AddDropdown(ws, 10, templateRows, EnumHelper.GetAllDescriptions<LeadBudget>());
-        //    AddDropdown(ws, 11, templateRows, EnumHelper.GetAllDescriptions<LeadTimeline>());
-        //    AddDropdown(ws, 12, templateRows, EnumHelper.GetAllDescriptions<NeedsExpectation>());
-        //    AddDropdown(ws, 13, templateRows, EnumHelper.GetAllDescriptions<InterestLevel>());
-        //    AddDropdown(ws, 16, templateRows, new List<string> { "TRUE", "FALSE" });
-
-        //    var services = await context.Services
-        //        .Where(s => !s.IsDeleted)
-        //        .Select(s => s.Title)
-        //        .ToListAsync();
-
-        //    if (services.Count > 0)
-        //    {
-        //        AddDropdown(ws, 17, templateRows, services);
-        //    }
-
-        //    ws.Columns().AdjustToContents();
-
-        //    using var stream = new MemoryStream();
-        //    workbook.SaveAs(stream);
-        //    return stream.ToArray();
-        //}
-
-        //private static void AddDropdown(IXLWorksheet ws, int column, int rowCount, List<string> values)
-        //{
-        //    var joined = string.Join(",", values.Select(v => $"\"{v}\""));
-        //    var range = ws.Range(2, column, rowCount + 1, column);
-        //    range.CreateDataValidation().List(joined, true);
-        //}
-
-        //private static void AddDropdownFromSheet(IXLWorksheet ws, IXLWorksheet refSheet,
-        //    int column, int rowCount, List<string> values, string rangeName)
-        //{
-        //    // Write values to the reference sheet
-        //    for (int i = 0; i < values.Count; i++)
-        //        refSheet.Cell(i + 1, 1).Value = values[i]; // column A, rows 1..n
-
-        //    // Named range pointing to those cells
-        //    var namedRange = $"'{refSheet.Name}'!$A$1:$A${values.Count}";
-
-        //    var range = ws.Range(2, column, rowCount + 1, column);
-        //    range.CreateDataValidation().List(namedRange, true);
-        //}
-
         public async Task<LeadImportResultDto> ImportLeadsFromExcelAsync(Stream fileStream, string currentUserId)
         {
             var result = new LeadImportResultDto();
@@ -242,6 +169,7 @@ namespace Infrastructure.Services.Leads
                     {
                         var newLead = CreateLeadFromRow(worksheet, rowNumber, currentUserId);
                         context.SalesLeads.Add(newLead);
+                        var newHistory = CreateLeadHistoryFromRow(newLead, currentUserId);
                         await context.SaveChangesAsync();
 
                         await UpsertServicesAndNotes(newLead, worksheet, rowNumber, currentUserId);
@@ -307,6 +235,20 @@ namespace Infrastructure.Services.Leads
                 CreatedById = currentUserId,
                 SalesRepId = currentUserId,
                 CreatedAt = DateTime.UtcNow
+            };
+        }
+
+        private async Task<SalesLeadHistory> CreateLeadHistoryFromRow(SalesLead lead, string currentUserId)
+        {
+            var currentUser = await context.Users.SingleAsync(u => u.Id == currentUserId);
+            return new SalesLeadHistory
+            {
+                SalesLead = lead,
+                PropertyName = "استيراد من Excel",
+                OldValue = null,
+                NewValue = lead.BusinessName,
+                UpdatedById = currentUser.Id,
+                UpdatedByName = $"{currentUser.FirstName} {currentUser.LastName}"
             };
         }
 
