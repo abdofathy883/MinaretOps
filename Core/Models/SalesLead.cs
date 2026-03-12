@@ -24,7 +24,6 @@ namespace Core.Models
         public List<LeadNote> Notes { get; set; } = new();
         public DateTime? MeetingDate { get; set; }
         public DateTime? FollowUpTime { get; set; }
-        //public bool MeetingAgreed { get; set; }
         public bool QuotationSent { get; set; }
         public string? SalesRepId { get; set; }
         public ApplicationUser? SalesRep { get; set; }

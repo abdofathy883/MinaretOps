@@ -123,6 +123,8 @@ namespace Infrastructure.Services.Leads
 
             result.TotalRows = rows.Count;
 
+            var currentUser =await context.Users.SingleAsync(u => u.Id == currentUserId);
+
             foreach (var row in rows)
             {
                 var rowNumber = row.RowNumber();
@@ -169,7 +171,8 @@ namespace Infrastructure.Services.Leads
                     {
                         var newLead = CreateLeadFromRow(worksheet, rowNumber, currentUserId);
                         context.SalesLeads.Add(newLead);
-                        var newHistory = CreateLeadHistoryFromRow(newLead, currentUserId);
+                        var newHistory = CreateLeadHistoryFromRow(newLead, currentUser);
+                        context.LeadHistory.Add(newHistory);
                         await context.SaveChangesAsync();
 
                         await UpsertServicesAndNotes(newLead, worksheet, rowNumber, currentUserId);
@@ -238,9 +241,8 @@ namespace Infrastructure.Services.Leads
             };
         }
 
-        private async Task<SalesLeadHistory> CreateLeadHistoryFromRow(SalesLead lead, string currentUserId)
+        private SalesLeadHistory CreateLeadHistoryFromRow(SalesLead lead, ApplicationUser currentUser)
         {
-            var currentUser = await context.Users.SingleAsync(u => u.Id == currentUserId);
             return new SalesLeadHistory
             {
                 SalesLead = lead,
@@ -278,7 +280,14 @@ namespace Infrastructure.Services.Leads
                 var hasNote = lead.Notes.Any(n => n.Note == notesCell);
                 if (!hasNote)
                 {
-                    lead.Notes.Add(new LeadNote
+                    //lead.Notes.Add(new LeadNote
+                    //{
+                    //    Note = notesCell,
+                    //    CreatedById = currentUserId,
+                    //    LeadId = lead.Id,
+                    //    CreatedAt = DateTime.UtcNow
+                    //});
+                    context.LeadNotes.Add(new LeadNote
                     {
                         Note = notesCell,
                         CreatedById = currentUserId,

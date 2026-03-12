@@ -136,6 +136,7 @@ namespace ClientAPI
             builder.Services.AddScoped<IBranchService, BranchService>();
             builder.Services.AddScoped<IVaultService, VaultService>();
             builder.Services.AddScoped<ILeadService, Infrastructure.Services.Leads.LeadService>();
+            builder.Services.AddScoped<ILeadReportService, LeadsReportService>();
             builder.Services.AddScoped<ILeadNoteService, LeadNoteService>();
             builder.Services.AddScoped<IleadFileService, LeadFileService>();
             builder.Services.AddScoped<IInvitationService, InvitationService>();

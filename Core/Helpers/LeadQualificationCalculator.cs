@@ -53,9 +53,9 @@ namespace Core.Helpers
         /// </summary>
         public static double GetNeedsExpectationScore(NeedsExpectation needsExpectation) => needsExpectation switch
         {
-            NeedsExpectation.Below => 0,
+            NeedsExpectation.Below => 1,
             NeedsExpectation.Equal => 0.5,
-            NeedsExpectation.Higher => 1,
+            NeedsExpectation.Higher => 0,
             _ => 0
         };
 

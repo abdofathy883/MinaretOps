@@ -25,7 +25,6 @@ jobs:
 
     - name: Build and publish
       run: dotnet publish ClientAPI/ClientAPI.csproj -c Release -r linux-x64 --self-contained false -o ./publish-output
-      #run: dotnet publish ClientAPI/ClientAPI.csproj -c Release -o ./publish-output
 
     - name: Show build output (debug)
       run: |

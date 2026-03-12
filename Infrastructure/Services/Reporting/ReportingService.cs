@@ -97,13 +97,13 @@ namespace Infrastructure.Services.Reporting
                 foreach (var record in activeAttendanceRecords)
                 {
                     var isOnBreak = record.BreakPeriods.Any(b => b.EndTime == null);
-                        var employeeInfo = new EmployeeWithTasksDTO
+                    var employeeInfo = new EmployeeWithTasksDTO
                     {
                         EmployeeId = record.EmployeeId,
                         EmployeeName = $"{record.Employee.FirstName} {record.Employee.LastName}",
                         IsOnBreak = isOnBreak,
-                            ClockInTime = TimeZoneHelper.ConvertToEgyptTime(record.ClockIn),
-                            WorkingDuration = isOnBreak ? null : utcNow - record.ClockIn
+                        ClockInTime = TimeZoneHelper.ConvertToEgyptTime(record.ClockIn),
+                        WorkingDuration = isOnBreak ? null : utcNow - record.ClockIn
                     };
 
                     if (isOnBreak)
@@ -183,8 +183,8 @@ namespace Infrastructure.Services.Reporting
                         // Skip if employee already has attendance for this date
                         var hasAttendanceForDate = await context.AttendanceRecords
                             .AnyAsync(r => r.EmployeeId == employee.Id && 
-                                         r.WorkDate == date && 
-                                         r.Status == AttendanceStatus.Present);
+                            r.WorkDate == date && 
+                            r.Status == AttendanceStatus.Present);
 
                         if (hasAttendanceForDate)
                             continue;
@@ -193,9 +193,9 @@ namespace Infrastructure.Services.Reporting
                         var dateDateTime = date.ToDateTime(TimeOnly.MinValue);
                         var hasApprovedLeave = await context.LeaveRequests
                             .AnyAsync(l => l.EmployeeId == employee.Id &&
-                                         l.Status == LeaveStatus.Approved &&
-                                         l.FromDate.Date <= dateDateTime &&
-                                         l.ToDate.Date >= dateDateTime);
+                            l.Status == LeaveStatus.Approved &&
+                            l.FromDate.Date <= dateDateTime &&
+                            l.ToDate.Date >= dateDateTime);
 
                         if (!hasApprovedLeave)
                         {
