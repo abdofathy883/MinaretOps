@@ -1,4 +1,4 @@
-﻿using Core.Interfaces;
+﻿using Core.Interfaces.Auth;
 using Core.Models;
 using Core.Settings;
 using Microsoft.AspNetCore.Identity;

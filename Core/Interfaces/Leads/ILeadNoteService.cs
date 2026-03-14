@@ -1,6 +1,6 @@
 ﻿using Core.DTOs.Leads.Notes;
 
-namespace Core.Interfaces
+namespace Core.Interfaces.Leads
 {
     public interface ILeadNoteService
     {

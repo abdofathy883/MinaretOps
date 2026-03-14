@@ -2,6 +2,7 @@
 using Core.DTOs.Leads;
 using Core.Enums.Leads;
 using Core.Interfaces;
+using Core.Interfaces.Leads;
 using Core.Models;
 using Core.Settings;
 using Infrastructure.Data;

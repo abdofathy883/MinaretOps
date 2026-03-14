@@ -1,6 +1,6 @@
 using Core.DTOs.Leads.Reports;
 
-namespace Core.Interfaces
+namespace Core.Interfaces.Leads
 {
     public interface ILeadReportService
     {

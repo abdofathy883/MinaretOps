@@ -1,4 +1,7 @@
+using ClientAPI.Middlewares;
 using Core.Interfaces;
+using Core.Interfaces.Auth;
+using Core.Interfaces.Leads;
 using Core.Models;
 using Core.Settings;
 using Infrastructure.Data;
@@ -140,6 +143,7 @@ namespace ClientAPI
             builder.Services.AddScoped<ILeadNoteService, LeadNoteService>();
             builder.Services.AddScoped<IleadFileService, LeadFileService>();
             builder.Services.AddScoped<IInvitationService, InvitationService>();
+            builder.Services.AddScoped<ILoginLogService, LoginLogService>();
             builder.Services.AddHttpClient<IContactService, ContactService>();
             builder.Services.AddScoped<ISeoService, SeoService>();
             builder.Services.AddSingleton<DiscordService>();
@@ -148,6 +152,7 @@ namespace ClientAPI
             builder.Services.AddHostedService<OutboxCleaner>();
             builder.Services.AddHttpContextAccessor();
             //builder.Services.AddHttpClient();
+            //builder.Services.addhttpc
 
 
             builder.Services.AddQuartz(q =>
@@ -281,7 +286,6 @@ namespace ClientAPI
             app.UseSwagger();
             app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "MinaretOps API v1"));
             app.UseDeveloperExceptionPage();
-
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
             {
@@ -301,6 +305,7 @@ namespace ClientAPI
 
             app.UseRouting();
             app.UseCors("FrontendOnly");
+            //app.UseMiddleware<LoginLoggingMiddleware>();
             app.UseAuthentication();
             app.UseAuthorization();
 

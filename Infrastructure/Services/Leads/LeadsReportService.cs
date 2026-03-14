@@ -2,7 +2,7 @@ using AutoMapper;
 using Core.DTOs.Leads;
 using Core.DTOs.Leads.Reports;
 using Core.Enums.Leads;
-using Core.Interfaces;
+using Core.Interfaces.Leads;
 using Core.Models;
 using Infrastructure.Data;
 using Infrastructure.Helpers;

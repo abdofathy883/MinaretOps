@@ -1,6 +1,6 @@
 ﻿using AutoMapper;
 using Core.DTOs.Leads.Notes;
-using Core.Interfaces;
+using Core.Interfaces.Leads;
 using Core.Models;
 using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;

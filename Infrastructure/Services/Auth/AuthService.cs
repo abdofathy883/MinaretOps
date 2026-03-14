@@ -1,6 +1,6 @@
 ﻿using Core.DTOs.AuthDTOs;
 using Core.Enums;
-using Core.Interfaces;
+using Core.Interfaces.Auth;
 using Core.Models;
 using Infrastructure.Data;
 using Infrastructure.Exceptions;
@@ -19,12 +19,15 @@ namespace Infrastructure.Services.Auth
         private readonly UserManager<ApplicationUser> userManager;
         private readonly RoleManager<IdentityRole> roleManager;
         private readonly IJWTServices jwtServices;
+
+        private readonly ILoginLogService loginLogService;
         public AuthService(
             MinaretOpsDbContext _context,
             TaskHelperService _helperService,
             UserManager<ApplicationUser> _userManager,
             RoleManager<IdentityRole> _roleManager,
-            IJWTServices _jwtServices
+            IJWTServices _jwtServices,
+            ILoginLogService loginLogService_
             )
         {
             dbContext = _context;
@@ -32,6 +35,8 @@ namespace Infrastructure.Services.Auth
             userManager = _userManager;
             roleManager = _roleManager;
             jwtServices = _jwtServices;
+
+            loginLogService = loginLogService_;
         }
         public async Task<List<AuthResponseDTO>> GetAllUsersAsync()
         {
@@ -132,6 +137,15 @@ namespace Infrastructure.Services.Auth
                 await userManager.UpdateAsync(user);
             }
 
+            var log = new LoginLog
+            {
+                UserId = user.Id,
+                Timestamp = DateTime.UtcNow,
+                IsSuccess = true,
+                //IpAddress = helperService.GetClientIp(),
+                //UserAgent = helperService.GetUserAgent()
+            };
+            await loginLogService.LogAsync(log);
             authDTO.Message = "تم تسجيل الدخول بنجاح";
             return authDTO;
         }

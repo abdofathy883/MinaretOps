@@ -1,5 +1,5 @@
 ﻿using Core.DTOs.AuthDTOs;
-using Core.Interfaces;
+using Core.Interfaces.Auth;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ClientAPI.Controllers
@@ -9,9 +9,17 @@ namespace ClientAPI.Controllers
     public class AuthController : ControllerBase
     {
         private readonly IAuthService authService;
-        public AuthController(IAuthService _authService)
+        private readonly ILoginLogService loginLogService;
+        public AuthController(IAuthService _authService, ILoginLogService loginLogService)
         {
             authService = _authService;
+            this.loginLogService = loginLogService;
+        }
+        [HttpGet("logs")]
+        public async Task<IActionResult> GetLoginLogsAsync()
+        {
+            var logs = await loginLogService.GetAllLogsAsync();
+            return Ok(logs);
         }
         [HttpPost("login")]
         public async Task<IActionResult> LoginAsync([FromBody] LoginDTO request)

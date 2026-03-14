@@ -6,7 +6,7 @@ using Core.Enums;
 using Core.Enums.Auth_Attendance;
 using Core.Enums.Leads;
 using Core.Helpers;
-using Core.Interfaces;
+using Core.Interfaces.Leads;
 using Core.Models;
 using Infrastructure.Data;
 using Infrastructure.Services.Tasks;

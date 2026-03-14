@@ -1,7 +1,7 @@
 using Core.DTOs.Leads;
 using Core.DTOs.Leads.Notes;
 
-namespace Core.Interfaces
+namespace Core.Interfaces.Leads
 {
     public interface ILeadService
     {

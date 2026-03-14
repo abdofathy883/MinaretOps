@@ -1,5 +1,5 @@
 using Core.DTOs.Leads;
-using Core.Interfaces;
+using Core.Interfaces.Leads;
 using Infrastructure.Services.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
