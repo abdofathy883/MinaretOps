@@ -301,7 +301,7 @@ namespace ClientAPI
             });
 
             //app.UseHttpsRedirection();
-            app.Urls.Add("https://0.0.0.0:8080");
+            app.Urls.Add("http://0.0.0.0:8080");
 
             app.UseRouting();
             app.UseCors("FrontendOnly");
