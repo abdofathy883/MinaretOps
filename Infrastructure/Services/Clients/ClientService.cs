@@ -1,14 +1,19 @@
 ﻿using AutoMapper;
 using Core.DTOs.Clients;
+using Core.DTOs.ClientServiceDTOs;
 using Core.DTOs.Payloads;
+using Core.DTOs.Tasks.TaskDTOs;
+using Core.DTOs.Tasks.TaskGroupDTOs;
 using Core.Enums;
 using Core.Interfaces;
 using Core.Models;
+using DocumentFormat.OpenXml.InkML;
 using Infrastructure.Data;
 using Infrastructure.Exceptions;
 using Infrastructure.Services.Checkpoints;
 using Infrastructure.Services.Discord;
 using Infrastructure.Services.Tasks;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System.Net;
@@ -64,10 +69,10 @@ namespace Infrastructure.Services.Clients
 
             return clients;
         }
-        public async Task<List<LightWieghtClientDTO>> GetAllAsync()
+        public async Task<List<LightWieghtClientDTO>> GetAllAsync(ClientStatus status)
         {
             var clients = await dbContext.Clients
-                //.Where(c => c.Status == ClientStatus.OnHold || c.Status == ClientStatus.Cancelled)
+                .Where(c => c.Status == status)
                 .Include(c => c.ClientServices)
                     .ThenInclude(cs => cs.Service)
                 .Include(c => c.AccountManager)
@@ -94,182 +99,236 @@ namespace Infrastructure.Services.Clients
             var client = await GetClientOrThrow(clientId);
             return mapper.Map<ClientDTO>(client);
         }
+        //public async Task<ClientDTO> AddClientAsync(CreateClientDTO clientDTO, string userId)
+        //{
+        //    var user = await taskHelperService.GetUserOrThrow(userId)
+        //        ?? throw new InvalidObjectException("المستخدم غير موجود");
+
+        //    var existingClient = await dbContext.Clients
+        //        .AnyAsync(c => c.Name == clientDTO.Name);
+
+        //    if (existingClient)
+        //        throw new AlreadyExistObjectException("لا يمكن اضافة عميل موجود بالفعل");
+
+        //    using var dbTransaction = await dbContext.Database.BeginTransactionAsync();
+        //    try
+        //    {
+        //        string? discordChannelId = null;
+        //        try
+        //        {
+        //            discordChannelId = await discordService.CreateChannelForClient(clientDTO.Name);
+        //        }
+        //        catch (Exception ex)
+        //        {
+        //            logger.LogWarning($"Failed to create Discord channel for client {clientDTO.Name}: {ex.Message}");
+        //            // Continue without Discord channel if creation fails
+        //        }
+
+        //        var newClient = new Client
+        //        {
+        //            Name = clientDTO.Name,
+        //            CompanyName = clientDTO.CompanyName,
+        //            PersonalPhoneNumber = clientDTO.PersonalPhoneNumber,
+        //            CompanyNumber = clientDTO.CompanyNumber,
+        //            Email = clientDTO.Email,
+        //            BusinessDescription = clientDTO.BusinessDescription,
+        //            DriveLink = clientDTO.DriveLink,
+        //            DiscordChannelId = discordChannelId ?? string.Empty,
+        //            BusinessType = clientDTO.BusinessType,
+        //            BusinessActivity = clientDTO.BusinessActivity,
+        //            CommercialRegisterNumber = clientDTO.CommercialRegisterNumber,
+        //            TaxCardNumber = clientDTO.TaxCardNumber,
+        //            Country = clientDTO.Country,
+        //            AccountManagerId = clientDTO.AccountManagerId,
+        //            ClientServices = new List<Core.Models.ClientService>()
+        //        };
+        //        await dbContext.Clients.AddAsync(newClient);
+
+        //        foreach (var csDto in clientDTO.ClientServices)
+        //        {
+        //            var clientService = new Core.Models.ClientService
+        //            {
+        //                Client = newClient,
+        //                ServiceId = csDto.ServiceId,
+        //                ServiceCost = csDto.ServiceCost,
+        //                TaskGroups = new List<TaskGroup>()
+        //            };
+
+        //            await dbContext.ClientServices.AddAsync(clientService);
+        //            await dbContext.SaveChangesAsync();
+
+        //            if (csDto.SelectedCheckpointIds != null && csDto.SelectedCheckpointIds.Any())
+        //            {
+        //                await checkpointService.CreateClientServiceCheckpointsAsync(
+        //                    clientService.Id,
+        //                    csDto.SelectedCheckpointIds
+        //                );
+        //            }
+
+        //            //await checkpointService.InitializeClientServiceCheckpointsAsync(clientService.Id, csDto.ServiceId);
+
+        //            foreach (var tgDto in csDto.TaskGroups)
+        //            {
+        //                var taskGroup = new TaskGroup
+        //                {
+        //                    ClientService = clientService,
+        //                    Month = DateTime.Now.Month,
+        //                    Year = DateTime.Now.Year,
+        //                    MonthLabel = $"{DateTime.Now.ToString("MMMM")} {DateTime.Now.ToString("yyyy")}",
+        //                    Tasks = new List<TaskItem>()
+        //                };
+
+        //                await dbContext.TaskGroups.AddAsync(taskGroup);
+
+        //                foreach (var taskDto in tgDto.Tasks)
+        //                {
+        //                    ApplicationUser? emp = null;
+        //                    var normalizedEmployeeId = string.IsNullOrWhiteSpace(taskDto.EmployeeId)
+        //                        ? null : taskDto.EmployeeId;
+
+        //                    if (normalizedEmployeeId is not null)
+        //                    {
+        //                        emp = await taskHelperService.GetUserOrThrow(normalizedEmployeeId);
+        //                    }
+
+        //                    var task = new TaskItem
+        //                    {
+        //                        Title = taskDto.Title,
+        //                        TaskType = taskDto.TaskType,
+        //                        Description = taskDto.Description,
+        //                        Deadline = taskDto.Deadline,
+        //                        Priority = taskDto.Priority,
+        //                        Refrence = taskDto.Refrence,
+        //                        EmployeeId = normalizedEmployeeId,
+        //                        Employee = emp,
+        //                        TaskGroup = taskGroup,
+        //                        ClientService = clientService,
+        //                        NumberOfSubTasks = taskDto.NumberOfSubTasks
+        //                    };
+        //                    await dbContext.Tasks.AddAsync(task);
+
+        //                    var taskHistory = new TaskItemHistory
+        //                    {
+        //                        TaskItem = task,
+        //                        PropertyName = "انشاء التاسك",
+        //                        UpdatedById = user.Id,
+        //                        UpdatedByName = $"{user.FirstName} {user.LastName}",
+        //                        UpdatedAt = DateTime.UtcNow
+        //                    };
+        //                    await dbContext.TaskHistory.AddAsync(taskHistory);
+
+        //                    // Get employee information from the database to avoid null reference
+        //                    if (emp is not null && !string.IsNullOrEmpty(emp.Email))
+        //                    {
+        //                        var emailPayload = new
+        //                        {
+        //                            To = emp.Email,
+        //                            Subject = "New Task Has Been Assigned To You",
+        //                            Template = "NewTaskAssignment",
+        //                            Replacements = new Dictionary<string, string>
+        //                            {
+        //                                {"FullName", $"{emp.FirstName} {emp.LastName}" },
+        //                                {"Email", $"{emp.Email}" },
+        //                                {"TaskTitle", $"{task.Title}" },
+        //                                {"TaskType", $"task.TaskType" },
+        //                                {"TaskId", $"{task.Id}" },
+        //                                {"ClientName", $"{newClient.Name}" },
+        //                                {"TimeStamp", $"{DateTime.UtcNow}" }
+        //                            }
+        //                        };
+        //                        await taskHelperService.AddOutboxAsync(OutboxTypes.Email, "Send New Task Email", emailPayload);
+        //                        string? channelId = newClient?.DiscordChannelId;
+        //                        if (channelId != null)
+        //                        {
+        //                            var discordPayload = new DiscordPayload(channelId, task, DiscordOperationType.NewTask);
+        //                            await taskHelperService.AddOutboxAsync(OutboxTypes.Discord, "Send New Discord Notification", discordPayload);
+        //                        }
+        //                    }
+        //                }
+        //            }
+        //        }
+
+        //        // Final save to persist all tasks
+        //        await dbContext.SaveChangesAsync();
+        //        await dbTransaction.CommitAsync();
+
+        //        // Reload the client with all related entities for mapping
+        //        var clientForMapping = await dbContext.Clients
+        //            .Include(c => c.AccountManager)
+        //            .Include(c => c.ClientServices)
+        //                .ThenInclude(cs => cs.Service)
+        //            .Include(c => c.ClientServices)
+        //                .ThenInclude(cs => cs.TaskGroups)
+        //                    .ThenInclude(tg => tg.Tasks)
+        //                        .ThenInclude(t => t.Employee)
+        //            .Include(c => c.ClientServices)
+        //                .ThenInclude(cs => cs.ClientServiceCheckpoints)
+        //                    .ThenInclude(csc => csc.ServiceCheckpoint)
+        //            .Include(c => c.ClientServices)
+        //                .ThenInclude(cs => cs.ClientServiceCheckpoints)
+        //                    .ThenInclude(csc => csc.CompletedByEmployee)
+        //            .FirstOrDefaultAsync(c => c.Id == newClient.Id);
+
+        //        return mapper.Map<ClientDTO>(clientForMapping ?? newClient);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        await dbTransaction.RollbackAsync();
+        //        logger.LogError($"Error adding new client: {ex}");
+        //        throw;
+        //    }
+        //}
+
+        public async Task<List<LightWieghtClientDTO>> SearchAsync(string clientName)
+        {
+            if (string.IsNullOrWhiteSpace(clientName))
+                return new List<LightWieghtClientDTO>();
+
+            clientName = clientName.Trim();
+
+            IQueryable<Client> clientsQuery = dbContext.Clients
+                .Include(c => c.ClientServices)
+                    .ThenInclude(cs => cs.Service)
+                .Include(c => c.AccountManager);
+
+            // Search condition
+            clientsQuery = clientsQuery.Where(t =>
+                EF.Functions.Like(t.Name, $"%{clientName}%"));
+
+            var clients = await clientsQuery
+                .OrderByDescending(t => t.Id)
+                .ToListAsync();
+
+            return mapper.Map<List<LightWieghtClientDTO>>(clients);
+        }
         public async Task<ClientDTO> AddClientAsync(CreateClientDTO clientDTO, string userId)
         {
             var user = await taskHelperService.GetUserOrThrow(userId)
                 ?? throw new InvalidObjectException("المستخدم غير موجود");
 
-            var existingClient = await dbContext.Clients
-                .AnyAsync(c => c.Name == clientDTO.Name);
+            await EnsureClientNotDuplicated(clientDTO.Name);
 
-            if (existingClient)
-                throw new AlreadyExistObjectException("لا يمكن اضافة عميل موجود بالفعل");
-
-            using var dbTransaction = await dbContext.Database.BeginTransactionAsync();
+            using var tx = await dbContext.Database.BeginTransactionAsync();
             try
             {
-                string? discordChannelId = null;
-                try
-                {
-                    discordChannelId = await discordService.CreateChannelForClient(clientDTO.Name);
-                }
-                catch (Exception ex)
-                {
-                    logger.LogWarning($"Failed to create Discord channel for client {clientDTO.Name}: {ex.Message}");
-                    // Continue without Discord channel if creation fails
-                }
-
-                var newClient = new Client
-                {
-                    Name = clientDTO.Name,
-                    CompanyName = clientDTO.CompanyName,
-                    PersonalPhoneNumber = clientDTO.PersonalPhoneNumber,
-                    CompanyNumber = clientDTO.CompanyNumber,
-                    Email = clientDTO.Email,
-                    BusinessDescription = clientDTO.BusinessDescription,
-                    DriveLink = clientDTO.DriveLink,
-                    DiscordChannelId = discordChannelId ?? string.Empty,
-                    BusinessType = clientDTO.BusinessType,
-                    BusinessActivity = clientDTO.BusinessActivity,
-                    CommercialRegisterNumber = clientDTO.CommercialRegisterNumber,
-                    TaxCardNumber = clientDTO.TaxCardNumber,
-                    Country = clientDTO.Country,
-                    AccountManagerId = clientDTO.AccountManagerId,
-                    ClientServices = new List<Core.Models.ClientService>()
-                };
-                await dbContext.Clients.AddAsync(newClient);
+                var discordChannelId = await TryCreateDiscordChannel(clientDTO.Name);
+                var client = BuildClient(clientDTO, discordChannelId);
+                await dbContext.Clients.AddAsync(client);
 
                 foreach (var csDto in clientDTO.ClientServices)
                 {
-                    var clientService = new Core.Models.ClientService
-                    {
-                        Client = newClient,
-                        ServiceId = csDto.ServiceId,
-                        ServiceCost = csDto.ServiceCost,
-                        TaskGroups = new List<TaskGroup>()
-                    };
-
-                    await dbContext.ClientServices.AddAsync(clientService);
-                    await dbContext.SaveChangesAsync();
-
-                    if (csDto.SelectedCheckpointIds != null && csDto.SelectedCheckpointIds.Any())
-                    {
-                        await checkpointService.CreateClientServiceCheckpointsAsync(
-                            clientService.Id,
-                            csDto.SelectedCheckpointIds
-                        );
-                    }
-
-                    //await checkpointService.InitializeClientServiceCheckpointsAsync(clientService.Id, csDto.ServiceId);
-
-                    foreach (var tgDto in csDto.TaskGroups)
-                    {
-                        var taskGroup = new TaskGroup
-                        {
-                            ClientService = clientService,
-                            Month = DateTime.Now.Month,
-                            Year = DateTime.Now.Year,
-                            MonthLabel = $"{DateTime.Now.ToString("MMMM")} {DateTime.Now.ToString("yyyy")}",
-                            Tasks = new List<TaskItem>()
-                        };
-
-                        await dbContext.TaskGroups.AddAsync(taskGroup);
-
-                        foreach (var taskDto in tgDto.Tasks)
-                        {
-                            ApplicationUser? emp = null;
-                            var normalizedEmployeeId = string.IsNullOrWhiteSpace(taskDto.EmployeeId)
-                                ? null : taskDto.EmployeeId;
-
-                            if (normalizedEmployeeId is not null)
-                            {
-                                emp = await taskHelperService.GetUserOrThrow(normalizedEmployeeId);
-                            }
-
-                            var task = new TaskItem
-                            {
-                                Title = taskDto.Title,
-                                TaskType = taskDto.TaskType,
-                                Description = taskDto.Description,
-                                Deadline = taskDto.Deadline,
-                                Priority = taskDto.Priority,
-                                Refrence = taskDto.Refrence,
-                                EmployeeId = normalizedEmployeeId,
-                                Employee = emp,
-                                TaskGroup = taskGroup,
-                                ClientService = clientService,
-                                NumberOfSubTasks = taskDto.NumberOfSubTasks
-                            };
-                            await dbContext.Tasks.AddAsync(task);
-
-                            var taskHistory = new TaskItemHistory
-                            {
-                                TaskItem = task,
-                                PropertyName = "انشاء التاسك",
-                                UpdatedById = user.Id,
-                                UpdatedByName = $"{user.FirstName} {user.LastName}",
-                                UpdatedAt = DateTime.UtcNow
-                            };
-                            await dbContext.TaskHistory.AddAsync(taskHistory);
-
-                            // Get employee information from the database to avoid null reference
-                            if (emp is not null && !string.IsNullOrEmpty(emp.Email))
-                            {
-                                var emailPayload = new
-                                {
-                                    To = emp.Email,
-                                    Subject = "New Task Has Been Assigned To You",
-                                    Template = "NewTaskAssignment",
-                                    Replacements = new Dictionary<string, string>
-                                    {
-                                        {"FullName", $"{emp.FirstName} {emp.LastName}" },
-                                        {"Email", $"{emp.Email}" },
-                                        {"TaskTitle", $"{task.Title}" },
-                                        {"TaskType", $"task.TaskType" },
-                                        {"TaskId", $"{task.Id}" },
-                                        {"ClientName", $"{newClient.Name}" },
-                                        {"TimeStamp", $"{DateTime.UtcNow}" }
-                                    }
-                                };
-                                await taskHelperService.AddOutboxAsync(OutboxTypes.Email, "Send New Task Email", emailPayload);
-                                string? channelId = newClient?.DiscordChannelId;
-                                if (channelId != null)
-                                {
-                                    var discordPayload = new DiscordPayload(channelId, task, DiscordOperationType.NewTask);
-                                    await taskHelperService.AddOutboxAsync(OutboxTypes.Discord, "Send New Discord Notification", discordPayload);
-                                }
-                            }
-                        }
-                    }
+                    await ProcessClientService(client, csDto, user);
                 }
 
-                // Final save to persist all tasks
                 await dbContext.SaveChangesAsync();
-                await dbTransaction.CommitAsync();
+                await tx.CommitAsync();
 
-                // Reload the client with all related entities for mapping
-                var clientForMapping = await dbContext.Clients
-                    .Include(c => c.AccountManager)
-                    .Include(c => c.ClientServices)
-                        .ThenInclude(cs => cs.Service)
-                    .Include(c => c.ClientServices)
-                        .ThenInclude(cs => cs.TaskGroups)
-                            .ThenInclude(tg => tg.Tasks)
-                                .ThenInclude(t => t.Employee)
-                    .Include(c => c.ClientServices)
-                        .ThenInclude(cs => cs.ClientServiceCheckpoints)
-                            .ThenInclude(csc => csc.ServiceCheckpoint)
-                    .Include(c => c.ClientServices)
-                        .ThenInclude(cs => cs.ClientServiceCheckpoints)
-                            .ThenInclude(csc => csc.CompletedByEmployee)
-                    .FirstOrDefaultAsync(c => c.Id == newClient.Id);
-
-                return mapper.Map<ClientDTO>(clientForMapping ?? newClient);
+                return await ReloadAndMapClient(client.Id);
             }
             catch (Exception ex)
             {
-                await dbTransaction.RollbackAsync();
-                logger.LogError($"Error adding new client: {ex}");
+                await tx.RollbackAsync();
+                logger.LogError("Error adding new client: {Ex}", ex);
                 throw;
             }
         }
@@ -403,6 +462,183 @@ namespace Infrastructure.Services.Clients
                     ?? throw new InvalidObjectException("لا يوجد عميل بهذه البيانات");
 
             return client;
+        }
+
+
+        private async Task EnsureClientNotDuplicated(string name)
+        {
+            var exists = await dbContext.Clients.AnyAsync(c => c.Name == name);
+            if (exists) throw new AlreadyExistObjectException("لا يمكن اضافة عميل موجود بالفعل");
+        }
+
+        private async Task<string> TryCreateDiscordChannel(string clientName)
+        {
+            try
+            {
+                return await discordService.CreateChannelForClient(clientName) ?? string.Empty;
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning("Failed to create Discord channel for {Client}: {Msg}", clientName, ex.Message);
+                return string.Empty;
+            }
+        }
+
+        private Client BuildClient(CreateClientDTO dto, string discordChannelId) => new()
+        {
+            Name = dto.Name,
+            CompanyName = dto.CompanyName,
+            PersonalPhoneNumber = dto.PersonalPhoneNumber,
+            CompanyNumber = dto.CompanyNumber,
+            Email = dto.Email,
+            BusinessDescription = dto.BusinessDescription,
+            DriveLink = dto.DriveLink,
+            DiscordChannelId = discordChannelId,
+            BusinessType = dto.BusinessType,
+            BusinessActivity = dto.BusinessActivity,
+            CommercialRegisterNumber = dto.CommercialRegisterNumber,
+            TaxCardNumber = dto.TaxCardNumber,
+            Country = dto.Country,
+            AccountManagerId = dto.AccountManagerId,
+            ClientServices = new List<Core.Models.ClientService>()
+        };
+
+        private async Task ProcessClientService(Client client, CreateClientServiceDTO csDto, ApplicationUser user)
+        {
+            var clientService = new Core.Models.ClientService
+            {
+                Client = client,
+                ServiceId = csDto.ServiceId,
+                ServiceCost = csDto.ServiceCost,
+                TaskGroups = new List<TaskGroup>()
+            };
+
+            await dbContext.ClientServices.AddAsync(clientService);
+            await dbContext.SaveChangesAsync(); // needed to get clientService.Id for checkpoints
+
+            await InitializeCheckpoints(clientService.Id, csDto.SelectedCheckpointIds);
+
+            foreach (var tgDto in csDto.TaskGroups)
+            {
+                await ProcessTaskGroup(clientService, client, tgDto, user);
+            }
+        }
+
+        private async Task InitializeCheckpoints(int clientServiceId, List<int>? checkpointIds)
+        {
+            if (checkpointIds == null || !checkpointIds.Any()) return;
+
+            await checkpointService.CreateClientServiceCheckpointsAsync(clientServiceId, checkpointIds);
+        }
+
+        private async Task ProcessTaskGroup(
+            Core.Models.ClientService clientService,
+            Client client,
+            CreateTaskGroupDTO tgDto,
+            ApplicationUser user)
+        {
+            var now = DateTime.Now;
+            var taskGroup = new TaskGroup
+            {
+                ClientService = clientService,
+                Month = now.Month,
+                Year = now.Year,
+                MonthLabel = $"{now:MMMM} {now:yyyy}",
+                Tasks = new List<TaskItem>()
+            };
+            await dbContext.TaskGroups.AddAsync(taskGroup);
+
+            foreach (var taskDto in tgDto.Tasks)
+            {
+                await ProcessTask(taskDto, taskGroup, clientService, client, user);
+            }
+        }
+
+        private async Task ProcessTask(
+            CreateTaskDTO taskDto,
+            TaskGroup taskGroup,
+            Core.Models.ClientService clientService,
+            Client client,
+            ApplicationUser createdBy)
+        {
+            var employeeId = string.IsNullOrWhiteSpace(taskDto.EmployeeId) ? null : taskDto.EmployeeId;
+            var employee = employeeId is not null
+                ? await taskHelperService.GetUserOrThrow(employeeId)
+                : null;
+
+            var task = new TaskItem
+            {
+                Title = taskDto.Title,
+                TaskType = taskDto.TaskType,
+                Description = taskDto.Description,
+                Deadline = taskDto.Deadline,
+                Priority = taskDto.Priority,
+                Refrence = taskDto.Refrence,
+                EmployeeId = employeeId,
+                Employee = employee,
+                TaskGroup = taskGroup,
+                ClientService = clientService,
+                NumberOfSubTasks = taskDto.NumberOfSubTasks
+            };
+            await dbContext.Tasks.AddAsync(task);
+
+            await RecordTaskHistory(task, createdBy);
+            await DispatchTaskNotifications(task, client, employee);
+        }
+
+        private async Task RecordTaskHistory(TaskItem task, ApplicationUser createdBy)
+        {
+            var history = new TaskItemHistory
+            {
+                TaskItem = task,
+                PropertyName = "انشاء التاسك",
+                UpdatedById = createdBy.Id,
+                UpdatedByName = $"{createdBy.FirstName} {createdBy.LastName}",
+                UpdatedAt = DateTime.UtcNow
+            };
+            await dbContext.TaskHistory.AddAsync(history);
+        }
+
+        private async Task DispatchTaskNotifications(TaskItem task, Client client, ApplicationUser? employee)
+        {
+            if (employee is null || string.IsNullOrEmpty(employee.Email)) return;
+
+            var emailPayload = new
+            {
+                To = employee.Email,
+                Subject = "New Task Has Been Assigned To You",
+                Template = "NewTaskAssignment",
+                Replacements = new Dictionary<string, string>
+                {
+                    { "FullName", $"{employee.FirstName} {employee.LastName}" },
+                    { "Email", employee.Email },
+                    { "TaskTitle", task.Title },
+                    { "TaskType", task.TaskType.ToString() },  // bug fix: was "task.TaskType" string literal
+                    { "TaskId", task.Id.ToString() },
+                    { "ClientName", client.Name },
+                    { "TimeStamp", DateTime.UtcNow.ToString() }
+                }
+            };
+            await taskHelperService.AddOutboxAsync(OutboxTypes.Email, "Send New Task Email", emailPayload);
+
+            if (!string.IsNullOrEmpty(client.DiscordChannelId))
+            {
+                var discordPayload = new DiscordPayload(client.DiscordChannelId, task, DiscordOperationType.NewTask);
+                await taskHelperService.AddOutboxAsync(OutboxTypes.Discord, "Send New Discord Notification", discordPayload);
+            }
+        }
+
+        private async Task<ClientDTO> ReloadAndMapClient(int clientId)
+        {
+            var client = await dbContext.Clients
+                .Include(c => c.AccountManager)
+                .Include(c => c.ClientServices).ThenInclude(cs => cs.Service)
+                .Include(c => c.ClientServices).ThenInclude(cs => cs.TaskGroups).ThenInclude(tg => tg.Tasks).ThenInclude(t => t.Employee)
+                .Include(c => c.ClientServices).ThenInclude(cs => cs.ClientServiceCheckpoints).ThenInclude(csc => csc.ServiceCheckpoint)
+                .Include(c => c.ClientServices).ThenInclude(cs => cs.ClientServiceCheckpoints).ThenInclude(csc => csc.CompletedByEmployee)
+                .FirstOrDefaultAsync(c => c.Id == clientId);
+
+            return mapper.Map<ClientDTO>(client!);
         }
     }
 }

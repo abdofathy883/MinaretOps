@@ -1,4 +1,5 @@
 ﻿using Core.DTOs.Clients;
+using Core.Enums;
 using Core.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -22,12 +23,19 @@ namespace ClientAPI.Controllers
             return Ok(clients);
         }
         
-        [HttpGet("all")]
-        public async Task<IActionResult> GetAllAsync()
+        [HttpGet("all/{status}")]
+        public async Task<IActionResult> GetAllAsync(ClientStatus status)
         {
-            var clients = await clientService.GetAllAsync();
+            var clients = await clientService.GetAllAsync(status);
 
             return Ok(clients);
+        }
+
+        [HttpGet("search/{clientName}")]
+        public async Task<ActionResult<LightWieghtClientDTO>> Search(string clientName)
+        {
+            var result = await clientService.SearchAsync(clientName);
+            return Ok(result);
         }
 
         [HttpGet("{clientId}")]

@@ -1,10 +1,12 @@
 ﻿using Core.DTOs.Clients;
+using Core.Enums;
 
 namespace Core.Interfaces
 {
     public interface IClientServices
     {
-        Task<List<LightWieghtClientDTO>> GetAllAsync();
+        Task<List<LightWieghtClientDTO>> GetAllAsync(ClientStatus status);
+        Task<List<LightWieghtClientDTO>> SearchAsync(string clientName);
         Task<List<LightWieghtClientDTO>> GetAllActiveAsync();
         Task<ClientDTO> GetClientByIdAsync(int clientId);
         Task<ClientDTO> AddClientAsync(CreateClientDTO clientDTO, string userId);
