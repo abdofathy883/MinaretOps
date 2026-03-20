@@ -1,10 +1,10 @@
-﻿using AutoMapper;
-using Core.DTOs.Tasks.TaskDTOs;
-using Core.Interfaces;
+﻿using Application.Interfaces;
+using AutoMapper;
+using Application.DTOs.Tasks.TaskDTOs;
 using Core.Models;
-using Infrastructure.Data;
 using Infrastructure.Exceptions;
 using Microsoft.EntityFrameworkCore;
+using Infrastructure.Persistance;
 
 namespace Infrastructure.Services.Tasks
 {

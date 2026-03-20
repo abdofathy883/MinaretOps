@@ -1,11 +1,11 @@
+using Application.Interfaces;
 using AutoMapper;
-using Core.DTOs.Branch;
+using Application.DTOs.Branch;
 using Core.Enums;
-using Core.Interfaces;
 using Core.Models;
-using Infrastructure.Data;
 using Infrastructure.Exceptions;
 using Microsoft.EntityFrameworkCore;
+using Infrastructure.Persistance;
 
 namespace Infrastructure.Services.Branch
 {

@@ -1,5 +1,5 @@
-using Core.DTOs.Leads.Notes;
-using Core.Interfaces.Leads;
+using Application.Interfaces.Leads;
+using Application.DTOs.Leads.Notes;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 

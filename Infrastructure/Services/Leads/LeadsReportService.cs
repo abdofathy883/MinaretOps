@@ -1,16 +1,16 @@
+using Application.Interfaces.Leads;
 using AutoMapper;
-using Core.DTOs.Leads;
-using Core.DTOs.Leads.Reports;
+using Application.DTOs.Leads;
+using Application.DTOs.Leads.Reports;
 using Core.Enums.Leads;
-using Core.Interfaces.Leads;
 using Core.Models;
-using Infrastructure.Data;
-using Infrastructure.Helpers;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Application.Helpers;
+using Infrastructure.Persistance;
 
 namespace Infrastructure.Services.Leads
 {

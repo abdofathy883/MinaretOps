@@ -1,11 +1,11 @@
-﻿using AutoMapper;
-using Core.DTOs.Checkpoints;
-using Core.Interfaces;
+﻿using Application.Interfaces;
+using AutoMapper;
+using Application.DTOs.Checkpoints;
 using Core.Models;
-using Infrastructure.Data;
 using Infrastructure.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Infrastructure.Persistance;
 
 namespace Infrastructure.Services.Checkpoints
 {

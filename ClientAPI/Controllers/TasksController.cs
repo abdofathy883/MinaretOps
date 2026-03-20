@@ -1,10 +1,10 @@
-﻿using Core.DTOs.Tasks;
-using Core.DTOs.Tasks.CommentDTOs;
-using Core.DTOs.Tasks.TaskDTOs;
-using Core.DTOs.Tasks.TaskGroupDTOs;
-using Core.DTOs.Tasks.TaskResourcesDTOs;
+﻿using Application.Interfaces;
+using Application.DTOs.Tasks;
+using Application.DTOs.Tasks.CommentDTOs;
+using Application.DTOs.Tasks.TaskDTOs;
+using Application.DTOs.Tasks.TaskGroupDTOs;
+using Application.DTOs.Tasks.TaskResourcesDTOs;
 using Core.Enums;
-using Core.Interfaces;
 using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;

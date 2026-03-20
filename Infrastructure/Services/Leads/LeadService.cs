@@ -1,14 +1,12 @@
+using Application.DTOs.Leads;
+using Application.Helpers;
+using Application.Interfaces.Leads;
 using AutoMapper;
-using ClosedXML.Excel;
-using Core.DTOs.Leads;
-using Core.DTOs.Leads.Notes;
 using Core.Enums;
 using Core.Enums.Auth_Attendance;
 using Core.Enums.Leads;
-using Core.Helpers;
-using Core.Interfaces.Leads;
 using Core.Models;
-using Infrastructure.Data;
+using Infrastructure.Persistance;
 using Infrastructure.Services.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -29,9 +27,9 @@ namespace Infrastructure.Services.Leads
         private readonly ILogger<LeadService> logger;
         private readonly IHttpContextAccessor httpContextAccessor;
 
-        public LeadService(MinaretOpsDbContext context, 
-            TaskHelperService _helperService, 
-            IMapper mapper, 
+        public LeadService(MinaretOpsDbContext context,
+            TaskHelperService _helperService,
+            IMapper mapper,
             UserManager<ApplicationUser> userManager,
             IHttpContextAccessor httpContextAccessor,
             ILogger<LeadService> _logger)
@@ -67,7 +65,7 @@ namespace Infrastructure.Services.Leads
             var createdBy = await context.Users.FindAsync(currentUserId)
                 ?? throw new KeyNotFoundException();
 
-            
+
             var lead = new SalesLead
             {
                 BusinessName = createLeadDTO.BusinessName,
@@ -257,12 +255,12 @@ namespace Infrastructure.Services.Leads
         }
         public async Task<LeadDTO> UpdateLeadAsync(UpdateLeadDTO updateLeadDTO)
         {
-             var lead = await context.SalesLeads
-                .Include(x => x.ServicesInterestedIn)
-                .Include(x => x.Notes)
-                .Include(x => x.SalesRep)
-                .SingleAsync(x => x.Id == updateLeadDTO.Id)
-                ?? throw new KeyNotFoundException($"Lead with ID {updateLeadDTO.Id} not found.");
+            var lead = await context.SalesLeads
+               .Include(x => x.ServicesInterestedIn)
+               .Include(x => x.Notes)
+               .Include(x => x.SalesRep)
+               .SingleAsync(x => x.Id == updateLeadDTO.Id)
+               ?? throw new KeyNotFoundException($"Lead with ID {updateLeadDTO.Id} not found.");
 
             var user = await GetCurrentUserForHistoryAsync();
             var histories = new List<SalesLeadHistory>();
@@ -403,7 +401,7 @@ namespace Infrastructure.Services.Leads
                         { "Status", lead.ContactStatus.ToString() }
                     }
                 };
-                
+
                 // Using TaskHelperService as seen in CreateLeadAsync
                 await helperService.AddOutboxAsync(OutboxTypes.Email, "Lead Update Notification", emailPayload);
             }
@@ -414,11 +412,24 @@ namespace Infrastructure.Services.Leads
         }
         private static readonly Dictionary<string, string> LeadPropertyDisplayNames = new(StringComparer.OrdinalIgnoreCase)
         {
-            ["BusinessName"] = "اسم العميل", ["WhatsAppNumber"] = "رقم الواتساب", ["Country"] = "البلد", ["Occupation"] = "المجال",
-            ["ContactStatus"] = "حالة التواصل", ["CurrentLeadStatus"] = "حالة العميل الحالية", ["LeadSource"] = "المصدر", ["InterestLevel"] = "درجة الاهتمام",
-            ["FreelancePlatform"] = "المنصة", ["Responsibility"] = "المسئولية", ["Budget"] = "الميزانية", ["Timeline"] = "مدة التنفيذ",
-            ["NeedsExpectation"] = "المتطلبات", ["MeetingDate"] = "تاريخ الاجتماع", ["FollowUpTime"] = "تاريخ المتابعة", ["QuotationSent"] = "تم إرسال عرض سعر",
-            ["SalesRepId"] = "المسئول عن العميل", ["ServicesInterestedIn"] = "الخدمات المطلوبة"
+            ["BusinessName"] = "اسم العميل",
+            ["WhatsAppNumber"] = "رقم الواتساب",
+            ["Country"] = "البلد",
+            ["Occupation"] = "المجال",
+            ["ContactStatus"] = "حالة التواصل",
+            ["CurrentLeadStatus"] = "حالة العميل الحالية",
+            ["LeadSource"] = "المصدر",
+            ["InterestLevel"] = "درجة الاهتمام",
+            ["FreelancePlatform"] = "المنصة",
+            ["Responsibility"] = "المسئولية",
+            ["Budget"] = "الميزانية",
+            ["Timeline"] = "مدة التنفيذ",
+            ["NeedsExpectation"] = "المتطلبات",
+            ["MeetingDate"] = "تاريخ الاجتماع",
+            ["FollowUpTime"] = "تاريخ المتابعة",
+            ["QuotationSent"] = "تم إرسال عرض سعر",
+            ["SalesRepId"] = "المسئول عن العميل",
+            ["ServicesInterestedIn"] = "الخدمات المطلوبة"
         };
 
         public async Task<LeadDTO> UpdateLeadFieldAsync(int id, string fieldName, object value)
@@ -501,16 +512,17 @@ namespace Infrastructure.Services.Leads
 
             if (value is JsonElement jsonElement && jsonElement.ValueKind == JsonValueKind.Array)
             {
-                 newServiceIds = JsonSerializer.Deserialize<List<int>>(jsonElement.GetRawText()) ?? new();
+                newServiceIds = JsonSerializer.Deserialize<List<int>>(jsonElement.GetRawText()) ?? new();
             }
             // If passed as List<LeadServices> or similar from internal calls, handle here if needed.
-            
+
             // Sync Services: Remove ones not in new list, Add new ones
             var existingServiceIds = lead.ServicesInterestedIn.Select(x => x.ServiceId).ToList();
-            
+
             // To Remove
             var toRemove = lead.ServicesInterestedIn.Where(x => !newServiceIds.Contains(x.ServiceId)).ToList();
-            foreach(var item in toRemove) {
+            foreach (var item in toRemove)
+            {
                 context.Set<LeadServices>().Remove(item); // Or lead.ServicesInterestedIn.Remove(item) if cascading is set right, but explicit is safer
             }
 
@@ -553,7 +565,7 @@ namespace Infrastructure.Services.Leads
             leadsQuery = leadsQuery.Where(l =>
                 EF.Functions.Like(l.BusinessName, $"%{query}%")
                 || EF.Functions.Like(l.WhatsAppNumber, $"%{query}%"));
-                //(isId && t.Id == taskId));
+            //(isId && t.Id == taskId));
 
             var leads = await leadsQuery
                 .OrderByDescending(t => t.Id)

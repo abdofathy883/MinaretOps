@@ -1,4 +1,4 @@
-﻿using Core.Interfaces;
+﻿using Application.Interfaces;
 using Core.Settings;
 using MailKit.Security;
 using Microsoft.Extensions.Options;

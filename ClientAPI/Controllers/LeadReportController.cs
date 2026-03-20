@@ -1,4 +1,4 @@
-using Core.Interfaces.Leads;
+using Application.Interfaces.Leads;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ClientAPI.Controllers

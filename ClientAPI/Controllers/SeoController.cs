@@ -1,5 +1,5 @@
-﻿using Core.DTOs.Seo;
-using Core.Interfaces;
+﻿using Application.Interfaces;
+using Application.DTOs.Seo;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 

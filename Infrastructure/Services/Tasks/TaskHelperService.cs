@@ -1,7 +1,7 @@
 ﻿using Core.Enums;
 using Core.Models;
-using Infrastructure.Data;
 using Infrastructure.Exceptions;
+using Infrastructure.Persistance;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using System;

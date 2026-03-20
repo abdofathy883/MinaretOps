@@ -1,15 +1,15 @@
-﻿using AutoMapper;
-using Core.DTOs.InternalTasks;
-using Core.DTOs.Tasks;
+﻿using Application.Interfaces;
+using AutoMapper;
+using Application.DTOs.InternalTasks;
+using Application.DTOs.Tasks;
 using Core.Enums;
-using Core.Interfaces;
 using Core.Models;
-using Infrastructure.Data;
 using Infrastructure.Exceptions;
 using Infrastructure.Services.Tasks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
+using Infrastructure.Persistance;
 
 namespace Infrastructure.Services.InternalTasks
 {

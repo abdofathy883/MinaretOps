@@ -1,9 +1,9 @@
-﻿using AutoMapper;
-using Core.DTOs.Leads.Notes;
-using Core.Interfaces.Leads;
+﻿using Application.Interfaces.Leads;
+using AutoMapper;
+using Application.DTOs.Leads.Notes;
 using Core.Models;
-using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Infrastructure.Persistance;
 
 
 namespace Infrastructure.Services.Leads

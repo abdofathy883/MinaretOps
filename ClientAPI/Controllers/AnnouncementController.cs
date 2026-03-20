@@ -1,5 +1,5 @@
-﻿using Core.DTOs.Announcements;
-using Core.Interfaces;
+﻿using Application.Interfaces;
+using Application.DTOs.Announcements;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ClientAPI.Controllers

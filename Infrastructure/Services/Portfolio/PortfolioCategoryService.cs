@@ -1,8 +1,9 @@
-﻿using AutoMapper;
-using Core.DTOs.Portfolio;
-using Core.Interfaces;
-using Infrastructure.Data;
-using Infrastructure.Services.MediaUploads;
+﻿using Application.Interfaces;
+using AutoMapper;
+using Application.DTOs.Portfolio;
+using Infrastructure.Persistance;
+using Core.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Services.Portfolio
 {
@@ -10,28 +11,40 @@ namespace Infrastructure.Services.Portfolio
     {
         private readonly MinaretOpsDbContext context;
         private readonly IMapper mapper;
-        private readonly MediaUploadService mediaUploadService;
 
-        public PortfolioCategoryService(MinaretOpsDbContext context, IMapper mapper, MediaUploadService mediaUploadService)
+        public PortfolioCategoryService(MinaretOpsDbContext context, IMapper mapper)
         {
             this.context = context;
             this.mapper = mapper;
-            this.mediaUploadService = mediaUploadService;
         }
 
-        public Task<PortfolioCategoryDTO> Create(CreatePortfolioCategoryDTO createCategory)
+        public async Task<PortfolioCategoryDTO> Create(CreatePortfolioCategoryDTO createCategory)
         {
-            throw new NotImplementedException();
+            var newCat = new PortfolioCategory {
+                Title = createCategory.Title,
+                Description = createCategory.Description ?? string.Empty
+            };
+
+            await context.PortfolioCategories.AddAsync(newCat);
+            await context.SaveChangesAsync();
+            return mapper.Map<PortfolioCategoryDTO>(newCat);
         }
 
-        public Task<PortfolioCategoryDTO> GetAll()
+        public async Task<List<PortfolioCategoryDTO>> GetAll()
         {
-            throw new NotImplementedException();
+            var categories = await context.PortfolioCategories
+                .Include(c => c.PortfolioItems)
+                .ToListAsync();
+            return mapper.Map<List<PortfolioCategoryDTO>>(categories);
         }
 
-        public Task<PortfolioCategoryDTO> GetById(int id)
+        public async Task<PortfolioCategoryDTO> GetById(int id)
         {
-            throw new NotImplementedException();
+            var category = await context.PortfolioCategories
+                .Include(c => c.PortfolioItems)
+                .SingleAsync(c => c.Id == id);
+
+            return mapper.Map<PortfolioCategoryDTO>(category);
         }
     }
 }

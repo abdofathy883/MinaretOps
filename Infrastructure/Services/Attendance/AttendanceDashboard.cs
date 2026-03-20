@@ -1,14 +1,9 @@
-﻿using Core.DTOs.Attendance.AttendanceDashboard;
+﻿using Application.Interfaces;
+using Application.DTOs.Attendance.AttendanceDashboard;
 using Core.Enums.Auth_Attendance;
-using Core.Interfaces;
-using Infrastructure.Data;
-using Infrastructure.Helpers;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Application.Helpers;
+using Infrastructure.Persistance;
 
 namespace Infrastructure.Services.Attendance
 {

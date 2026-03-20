@@ -1,14 +1,15 @@
+using Application.Interfaces;
+using Application.Interfaces.Auth;
+using Application.Interfaces.Leads;
+using Application.MappingProfiles;
 using ClientAPI.Middlewares;
-using Core.Interfaces;
-using Core.Interfaces.Auth;
-using Core.Interfaces.Leads;
 using Core.Models;
 using Core.Settings;
-using Infrastructure.Data;
-using Infrastructure.MappingProfiles;
+using Infrastructure.Identity;
+using Infrastructure.Persistance;
+using Infrastructure.Persistance.Interceptors;
 using Infrastructure.Services.Announcements;
 using Infrastructure.Services.Attendance;
-using Infrastructure.Services.Auth;
 using Infrastructure.Services.Branch;
 using Infrastructure.Services.Checkpoints;
 using Infrastructure.Services.Complaints;
@@ -26,6 +27,7 @@ using Infrastructure.Services.LeaveRequestService;
 using Infrastructure.Services.MediaUploads;
 using Infrastructure.Services.OutboxProcessor;
 using Infrastructure.Services.Payroll;
+using Infrastructure.Services.Portfolio;
 using Infrastructure.Services.Reporting;
 using Infrastructure.Services.Seo;
 using Infrastructure.Services.Services;
@@ -53,9 +55,11 @@ namespace ClientAPI
         {
             var builder = WebApplication.CreateBuilder(args);
 
+            string connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
             // Add services to the container.
-            builder.Services.AddDbContext<MinaretOpsDbContext>(options =>
-            options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+            builder.Services.AddDbContext<MinaretOpsDbContext>((sp, options) =>
+            options.UseSqlServer(connectionString)
+                .AddInterceptors(sp.GetRequiredService<AuditInterceptor>()));
 
             builder.Services.AddIdentityCore<ApplicationUser>(options =>
             {
@@ -112,6 +116,7 @@ namespace ClientAPI
             });
 
             builder.Services.AddAuthorization();
+            builder.Services.AddSingleton<AuditInterceptor>();
             builder.Services.AddScoped<IAuthService, AuthService>();
             builder.Services.AddScoped<IJWTServices, JWTService>();
             builder.Services.AddScoped<IClientServices, ClientService>();
@@ -144,6 +149,8 @@ namespace ClientAPI
             builder.Services.AddScoped<IleadFileService, LeadFileService>();
             builder.Services.AddScoped<IInvitationService, InvitationService>();
             builder.Services.AddScoped<ILoginLogService, LoginLogService>();
+            builder.Services.AddScoped<IPortfolioCategoryService, PortfolioCategoryService>();
+            builder.Services.AddScoped<IPortfolioService, PortfolioService>();
             builder.Services.AddHttpClient<IContactService, ContactService>();
             builder.Services.AddScoped<ISeoService, SeoService>();
             builder.Services.AddSingleton<DiscordService>();
@@ -214,6 +221,8 @@ namespace ClientAPI
                 cfg.AddProfile<LeadHistoryProfile>();
                 cfg.AddProfile<EmpInvitationProfile>();
                 cfg.AddProfile<SeoContentProfile>();
+                cfg.AddProfile<PortfolioCategoryProfile>();
+                cfg.AddProfile<PortfolioItemProfile>();
             });
 
             builder.Services.AddControllers();
@@ -318,6 +327,7 @@ namespace ClientAPI
                 var services = scope.ServiceProvider;
                 var dbContext = services.GetRequiredService<MinaretOpsDbContext>();
                 await dbContext.Database.MigrateAsync();
+                await AuthSeeder.SeedAsync(services);
                 await DbSeeder.SeedAsync(services);
             }
 

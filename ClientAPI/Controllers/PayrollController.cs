@@ -1,5 +1,5 @@
-﻿using Core.DTOs.Salary;
-using Core.Interfaces;
+﻿using Application.Interfaces;
+using Application.DTOs.Salary;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 

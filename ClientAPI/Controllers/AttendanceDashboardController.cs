@@ -1,4 +1,4 @@
-﻿using Core.Interfaces;
+﻿using Application.Interfaces;
 using Infrastructure.Services.Attendance;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;

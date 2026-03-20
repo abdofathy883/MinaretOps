@@ -1,12 +1,12 @@
-﻿using AutoMapper;
-using Core.DTOs.Announcements;
+﻿using Application.Interfaces;
+using AutoMapper;
+using Application.DTOs.Announcements;
 using Core.Enums;
-using Core.Interfaces;
 using Core.Models;
-using Infrastructure.Data;
 using Infrastructure.Exceptions;
 using Infrastructure.Services.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Infrastructure.Persistance;
 
 namespace Infrastructure.Services.Announcements
 {

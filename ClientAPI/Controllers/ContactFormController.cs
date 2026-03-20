@@ -1,5 +1,5 @@
-﻿using Core.DTOs.ContactForm;
-using Core.Interfaces;
+﻿using Application.Interfaces;
+using Application.DTOs.ContactForm;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 

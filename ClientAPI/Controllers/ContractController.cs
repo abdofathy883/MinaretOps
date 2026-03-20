@@ -1,5 +1,5 @@
-﻿using Core.DTOs.Contract;
-using Core.Interfaces;
+﻿using Application.Interfaces;
+using Application.DTOs.Contract;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;

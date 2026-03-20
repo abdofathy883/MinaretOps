@@ -1,5 +1,5 @@
-using Core.DTOs.VaultTransaction;
-using Core.Interfaces;
+using Application.Interfaces;
+using Application.DTOs.VaultTransaction;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;

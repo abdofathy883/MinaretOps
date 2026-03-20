@@ -1,9 +1,9 @@
-﻿using AutoMapper;
-using Core.DTOs.Seo;
-using Core.Interfaces;
-using Infrastructure.Data;
+﻿using Application.Interfaces;
+using AutoMapper;
+using Application.DTOs.Seo;
 using Infrastructure.Services.MediaUploads;
 using Microsoft.EntityFrameworkCore;
+using Infrastructure.Persistance;
 
 namespace Infrastructure.Services.Seo
 {

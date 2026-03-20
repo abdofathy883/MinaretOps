@@ -1,5 +1,5 @@
-﻿using Core.DTOs.Currency;
-using Core.Interfaces;
+﻿using Application.Interfaces;
+using Application.DTOs.Currency;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 

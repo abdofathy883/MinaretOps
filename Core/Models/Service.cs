@@ -1,10 +1,9 @@
-﻿using Core.Interfaces;
-using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Core.Models
 {
     [Table("Service", Schema = "Services")]
-    public class Service: IAuditable, IDeletable
+    public class Service
     {
         public int Id { get; set; }
         public required string Title { get; set; }

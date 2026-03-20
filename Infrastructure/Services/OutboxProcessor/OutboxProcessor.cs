@@ -1,5 +1,5 @@
-﻿using Core.Interfaces;
-using Infrastructure.Data;
+﻿using Application.Interfaces;
+using Infrastructure.Persistance;
 using Infrastructure.Services.Discord;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;

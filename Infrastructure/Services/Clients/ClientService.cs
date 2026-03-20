@@ -1,14 +1,13 @@
-﻿using AutoMapper;
-using Core.DTOs.Clients;
-using Core.DTOs.ClientServiceDTOs;
-using Core.DTOs.Payloads;
-using Core.DTOs.Tasks.TaskDTOs;
-using Core.DTOs.Tasks.TaskGroupDTOs;
+﻿using Application.Interfaces;
+using AutoMapper;
+using Application.DTOs.Clients;
+using Application.DTOs.ClientServiceDTOs;
+using Application.DTOs.Payloads;
+using Application.DTOs.Tasks.TaskDTOs;
+using Application.DTOs.Tasks.TaskGroupDTOs;
 using Core.Enums;
-using Core.Interfaces;
 using Core.Models;
 using DocumentFormat.OpenXml.InkML;
-using Infrastructure.Data;
 using Infrastructure.Exceptions;
 using Infrastructure.Services.Checkpoints;
 using Infrastructure.Services.Discord;
@@ -17,6 +16,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System.Net;
+using Infrastructure.Persistance;
 
 namespace Infrastructure.Services.Clients
 {

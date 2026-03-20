@@ -1,6 +1,6 @@
-﻿using Core.DTOs.Clients;
+﻿using Application.Interfaces;
+using Application.DTOs.Clients;
 using Core.Enums;
-using Core.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ClientAPI.Controllers

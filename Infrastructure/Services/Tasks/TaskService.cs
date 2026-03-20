@@ -1,19 +1,19 @@
+using Application.Interfaces;
 using AutoMapper;
-using Core.DTOs.Payloads;
-using Core.DTOs.Tasks;
-using Core.DTOs.Tasks.CommentDTOs;
-using Core.DTOs.Tasks.TaskDTOs;
-using Core.DTOs.Tasks.TaskGroupDTOs;
-using Core.DTOs.Tasks.TaskResourcesDTOs;
+using Application.DTOs.Payloads;
+using Application.DTOs.Tasks;
+using Application.DTOs.Tasks.CommentDTOs;
+using Application.DTOs.Tasks.TaskDTOs;
+using Application.DTOs.Tasks.TaskGroupDTOs;
+using Application.DTOs.Tasks.TaskResourcesDTOs;
 using Core.Enums;
 using Core.Enums.Auth_Attendance;
-using Core.Interfaces;
 using Core.Models;
-using Infrastructure.Data;
 using Infrastructure.Exceptions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
+using Infrastructure.Persistance;
 
 namespace Infrastructure.Services.Tasks
 {

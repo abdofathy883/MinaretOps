@@ -1,10 +1,10 @@
-﻿using AutoMapper;
-using Core.DTOs.JDs;
-using Core.Interfaces;
+﻿using Application.Interfaces;
+using AutoMapper;
+using Application.DTOs.JDs;
 using Core.Models;
-using Infrastructure.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Infrastructure.Persistance;
 
 namespace Infrastructure.Services.JobDescription
 {

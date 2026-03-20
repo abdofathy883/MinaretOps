@@ -1,11 +1,11 @@
-﻿using AutoMapper;
-using Core.DTOs.Complaints;
-using Core.Interfaces;
+﻿using Application.Interfaces;
+using AutoMapper;
+using Application.DTOs.Complaints;
 using Core.Models;
-using Infrastructure.Data;
 using Infrastructure.Exceptions;
 using Infrastructure.Services.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Infrastructure.Persistance;
 
 namespace Infrastructure.Services.Complaints
 {

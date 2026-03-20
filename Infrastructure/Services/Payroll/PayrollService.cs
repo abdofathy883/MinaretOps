@@ -1,15 +1,15 @@
-﻿using AutoMapper;
-using Core.DTOs.Contract;
-using Core.DTOs.Salary;
-using Core.DTOs.VaultTransaction;
+﻿using Application.Interfaces;
+using AutoMapper;
+using Application.DTOs.Contract;
+using Application.DTOs.Salary;
+using Application.DTOs.VaultTransaction;
 using Core.Enums;
-using Core.Interfaces;
 using Core.Models;
-using Infrastructure.Data;
 using Infrastructure.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics.Contracts;
+using Infrastructure.Persistance;
 
 namespace Infrastructure.Services.Payroll
 {

@@ -1,4 +1,4 @@
-﻿using Core.DTOs.Tasks;
+﻿using Application.DTOs.Tasks;
 using Core.Enums;
 using Core.Models;
 using Core.Settings;

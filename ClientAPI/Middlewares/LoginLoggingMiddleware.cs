@@ -1,4 +1,4 @@
-﻿using Core.Interfaces.Auth;
+﻿using Application.Interfaces.Auth;
 using Core.Models;
 using System.Security.Claims;
 using System.Text.Json;

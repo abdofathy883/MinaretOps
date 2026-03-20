@@ -1,16 +1,16 @@
-﻿using Core.DTOs.ContactForm;
-using Core.DTOs.Leads;
+﻿using Application.Interfaces;
+using Application.Interfaces.Leads;
+using Application.DTOs.ContactForm;
+using Application.DTOs.Leads;
 using Core.Enums.Leads;
-using Core.Interfaces;
-using Core.Interfaces.Leads;
 using Core.Models;
 using Core.Settings;
-using Infrastructure.Data;
 using Infrastructure.Services.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Text.Json;
+using Infrastructure.Persistance;
 
 namespace Infrastructure.Services.ContactForm
 {

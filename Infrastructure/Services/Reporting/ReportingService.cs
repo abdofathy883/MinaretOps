@@ -1,14 +1,14 @@
-﻿using AutoMapper;
-using Core.DTOs.Reporting;
-using Core.DTOs.Tasks.TaskDTOs;
+﻿using Application.Interfaces;
+using AutoMapper;
+using Application.DTOs.Reporting;
+using Application.DTOs.Tasks.TaskDTOs;
 using Core.Enums;
 using Core.Enums.Auth_Attendance;
-using Core.Interfaces;
 using Core.Models;
-using Infrastructure.Data;
-using Infrastructure.Helpers;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Application.Helpers;
+using Infrastructure.Persistance;
 
 namespace Infrastructure.Services.Reporting
 {

@@ -1,5 +1,5 @@
-﻿using Core.DTOs.Complaints;
-using Core.Interfaces;
+﻿using Application.Interfaces;
+using Application.DTOs.Complaints;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 

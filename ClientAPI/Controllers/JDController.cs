@@ -1,5 +1,5 @@
-﻿using Core.DTOs.JDs;
-using Core.Interfaces;
+﻿using Application.Interfaces;
+using Application.DTOs.JDs;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 

@@ -1,5 +1,5 @@
-using Core.DTOs.EmployeeOnBoarding;
-using Core.Interfaces.Auth;
+using Application.Interfaces.Auth;
+using Application.DTOs.EmployeeOnBoarding;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 

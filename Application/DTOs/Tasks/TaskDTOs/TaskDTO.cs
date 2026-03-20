@@ -1,0 +1,38 @@
+﻿using Application.DTOs.Tasks;
+using Application.DTOs.Tasks.CommentDTOs;
+using Application.DTOs.Tasks.TaskResourcesDTOs;
+using Core.Enums;
+
+namespace Application.DTOs.Tasks.TaskDTOs
+{
+    public class TaskDTO
+    {
+        public int Id { get; set; }
+        public required string Title { get; set; }
+        public required TaskType TaskType { get; set; }
+        public string? Description { get; set; }
+        public CustomTaskStatus Status { get; set; } = CustomTaskStatus.Open;
+        public int ClientServiceId { get; set; }
+        public DateTime Deadline { get; set; }
+        public string Priority { get; set; } = "عادي"; // Default priority
+        public string? Refrence { get; set; }
+        public string? EmployeeId { get; set; }
+        public string? EmployeeName { get; set; }
+        public DateTime? CompletedAt { get; set; }
+        public bool IsCompletedOnDeadline =>
+            Status == CustomTaskStatus.Completed &&
+            CompletedAt.HasValue &&
+            CompletedAt.Value <= Deadline;
+        public int TaskGroupId { get; set; }
+        public List<TaskHistoryDTO> TaskHistory { get; set; } = new();
+        public List<TaskResourcesDTO> TaskResources { get; set; } = new();
+        public List<TaskCommentDTO> TaskComments { get; set; } = new();
+        public string? CompletionNotes { get; set; }
+        public int ServiceId { get; set; }
+        public string? ServiceName { get; set; }
+        public int ClientId { get; set; }
+        public string? ClientName { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public int? NumberOfSubTasks { get; set; }
+    }
+}

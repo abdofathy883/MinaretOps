@@ -1,8 +1,7 @@
-﻿using AutoMapper;
-using Core.DTOs.Currency;
-using Core.Interfaces;
+﻿using Application.Interfaces;
+using AutoMapper;
+using Application.DTOs.Currency;
 using Core.Models;
-using Infrastructure.Data;
 using Infrastructure.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -10,6 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Infrastructure.Persistance;
 
 namespace Infrastructure.Services.Currency
 {

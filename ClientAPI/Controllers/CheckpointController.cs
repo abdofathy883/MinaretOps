@@ -1,5 +1,5 @@
-﻿using Core.DTOs.Checkpoints;
-using Core.Interfaces;
+﻿using Application.Interfaces;
+using Application.DTOs.Checkpoints;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 

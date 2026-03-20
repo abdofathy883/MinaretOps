@@ -1,12 +1,12 @@
+using Application.Interfaces;
 using AutoMapper;
-using Core.DTOs.Vault;
-using Core.DTOs.VaultTransaction;
+using Application.DTOs.Vault;
+using Application.DTOs.VaultTransaction;
 using Core.Enums;
-using Core.Interfaces;
 using Core.Models;
-using Infrastructure.Data;
 using Infrastructure.Exceptions;
 using Microsoft.EntityFrameworkCore;
+using Infrastructure.Persistance;
 
 namespace Infrastructure.Services.Vault
 {

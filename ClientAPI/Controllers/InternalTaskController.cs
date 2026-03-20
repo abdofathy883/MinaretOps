@@ -1,6 +1,6 @@
-﻿using Core.DTOs.InternalTasks;
+﻿using Application.Interfaces;
+using Application.DTOs.InternalTasks;
 using Core.Enums;
-using Core.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ClientAPI.Controllers

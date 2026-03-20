@@ -1,9 +1,9 @@
-﻿using AutoMapper;
-using Core.DTOs.Contract;
-using Core.Interfaces;
+﻿using Application.Interfaces;
+using AutoMapper;
+using Application.DTOs.Contract;
 using Core.Models;
-using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Infrastructure.Persistance;
 
 namespace Infrastructure.Services.Contract
 {

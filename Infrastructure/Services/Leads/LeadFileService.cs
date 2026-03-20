@@ -1,12 +1,12 @@
-﻿using ClosedXML.Excel;
-using Core.DTOs.Leads;
+﻿using Application.Interfaces.Leads;
+using ClosedXML.Excel;
+using Application.DTOs.Leads;
 using Core.Enums.Leads;
-using Core.Helpers;
-using Core.Interfaces.Leads;
 using Core.Models;
-using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using System.Threading.Tasks;
+using Application.Helpers;
+using Infrastructure.Persistance;
 
 namespace Infrastructure.Services.Leads
 {

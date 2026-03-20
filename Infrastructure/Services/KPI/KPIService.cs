@@ -1,13 +1,13 @@
-﻿using AutoMapper;
-using Core.DTOs.KPI;
+﻿using Application.Interfaces;
+using AutoMapper;
+using Application.DTOs.KPI;
 using Core.Enums;
-using Core.Interfaces;
 using Core.Models;
-using Infrastructure.Data;
 using Infrastructure.Exceptions;
 using Infrastructure.Services.MediaUploads;
 using Infrastructure.Services.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Infrastructure.Persistance;
 
 namespace Infrastructure.Services.KPI
 {

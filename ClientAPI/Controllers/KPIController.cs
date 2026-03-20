@@ -1,5 +1,5 @@
-﻿using Core.DTOs.KPI;
-using Core.Interfaces;
+﻿using Application.Interfaces;
+using Application.DTOs.KPI;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
