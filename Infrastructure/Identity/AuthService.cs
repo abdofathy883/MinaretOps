@@ -306,6 +306,7 @@ namespace Infrastructure.Identity
         {
             if (updatedUser is null)
                 throw new InvalidObjectException("بيانات الحساب غير مكتملة");
+
             var user = await GetUserOrThrow(updatedUser.Id);
 
             if (user.FirstName != updatedUser.FirstName 
@@ -339,7 +340,8 @@ namespace Infrastructure.Identity
                 user.EmailConfirmed = true;
             }
 
-            if (user.PhoneNumber != updatedUser.PhoneNumber && !string.IsNullOrWhiteSpace(updatedUser.PhoneNumber))
+            //if (user.PhoneNumber != updatedUser.PhoneNumber 
+            if(!string.IsNullOrWhiteSpace(updatedUser.PhoneNumber))
             {
                 //user.PhoneNumber = updatedUser.PhoneNumber.Trim();
                 await userManager.SetPhoneNumberAsync(user, updatedUser.PhoneNumber.Trim());
