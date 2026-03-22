@@ -1,6 +1,6 @@
-﻿using Application.DTOs.Portfolio;
+using Application.DTOs.Portfolio.Category;
 using AutoMapper;
-using Core.Models;
+using Core.Models.Portfolio;
 
 namespace Application.MappingProfiles
 {
@@ -9,7 +9,7 @@ namespace Application.MappingProfiles
         public PortfolioCategoryProfile()
         {
             CreateMap<PortfolioCategory, PortfolioCategoryDTO>();
-                //.ForMember(dest => dest.PortfolioItems, opt => opt.MapFrom(src => src.PortfolioItems));
+            CreateMap<PortfolioCategoryTranslation, PortfolioCategoryTranslationDTO>();
         }
     }
 }

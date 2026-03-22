@@ -1,13 +1,12 @@
 ﻿using Microsoft.AspNetCore.Http;
 
-namespace Application.DTOs.Portfolio
+namespace Application.DTOs.Portfolio.Item
 {
     public class CreatePortfolioItemDTO
     {
-        public required string Title { get; set; }
-        public string? Description { get; set; }
+        public string? Slug { get; set; }
         public IFormFile? ImageFile { get; set; }
-        public string? ImageAltText { get; set; }
         public int? CategoryId { get; set; }
+        public List<CreatePortfolioItemTranslationDTO> Translations { get; set; } = new();
     }
 }

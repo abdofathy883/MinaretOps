@@ -84,7 +84,8 @@ namespace Infrastructure.Identity
         public async Task<AuthResponseDTO> LoginAsync(LoginDTO login)
         {
             var authDTO = new AuthResponseDTO();
-            var user = await userManager.FindByNameAsync(login.PhoneNumber);
+            //var user = await userManager.FindByNameAsync(login.PhoneNumber);
+            var user = await userManager.Users.FirstAsync(u => u.PhoneNumber == login.PhoneNumber.Trim());
 
             if (user is null)
                 return FailResult("لا يوجد حساب بهذه البيانات");
@@ -318,9 +319,13 @@ namespace Infrastructure.Identity
             if (user.City != updatedUser.City 
                 && !string.IsNullOrWhiteSpace(updatedUser.City))
                 user.City = updatedUser.City.Trim();
-            if (user.Street != updatedUser.Street && !string.IsNullOrWhiteSpace(updatedUser.Street))
+
+            if (user.Street != updatedUser.Street 
+                && !string.IsNullOrWhiteSpace(updatedUser.Street))
                 user.Street = updatedUser.Street.Trim();
-            if (user.PaymentNumber != updatedUser.PaymentNumber && !string.IsNullOrWhiteSpace(updatedUser.PaymentNumber))
+
+            if (user.PaymentNumber != updatedUser.PaymentNumber 
+                && !string.IsNullOrWhiteSpace(updatedUser.PaymentNumber))
                 user.PaymentNumber = updatedUser.PaymentNumber.Trim();
 
             if (user.BaseSalary != updatedUser.BaseSalary && updatedUser.BaseSalary !=0)
@@ -330,15 +335,16 @@ namespace Infrastructure.Identity
             {
                 await userManager.SetEmailAsync(user, updatedUser.Email.Trim());
                 await userManager.UpdateNormalizedEmailAsync(user);
-                await userManager.SetUserNameAsync(user, updatedUser.Email.Split("@")[0].Trim());
 
                 user.EmailConfirmed = true;
             }
+
             if (user.PhoneNumber != updatedUser.PhoneNumber && !string.IsNullOrWhiteSpace(updatedUser.PhoneNumber))
             {
                 //user.PhoneNumber = updatedUser.PhoneNumber.Trim();
                 await userManager.SetPhoneNumberAsync(user, updatedUser.PhoneNumber.Trim());
-                //await userManager.pho
+                await userManager.SetUserNameAsync(user, updatedUser.PhoneNumber.Trim());
+                //await userManager.con
                 user.PhoneNumberConfirmed = true;
             }
             if (user.EmployeeType != updatedUser.EmployeeType)

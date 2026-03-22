@@ -1,4 +1,5 @@
-﻿using Application.DTOs.Portfolio;
+using Application.DTOs.Portfolio.Category;
+using Application.DTOs.Portfolio.Item;
 using Application.Interfaces;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -31,9 +32,9 @@ namespace ClientAPI.Controllers
             return Ok(category);
         }
         [HttpPost("categories")]
-        public async Task<IActionResult> CreateCategory(CreatePortfolioCategoryDTO createCategory)
+        public async Task<IActionResult> CreateCategory(CreatePortfolioCategoryDTO createCategory, int? categoryId)
         {
-            var category = await _portfolioCategoryService.Create(createCategory);
+            var category = await _portfolioCategoryService.Create(createCategory, categoryId);
             return Ok(category);
         }
 
@@ -53,9 +54,9 @@ namespace ClientAPI.Controllers
         }
 
         [HttpPost("items")]
-        public async Task<IActionResult> CreateItem(CreatePortfolioItemDTO createItem)
+        public async Task<IActionResult> CreateItem([FromForm] CreatePortfolioItemDTO createItem, [FromQuery] int? itemId)
         {
-            var item = await _portfolioService.Create(createItem);
+            var item = await _portfolioService.Create(createItem, itemId);
             return Ok(item);
         }
     }

@@ -1,9 +1,10 @@
-﻿using Application.Interfaces;
+using Application.Interfaces;
 using AutoMapper;
-using Application.DTOs.Portfolio;
 using Infrastructure.Persistance;
 using Core.Models;
 using Microsoft.EntityFrameworkCore;
+using Application.DTOs.Portfolio.Category;
+using Core.Models.Portfolio;
 
 namespace Infrastructure.Services.Portfolio
 {
@@ -18,21 +19,60 @@ namespace Infrastructure.Services.Portfolio
             this.mapper = mapper;
         }
 
-        public async Task<PortfolioCategoryDTO> Create(CreatePortfolioCategoryDTO createCategory)
+        public async Task<PortfolioCategoryDTO> Create(CreatePortfolioCategoryDTO createCategory, int? categoryId)
         {
-            var newCat = new PortfolioCategory {
-                Title = createCategory.Title,
-                Description = createCategory.Description ?? string.Empty
-            };
+            PortfolioCategory category;
 
-            await context.PortfolioCategories.AddAsync(newCat);
+            if (categoryId.HasValue)
+            {
+                category = await context.PortfolioCategories
+                    .Include(c => c.Translations)
+                    .FirstOrDefaultAsync(c => c.Id == categoryId.Value)
+                    ?? throw new Exception("Category not found");
+                
+                foreach (var t in createCategory.Translations)
+                {
+                    if (!category.Translations.Any(tr => tr.LanguageCode == t.LanguageCode))
+                    {
+                        category.Translations.Add(new PortfolioCategoryTranslation
+                        {
+                            LanguageCode = t.LanguageCode,
+                            Title = t.Title,
+                            Description = t.Description ?? string.Empty
+                        });
+                    }
+                }
+            }
+            else
+            {
+                category = new PortfolioCategory
+                {
+                    Translations = createCategory.Translations.Select(t => new PortfolioCategoryTranslation
+                    {
+                        LanguageCode = t.LanguageCode,
+                        Title = t.Title,
+                        Description = t.Description ?? string.Empty
+                    }).ToList()
+                };
+                await context.PortfolioCategories.AddAsync(category);
+            }
+
             await context.SaveChangesAsync();
-            return mapper.Map<PortfolioCategoryDTO>(newCat);
+            return mapper.Map<PortfolioCategoryDTO>(category);
+        }
+
+        public async Task<bool> Delete(int id)
+        {
+            var category = await context.PortfolioCategories.FindAsync(id)
+                ?? throw new KeyNotFoundException($"No portfolio category found with id {id}");
+            context.PortfolioCategories.Remove(category);
+            return await context.SaveChangesAsync() > 0;
         }
 
         public async Task<List<PortfolioCategoryDTO>> GetAll()
         {
             var categories = await context.PortfolioCategories
+                .Include(c => c.Translations)
                 .Include(c => c.PortfolioItems)
                 .ToListAsync();
             return mapper.Map<List<PortfolioCategoryDTO>>(categories);
@@ -41,6 +81,7 @@ namespace Infrastructure.Services.Portfolio
         public async Task<PortfolioCategoryDTO> GetById(int id)
         {
             var category = await context.PortfolioCategories
+                .Include(c => c.Translations)
                 .Include(c => c.PortfolioItems)
                 .SingleAsync(c => c.Id == id);
 

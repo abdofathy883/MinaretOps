@@ -1,7 +1,8 @@
-﻿using Application.DTOs.Portfolio;
+using Application.DTOs.Portfolio.Item;
 using Application.Interfaces;
 using AutoMapper;
 using Core.Models;
+using Core.Models.Portfolio;
 using Infrastructure.Persistance;
 using Infrastructure.Services.MediaUploads;
 using Microsoft.EntityFrameworkCore;
@@ -21,27 +22,63 @@ namespace Infrastructure.Services.Portfolio
             this.mapper = mapper;
         }
 
-        public async Task<PortfolioItemDTO> Create(CreatePortfolioItemDTO createDTO)
+        public async Task<PortfolioItemDTO> Create(CreatePortfolioItemDTO createDTO, int? itemId = null)
         {
-            var featuredImagURL = string.Empty;
-            if (createDTO.ImageFile is not null)
+            PortfolioItem item;
+
+            if (itemId.HasValue)
             {
-                var uploaded = await mediaUploadService.UploadImageWithPath(
-                    createDTO.ImageFile,
-                    $"Almnara_{createDTO.Title}"
-                    );
-                featuredImagURL = uploaded.Url;
+                item = await context.PortfolioItems
+                    .Include(p => p.Translations)
+                    .FirstOrDefaultAsync(p => p.Id == itemId.Value)
+                    ?? throw new KeyNotFoundException($"No portfolio item found with id {itemId}");
+
+                // Add translations
+                foreach (var t in createDTO.Translations)
+                {
+                    if (!item.Translations.Any(tr => tr.LanguageCode == t.LanguageCode))
+                    {
+                        item.Translations.Add(new PortfolioTranslation
+                        {
+                            LanguageCode = t.LanguageCode,
+                            Title = t.Title,
+                            Description = t.Description,
+                            ImageAltText = t.ImageAltText,
+                            Status = t.Status
+                        });
+                    }
+                }
+            }
+            else
+            {
+                var featuredImagURL = string.Empty;
+                if (createDTO.ImageFile is not null)
+                {
+                    var uploaded = await mediaUploadService.UploadImageWithPath(
+                        createDTO.ImageFile,
+                        $"Almnara_{createDTO.Slug}"
+                        );
+                    featuredImagURL = uploaded.Url;
+                }
+
+                item = new PortfolioItem
+                {
+                    Slug = createDTO.Slug,
+                    ImageLink = featuredImagURL,
+                    CategoryId = createDTO.CategoryId,
+                    PublishedAt = DateTime.UtcNow,
+                    Translations = createDTO.Translations.Select(t => new PortfolioTranslation
+                    {
+                        LanguageCode = t.LanguageCode,
+                        Title = t.Title,
+                        Description = t.Description,
+                        ImageAltText = t.ImageAltText,
+                        Status = t.Status
+                    }).ToList()
+                };
+                await context.PortfolioItems.AddAsync(item);
             }
 
-            var item = new PortfolioItem
-            {
-                Title = createDTO.Title,
-                Description = createDTO.Description,
-                ImageLink = featuredImagURL,
-                ImageAltText = createDTO.ImageAltText,
-                CategoryId = createDTO.CategoryId
-            };
-            await context.PortfolioItems.AddAsync(item);
             await context.SaveChangesAsync();
             return mapper.Map<PortfolioItemDTO>(item);
         }
@@ -57,7 +94,8 @@ namespace Infrastructure.Services.Portfolio
         public async Task<List<PortfolioItemDTO>> GetAll()
         {
             var items = await context.PortfolioItems
-                .Include(p => p.PortfolioCategory)
+                .Include(p => p.Translations)
+                //.Include(p => p.PortfolioCategory)
                 .ToListAsync();
             return mapper.Map<List<PortfolioItemDTO>>(items);
         }
@@ -65,9 +103,19 @@ namespace Infrastructure.Services.Portfolio
         public async Task<PortfolioItemDTO> GetById(int id)
         {
             var item = await context.PortfolioItems
-                .Include(p => p.PortfolioCategory)
+                .Include(p => p.Translations)
+                //.Include(p => p.PortfolioCategory)
                 .SingleAsync(p => p.Id == id)
                 ?? throw new KeyNotFoundException($"No portfolio item found with id {id}");
+            return mapper.Map<PortfolioItemDTO>(item);
+        }
+
+        public async Task<PortfolioItemDTO> GetBySlug(string slug)
+        {
+            var item = await context.PortfolioItems
+                .Include(p => p.Translations)
+                .SingleOrDefaultAsync(p => p.Slug == slug)
+                ?? throw new KeyNotFoundException($"No portfolio item found with slug {slug}");
             return mapper.Map<PortfolioItemDTO>(item);
         }
     }

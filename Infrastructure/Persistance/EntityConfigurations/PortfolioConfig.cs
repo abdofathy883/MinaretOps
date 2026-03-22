@@ -1,4 +1,4 @@
-﻿using Core.Models;
+using Core.Models.Portfolio;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -13,20 +13,10 @@ namespace Infrastructure.Persistance.EntityConfigurations
             builder.Property(pi => pi.Id)
                 .UseIdentityColumn(1, 1);
 
-            builder.Property(pi => pi.Title)
-                .IsRequired()
-                .HasMaxLength(500);
-
-            builder.Property(pi => pi.Description)
-                .HasMaxLength(5000);
-
             builder.Property(pi => pi.ImageLink)
                 .HasMaxLength(500);
 
-            builder.Property(pi => pi.ImageAltText)
-                .HasMaxLength(500);
-
-            builder.HasOne(pi => pi.PortfolioCategory)
+            builder.HasOne(pi => pi.Category)
                 .WithMany()
                 .HasForeignKey(pi => pi.CategoryId)
                 .OnDelete(DeleteBehavior.SetNull);

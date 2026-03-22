@@ -1,4 +1,5 @@
 using Core.Models;
+using Core.Models.Portfolio;
 using Infrastructure.Persistance.EntityConfigurations;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -51,7 +52,9 @@ namespace Infrastructure.Persistance
         public DbSet<SeoContent> SeoContents { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
         public DbSet<PortfolioCategory> PortfolioCategories { get; set; }
+        public DbSet<PortfolioCategoryTranslation> PortfolioCategoryTranslations { get; set; }
         public DbSet<PortfolioItem> PortfolioItems { get; set; }
+        public DbSet<PortfolioTranslation> PortfolioTranslations { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -94,7 +97,9 @@ namespace Infrastructure.Persistance
             builder.ApplyConfiguration(new SeoContentConfig());
             builder.ApplyConfiguration(new ContactFormConfig());
             builder.ApplyConfiguration(new PortfolioCategoryConfig());
+            builder.ApplyConfiguration(new PortfolioCategoryTranslationConfig());
             builder.ApplyConfiguration(new PortfolioConfig());
+            builder.ApplyConfiguration(new PortfolioTranslationConfig());
         }
     }
 }
